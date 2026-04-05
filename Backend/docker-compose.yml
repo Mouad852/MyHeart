@@ -1,0 +1,407 @@
+version: '3.8'
+
+# ============================================================
+# Medical Management System - Docker Compose
+#
+# Startup order:
+#   1. PostgreSQL databases (6 total)
+#   2. Eureka Server
+#   3. Patient Service, Doctor Service
+#   4. Appointment Service → calls patient + doctor + billing
+#   5. Billing Service, Prescription Service, Lab Service
+#   6. API Gateway
+# ============================================================
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # DATABASES
+  # ──────────────────────────────────────────────────────────
+
+  patient-db:
+    image: postgres:16-alpine
+    container_name: patient-db
+    environment:
+      POSTGRES_DB: patientdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - patient-db-data:/var/lib/postgresql/data
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d patientdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  doctor-db:
+    image: postgres:16-alpine
+    container_name: doctor-db
+    environment:
+      POSTGRES_DB: doctordb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - doctor-db-data:/var/lib/postgresql/data
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d doctordb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  appointment-db:
+    image: postgres:16-alpine
+    container_name: appointment-db
+    environment:
+      POSTGRES_DB: appointmentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - appointment-db-data:/var/lib/postgresql/data
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appointmentdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  billing-db:
+    image: postgres:16-alpine
+    container_name: billing-db
+    environment:
+      POSTGRES_DB: billingdb
+      POSTGRES_USER: billing_user
+      POSTGRES_PASSWORD: billing_pass
+    ports:
+      - "5436:5432"
+    volumes:
+      - billing-db-data:/var/lib/postgresql/data
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U billing_user -d billingdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prescription-db:
+    image: postgres:16-alpine
+    container_name: prescription-db
+    environment:
+      POSTGRES_DB: prescriptiondb
+      POSTGRES_USER: prescription_user
+      POSTGRES_PASSWORD: prescription_pass
+    ports:
+      - "5437:5432"
+    volumes:
+      - prescription-db-data:/var/lib/postgresql/data
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prescription_user -d prescriptiondb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  lab-db:
+    image: postgres:16-alpine
+    container_name: lab-db
+    environment:
+      POSTGRES_DB: labdb
+      POSTGRES_USER: lab_user
+      POSTGRES_PASSWORD: lab_pass
+    ports:
+      - "5438:5432"
+    volumes:
+      - lab-db-data:/var/lib/postgresql/data
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab_user -d labdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────────────────
+  # SERVICE DISCOVERY
+  # ──────────────────────────────────────────────────────────
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=eureka-server
+      - SERVER_PORT=8761
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 40s
+      retries: 5
+
+  # ──────────────────────────────────────────────────────────
+  # CORE MICROSERVICES
+  # ──────────────────────────────────────────────────────────
+
+  patient-service:
+    build:
+      context: ./patient-service
+      dockerfile: Dockerfile
+    container_name: patient-service
+    ports:
+      - "8081:8081"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=patient-service
+      - SERVER_PORT=8081
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://patient-db:5432/patientdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      patient-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  doctor-service:
+    build:
+      context: ./doctor-service
+      dockerfile: Dockerfile
+    container_name: doctor-service
+    ports:
+      - "8082:8082"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=doctor-service
+      - SERVER_PORT=8082
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://doctor-db:5432/doctordb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      doctor-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  billing-service:
+    build:
+      context: ./billing-service
+      dockerfile: Dockerfile
+    container_name: billing-service
+    ports:
+      - "8084:8084"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=billing-service
+      - SERVER_PORT=8084
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://billing-db:5432/billingdb
+      - SPRING_DATASOURCE_USERNAME=billing_user
+      - SPRING_DATASOURCE_PASSWORD=billing_pass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8084/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  prescription-service:
+    build:
+      context: ./prescription-service
+      dockerfile: Dockerfile
+    container_name: prescription-service
+    ports:
+      - "8085:8085"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=prescription-service
+      - SERVER_PORT=8085
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://prescription-db:5432/prescriptiondb
+      - SPRING_DATASOURCE_USERNAME=prescription_user
+      - SPRING_DATASOURCE_PASSWORD=prescription_pass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      prescription-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      patient-service:
+        condition: service_healthy
+      doctor-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  lab-service:
+    build:
+      context: ./lab-service
+      dockerfile: Dockerfile
+    container_name: lab-service
+    ports:
+      - "8086:8086"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=lab-service
+      - SERVER_PORT=8086
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://lab-db:5432/labdb
+      - SPRING_DATASOURCE_USERNAME=lab_user
+      - SPRING_DATASOURCE_PASSWORD=lab_pass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      lab-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      patient-service:
+        condition: service_healthy
+      doctor-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8086/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  appointment-service:
+    build:
+      context: ./appointment-service
+      dockerfile: Dockerfile
+    container_name: appointment-service
+    ports:
+      - "8083:8083"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=appointment-service
+      - SERVER_PORT=8083
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://appointment-db:5432/appointmentdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      appointment-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      patient-service:
+        condition: service_healthy
+      doctor-service:
+        condition: service_healthy
+      billing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8083/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      start_period: 90s
+      retries: 5
+
+  # ──────────────────────────────────────────────────────────
+  # API GATEWAY (last to start)
+  # ──────────────────────────────────────────────────────────
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - medical-network
+    environment:
+      - SPRING_APPLICATION_NAME=api-gateway
+      - SERVER_PORT=8080
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      patient-service:
+        condition: service_healthy
+      doctor-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+      billing-service:
+        condition: service_healthy
+      prescription-service:
+        condition: service_healthy
+      lab-service:
+        condition: service_healthy
+
+# ──────────────────────────────────────────────────────────
+# VOLUMES
+# ──────────────────────────────────────────────────────────
+volumes:
+  patient-db-data:
+    driver: local
+  doctor-db-data:
+    driver: local
+  appointment-db-data:
+    driver: local
+  billing-db-data:
+    driver: local
+  prescription-db-data:
+    driver: local
+  lab-db-data:
+    driver: local
+
+# ──────────────────────────────────────────────────────────
+# NETWORK
+# ──────────────────────────────────────────────────────────
+networks:
+  medical-network:
+    driver: bridge
+    name: medical-network

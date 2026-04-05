@@ -1,0 +1,24 @@
+### Maven ###
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+### IDE ###
+.idea/
+*.iml
+.vscode/
+*.swp
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Spring Boot ###
+application-local.properties
+*.log
+logs/
+
+### Docker ###
+.docker/
