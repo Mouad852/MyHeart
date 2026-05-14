@@ -15,5 +15,7 @@ public interface AppointmentService {
 
     AppointmentDTO.Response getAppointmentById(Long id);
 
+    AppointmentDTO.Response updateAppointment(Long id, AppointmentDTO.Request request);
+
     AppointmentDTO.Response cancelAppointment(Long id);
 }

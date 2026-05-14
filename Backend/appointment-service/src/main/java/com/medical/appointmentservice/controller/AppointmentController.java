@@ -14,10 +14,10 @@ import java.util.List;
 /**
  * REST Controller for Appointment operations.
  * Endpoints:
- *   POST   /appointments          - create appointment
- *   GET    /appointments          - list all appointments
- *   GET    /appointments/{id}     - get by ID
- *   PATCH  /appointments/{id}/cancel - cancel appointment
+ * POST /appointments - create appointment
+ * GET /appointments - list all appointments
+ * GET /appointments/{id} - get by ID
+ * PATCH /appointments/{id}/cancel - cancel appointment
  */
 @RestController
 @RequestMapping("/appointments")
@@ -58,6 +58,20 @@ public class AppointmentController {
     public ResponseEntity<AppointmentDTO.Response> getAppointmentById(@PathVariable Long id) {
         log.info("REST GET /appointments/{}", id);
         return ResponseEntity.ok(appointmentService.getAppointmentById(id));
+    }
+
+    /**
+     * PATCH /appointments/{id}
+     * Updates an existing appointment (patient, doctor, date, notes).
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<AppointmentDTO.Response> updateAppointment(
+            @PathVariable Long id,
+            @Valid @RequestBody AppointmentDTO.Request request) {
+        log.info("REST PATCH /appointments/{} - Updating with patientId={}, doctorId={}",
+                id, request.getPatientId(), request.getDoctorId());
+        AppointmentDTO.Response response = appointmentService.updateAppointment(id, request);
+        return ResponseEntity.ok(response);
     }
 
     /**

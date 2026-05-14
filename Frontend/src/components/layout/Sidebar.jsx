@@ -2,6 +2,7 @@
  * Sidebar.jsx — Left navigation panel.
  * Shows the brand, nav links, and a system status indicator.
  */
+import React from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Users, Stethoscope, CalendarDays,
@@ -66,19 +67,17 @@ export default function Sidebar() {
         {/* Nav links */}
         <nav className="px-3 flex flex-col gap-0.5">
           {NAV_ITEMS.map(({ to, icon: Icon, label, end }, idx) => (
-            <>
-              {/* Section divider before extended services */}
+            <React.Fragment key={to}>
               {idx === 4 && (
-                <div key="divider" className="mx-3 my-2 border-t border-white/5" />
+                <div className="mx-3 my-2 border-t border-white/5" />
               )}
               <NavLink
-                key={to}
                 to={to}
                 end={end}
                 className={({ isActive }) =>
                   `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-                   transition-all duration-200
-                   ${isActive
+         transition-all duration-200
+         ${isActive
                     ? 'bg-teal-500/15 text-teal-400 border border-teal-500/20'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
                   }`
@@ -89,7 +88,7 @@ export default function Sidebar() {
                     <Icon
                       size={17}
                       className={`flex-shrink-0 transition-colors duration-200
-                        ${isActive ? 'text-teal-400' : 'text-slate-500 group-hover:text-slate-300'}`}
+              ${isActive ? 'text-teal-400' : 'text-slate-500 group-hover:text-slate-300'}`}
                     />
                     <span className="flex-1">{label}</span>
                     {isActive && (
@@ -98,7 +97,7 @@ export default function Sidebar() {
                   </>
                 )}
               </NavLink>
-            </>
+            </React.Fragment>
           ))}
         </nav>
 

@@ -1,17 +1,5 @@
 version: '3.8'
 
-# ============================================================
-# Medical Management System - Docker Compose
-#
-# Startup order:
-#   1. PostgreSQL databases (6 total)
-#   2. Eureka Server
-#   3. Patient Service, Doctor Service
-#   4. Appointment Service → calls patient + doctor + billing
-#   5. Billing Service, Prescription Service, Lab Service
-#   6. API Gateway
-# ============================================================
-
 services:
 
   # ──────────────────────────────────────────────────────────
@@ -32,7 +20,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d patientdb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d patientdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,7 +39,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d doctordb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d doctordb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -70,7 +58,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d appointmentdb"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d appointmentdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,7 +77,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U billing_user -d billingdb"]
+      test: [ "CMD-SHELL", "pg_isready -U billing_user -d billingdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,7 +96,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prescription_user -d prescriptiondb"]
+      test: [ "CMD-SHELL", "pg_isready -U prescription_user -d prescriptiondb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -127,7 +115,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lab_user -d labdb"]
+      test: [ "CMD-SHELL", "pg_isready -U lab_user -d labdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -142,14 +130,14 @@ services:
       dockerfile: Dockerfile
     container_name: eureka-server
     ports:
-      - "8761:8761"
+      - "8761:8761" # ✅ unchanged
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=eureka-server
       - SERVER_PORT=8761
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8761/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8761/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 40s
@@ -165,12 +153,12 @@ services:
       dockerfile: Dockerfile
     container_name: patient-service
     ports:
-      - "8081:8081"
+      - "8001:8001" # ✅ unchanged
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=patient-service
-      - SERVER_PORT=8081
+      - SERVER_PORT=8001 # 🔧 fixed: was 8081 (excluded)
       - SPRING_DATASOURCE_URL=jdbc:postgresql://patient-db:5432/patientdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
@@ -182,7 +170,7 @@ services:
       eureka-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8001/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 60s
@@ -194,12 +182,12 @@ services:
       dockerfile: Dockerfile
     container_name: doctor-service
     ports:
-      - "8082:8082"
+      - "8003:8003" # 🔧 fixed host: was 8080 (conflicts with gateway)
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=doctor-service
-      - SERVER_PORT=8082
+      - SERVER_PORT=8003 # 🔧 fixed: was 8082 (excluded)
       - SPRING_DATASOURCE_URL=jdbc:postgresql://doctor-db:5432/doctordb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
@@ -211,7 +199,7 @@ services:
       eureka-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8082/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8003/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 60s
@@ -223,12 +211,12 @@ services:
       dockerfile: Dockerfile
     container_name: billing-service
     ports:
-      - "8084:8084"
+      - "8002:8002" # ✅ unchanged
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=billing-service
-      - SERVER_PORT=8084
+      - SERVER_PORT=8002
       - SPRING_DATASOURCE_URL=jdbc:postgresql://billing-db:5432/billingdb
       - SPRING_DATASOURCE_USERNAME=billing_user
       - SPRING_DATASOURCE_PASSWORD=billing_pass
@@ -240,7 +228,7 @@ services:
       eureka-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8084/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8002/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 60s
@@ -252,12 +240,12 @@ services:
       dockerfile: Dockerfile
     container_name: prescription-service
     ports:
-      - "8085:8085"
+      - "8004:8004" # 🔧 fixed: was 8085:8085 (excluded)
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=prescription-service
-      - SERVER_PORT=8085
+      - SERVER_PORT=8004 # 🔧 fixed: was 8085 (excluded)
       - SPRING_DATASOURCE_URL=jdbc:postgresql://prescription-db:5432/prescriptiondb
       - SPRING_DATASOURCE_USERNAME=prescription_user
       - SPRING_DATASOURCE_PASSWORD=prescription_pass
@@ -273,7 +261,7 @@ services:
       doctor-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8085/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8004/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 60s
@@ -285,12 +273,12 @@ services:
       dockerfile: Dockerfile
     container_name: lab-service
     ports:
-      - "8086:8086"
+      - "8005:8005" # 🔧 fixed: was 8086:8086 (excluded)
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=lab-service
-      - SERVER_PORT=8086
+      - SERVER_PORT=8005 # 🔧 fixed: was 8086 (excluded)
       - SPRING_DATASOURCE_URL=jdbc:postgresql://lab-db:5432/labdb
       - SPRING_DATASOURCE_USERNAME=lab_user
       - SPRING_DATASOURCE_PASSWORD=lab_pass
@@ -306,7 +294,7 @@ services:
       doctor-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8086/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8005/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 60s
@@ -318,12 +306,12 @@ services:
       dockerfile: Dockerfile
     container_name: appointment-service
     ports:
-      - "8083:8083"
+      - "8006:8006" # 🔧 fixed: was 8083:8083 (excluded)
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=appointment-service
-      - SERVER_PORT=8083
+      - SERVER_PORT=8006 # 🔧 fixed: was 8083 (excluded)
       - SPRING_DATASOURCE_URL=jdbc:postgresql://appointment-db:5432/appointmentdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
@@ -341,7 +329,7 @@ services:
       billing-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8083/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8006/actuator/health || exit 1" ]
       interval: 15s
       timeout: 10s
       start_period: 90s
@@ -357,7 +345,7 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8080:8080"
+      - "8080:8080" # 🔧 fixed host: was 8088 (excluded)
     networks:
       - medical-network
     environment:

@@ -24,6 +24,9 @@ const appointmentApi = {
 
   /** PATCH /appointments/:id/cancel — cancel an appointment */
   cancel: (id) => axiosInstance.patch(`${BASE}/${id}/cancel`).then((r) => r.data),
+
+  /** PATCH /appointments/:id - Update an appointment */
+  update: (id, data) => axiosInstance.patch(`${BASE}/${id}`, data).then((r) => r.data),
 }
 
 export default appointmentApi

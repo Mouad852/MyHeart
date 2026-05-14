@@ -26,10 +26,12 @@ import java.util.stream.Collectors;
  * AppointmentServiceImpl - Contains the core business logic.
  *
  * Inter-service communication flow (createAppointment):
- *  1. Validate that the patient exists  → calls patient-service via PatientClient (Feign)
- *  2. Validate that the doctor exists   → calls doctor-service via DoctorClient (Feign)
- *  3. Persist the appointment in appointmentdb
- *  4. Enrich the response with patient/doctor details
+ * 1. Validate that the patient exists → calls patient-service via PatientClient
+ * (Feign)
+ * 2. Validate that the doctor exists → calls doctor-service via DoctorClient
+ * (Feign)
+ * 3. Persist the appointment in appointmentdb
+ * 4. Enrich the response with patient/doctor details
  *
  * If either patient or doctor is not found (404 from the remote service),
  * we throw ExternalServiceException with a meaningful message.
@@ -73,7 +75,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             BillingRequest billingRequest = BillingRequest.builder()
                     .appointmentId(saved.getId())
                     .patientId(saved.getPatientId())
-                    .amount(BigDecimal.valueOf(100.00))  // Default consultation fee
+                    .amount(BigDecimal.valueOf(100.00)) // Default consultation fee
                     .description("Consultation invoice for appointment #" + saved.getId())
                     .build();
             billingClient.createInvoice(billingRequest);
@@ -118,6 +120,39 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public AppointmentDTO.Response updateAppointment(Long id, AppointmentDTO.Request request) {
+        log.info("Updating appointment with ID: {}", id);
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with ID: " + id));
+
+        if (request.getPatientId() != null) {
+            verifyPatient(request.getPatientId());
+            appointment.setPatientId(request.getPatientId());
+        }
+
+        if (request.getDoctorId() != null) {
+            verifyDoctor(request.getDoctorId());
+            appointment.setDoctorId(request.getDoctorId());
+        }
+
+        if (request.getAppointmentDate() != null) {
+            appointment.setAppointmentDate(request.getAppointmentDate());
+        }
+
+        if (request.getNotes() != null) {
+            appointment.setNotes(request.getNotes());
+        }
+
+        Appointment updated = appointmentRepository.save(appointment);
+        log.info("Appointment updated with ID: {}", updated.getId());
+        PatientInfo patient = safeGetPatient(updated.getPatientId());
+        DoctorInfo doctor = safeGetDoctor(updated.getDoctorId());
+
+        return mapToResponse(updated, patient, doctor);
+    }
+
+    @Override
     public AppointmentDTO.Response cancelAppointment(Long id) {
         log.info("Cancelling appointment with ID: {}", id);
 
@@ -144,7 +179,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     /**
      * Call patient-service to verify a patient exists.
-     * Throws ExternalServiceException if not found (FeignException.NotFound = HTTP 404).
+     * Throws ExternalServiceException if not found (FeignException.NotFound = HTTP
+     * 404).
      */
     private PatientInfo verifyPatient(Long patientId) {
         try {
@@ -218,7 +254,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .status(appointment.getStatus())
                 .notes(appointment.getNotes())
                 .createdAt(appointment.getCreatedAt() != null
-                        ? appointment.getCreatedAt().toString() : null)
+                        ? appointment.getCreatedAt().toString()
+                        : null)
                 .patient(patient)
                 .doctor(doctor)
                 .build();
