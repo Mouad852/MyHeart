@@ -120,6 +120,23 @@ services:
       timeout: 5s
       retries: 5
 
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: keycloak-db
+    environment:
+      POSTGRES_DB: keycloakdb
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloakdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medical-network
+
   # ──────────────────────────────────────────────────────────
   # SERVICE DISCOVERY
   # ──────────────────────────────────────────────────────────
@@ -130,7 +147,7 @@ services:
       dockerfile: Dockerfile
     container_name: eureka-server
     ports:
-      - "8761:8761" # ✅ unchanged
+      - "8761:8761"
     networks:
       - medical-network
     environment:
@@ -153,12 +170,12 @@ services:
       dockerfile: Dockerfile
     container_name: patient-service
     ports:
-      - "8001:8001" # ✅ unchanged
+      - "8001:8001"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=patient-service
-      - SERVER_PORT=8001 # 🔧 fixed: was 8081 (excluded)
+      - SERVER_PORT=8001
       - SPRING_DATASOURCE_URL=jdbc:postgresql://patient-db:5432/patientdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
@@ -182,12 +199,12 @@ services:
       dockerfile: Dockerfile
     container_name: doctor-service
     ports:
-      - "8003:8003" # 🔧 fixed host: was 8080 (conflicts with gateway)
+      - "8003:8003"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=doctor-service
-      - SERVER_PORT=8003 # 🔧 fixed: was 8082 (excluded)
+      - SERVER_PORT=8003
       - SPRING_DATASOURCE_URL=jdbc:postgresql://doctor-db:5432/doctordb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
@@ -211,7 +228,7 @@ services:
       dockerfile: Dockerfile
     container_name: billing-service
     ports:
-      - "8002:8002" # ✅ unchanged
+      - "8002:8002"
     networks:
       - medical-network
     environment:
@@ -240,12 +257,12 @@ services:
       dockerfile: Dockerfile
     container_name: prescription-service
     ports:
-      - "8004:8004" # 🔧 fixed: was 8085:8085 (excluded)
+      - "8004:8004"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=prescription-service
-      - SERVER_PORT=8004 # 🔧 fixed: was 8085 (excluded)
+      - SERVER_PORT=8004
       - SPRING_DATASOURCE_URL=jdbc:postgresql://prescription-db:5432/prescriptiondb
       - SPRING_DATASOURCE_USERNAME=prescription_user
       - SPRING_DATASOURCE_PASSWORD=prescription_pass
@@ -273,12 +290,12 @@ services:
       dockerfile: Dockerfile
     container_name: lab-service
     ports:
-      - "8005:8005" # 🔧 fixed: was 8086:8086 (excluded)
+      - "8005:8005"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=lab-service
-      - SERVER_PORT=8005 # 🔧 fixed: was 8086 (excluded)
+      - SERVER_PORT=8005
       - SPRING_DATASOURCE_URL=jdbc:postgresql://lab-db:5432/labdb
       - SPRING_DATASOURCE_USERNAME=lab_user
       - SPRING_DATASOURCE_PASSWORD=lab_pass
@@ -306,12 +323,12 @@ services:
       dockerfile: Dockerfile
     container_name: appointment-service
     ports:
-      - "8006:8006" # 🔧 fixed: was 8083:8083 (excluded)
+      - "8006:8006"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=appointment-service
-      - SERVER_PORT=8006 # 🔧 fixed: was 8083 (excluded)
+      - SERVER_PORT=8006
       - SPRING_DATASOURCE_URL=jdbc:postgresql://appointment-db:5432/appointmentdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
@@ -345,7 +362,7 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8080:8080" # 🔧 fixed host: was 8088 (excluded)
+      - "8080:8080"
     networks:
       - medical-network
     environment:
@@ -369,6 +386,27 @@ services:
       lab-service:
         condition: service_healthy
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloakdb
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+    ports:
+      - "8180:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - medical-network
+
 # ──────────────────────────────────────────────────────────
 # VOLUMES
 # ──────────────────────────────────────────────────────────
@@ -384,6 +422,8 @@ volumes:
   prescription-db-data:
     driver: local
   lab-db-data:
+    driver: local
+  keycloak-db-data:
     driver: local
 
 # ──────────────────────────────────────────────────────────

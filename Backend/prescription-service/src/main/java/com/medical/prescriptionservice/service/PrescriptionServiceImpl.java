@@ -99,4 +99,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 .createdAt(p.getCreatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PrescriptionDTO> getAllPrescriptions() {
+        return prescriptionRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
 }

@@ -33,15 +33,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ExternalServiceException.class)
-    public ResponseEntity<ErrorResponse> handleExternalServiceException(ExternalServiceException ex) {
-        log.error("External service error: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
-                ErrorResponse.builder()
-                        .timestamp(LocalDateTime.now().toString())
-                        .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
-                        .error("External Service Error")
-                        .message(ex.getMessage())
-                        .build());
+    public ResponseEntity<Map<String, String>> handleExternalService(ExternalServiceException ex) {
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(Map.of(
+                "error", "Upstream service unavailable",
+                "message", ex.getMessage()
+            ));
     }
 
     @ExceptionHandler(IllegalStateException.class)

@@ -15,14 +15,19 @@ const labApi = {
    * @param {{ patientId: number, doctorId: number, testName: string, notes?: string }} data
    */
   createLabRequest: (data) =>
-    axiosInstance.post(`${BASE}/requests`, data).then((r) => r.data),
+    axiosInstance.post(`${BASE}/requests`, {
+      patientId: data.patientId,
+      doctorId: data.doctorId,
+      testName: data.testName,
+      testDescription: data.notes
+    }).then((r) => r.data),
 
   /**
    * GET /labs/requests/patient/{patientId}
    * Fetch all lab requests for a patient.
    */
   getByPatient: (patientId) =>
-    axiosInstance.get(`${BASE}/requests/patient/${patientId}`).then((r) => r.data),
+    axiosInstance.get(`${BASE}/patient/${patientId}`).then((r) => r.data),
 
   /**
    * POST /labs/results
@@ -30,14 +35,18 @@ const labApi = {
    * @param {{ requestId: number, result: string, notes?: string }} data
    */
   createLabResult: (data) =>
-    axiosInstance.post(`${BASE}/results`, data).then((r) => r.data),
+    axiosInstance.post(`${BASE}/result`, {
+      labRequestId: data.requestId,
+      resultText: data.result,
+      observations: data.notes
+    }).then((r) => r.data),
 
   /**
    * GET /labs/results/request/{requestId}
    * Fetch all results for a given lab request.
    */
   getResultsByRequest: (requestId) =>
-    axiosInstance.get(`${BASE}/results/request/${requestId}`).then((r) => r.data),
+    axiosInstance.get(`${BASE}/${requestId}/results`).then((r) => r.data),
 
   /**
    * GET /labs/requests

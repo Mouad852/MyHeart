@@ -33,10 +33,10 @@ import {
 import { formatDate } from '../../utils'
 
 export default function LabsPage() {
-  const [patientId,       setPatientId]       = useState('')
-  const [requestOpen,     setRequestOpen]     = useState(false)
-  const [resultTarget,    setResultTarget]    = useState(null) // {id, testName}
-  const [expandedId,      setExpandedId]      = useState(null)
+  const [patientId, setPatientId] = useState('')
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [resultTarget, setResultTarget] = useState(null) // {id, testName}
+  const [expandedId, setExpandedId] = useState(null)
 
   const {
     data: requests = [],
@@ -46,7 +46,7 @@ export default function LabsPage() {
   } = useLabRequestsByPatient(patientId)
 
   const createRequestMutation = useCreateLabRequest({ onSuccess: () => setRequestOpen(false) })
-  const createResultMutation  = useCreateLabResult({  onSuccess: () => setResultTarget(null) })
+  const createResultMutation = useCreateLabResult({ onSuccess: () => setResultTarget(null) })
 
   const toggleExpand = (id) =>
     setExpandedId((prev) => (prev === id ? null : id))
@@ -110,11 +110,11 @@ export default function LabsPage() {
           <div className="divide-y divide-white/5">
             {requests.map((req, i) => {
               const isExpanded = expandedId === req.id
-              const isPending  = req.status === 'PENDING'
+              const isPending = req.status === 'PENDING'
 
               return (
                 <div key={req.id} className="animate-slide-up"
-                     style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}>
+                  style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}>
 
                   {/* ── Request row ── */}
                   <div
@@ -254,9 +254,9 @@ function LabResultsPanel({ requestId }) {
                     {formatDate(res.createdAt, 'MMM d, yyyy')}
                   </span>
                 </div>
-                <p className="text-sm text-white leading-relaxed ml-5">{res.result}</p>
-                {res.notes && (
-                  <p className="text-xs text-slate-500 italic ml-5 mt-1">{res.notes}</p>
+                <p className="text-sm text-white leading-relaxed ml-5">{res.resultText}</p>
+                {res.observations && (
+                  <p className="text-xs text-slate-500 italic ml-5 mt-1">{res.observations}</p>
                 )}
               </div>
             ))}

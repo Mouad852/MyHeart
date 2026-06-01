@@ -15,12 +15,25 @@ const prescriptionApi = {
    * @param {{
    *   patientId: number,
    *   doctorId: number,
-   *   diagnosis?: string,
-   *   medicines: Array<{ name: string, dosage: string, frequency: string, duration: string }>
+   *   diagnosis: string,
+   *   notes?: string,
+   *   medicines: Array<{ name: string, dosage: string, frequency: string, duration: string, instructions?: string }>
    * }} data
    */
   createPrescription: (data) =>
-    axiosInstance.post(BASE, data).then((r) => r.data),
+    axiosInstance.post(BASE, {
+      patientId: data.patientId,
+      doctorId: data.doctorId,
+      diagnosis: data.diagnosis,
+      notes: data.notes,
+      items: data.medicines.map(m => ({
+        medicineName: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency,
+        duration: m.duration,
+        instructions: m.instructions
+      })),
+    }).then(r => r.data),
 
   /**
    * GET /prescriptions/{id}

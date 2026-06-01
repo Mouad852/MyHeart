@@ -16,4 +16,6 @@ public interface BillingService {
     InvoiceDTO markAsPaid(Long id);
 
     InvoiceDTO cancelInvoice(Long id);
+
+    List<InvoiceDTO> getAllInvoices();
 }

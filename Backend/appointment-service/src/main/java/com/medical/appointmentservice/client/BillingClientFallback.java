@@ -1,17 +1,14 @@
 package com.medical.appointmentservice.client;
 
 import com.medical.appointmentservice.dto.BillingRequest;
-import lombok.extern.slf4j.Slf4j;
+import com.medical.appointmentservice.exception.ExternalServiceException;
 import org.springframework.stereotype.Component;
 
 @Component
-@Slf4j
 public class BillingClientFallback implements BillingClient {
 
     @Override
     public Object createInvoice(BillingRequest request) {
-        log.warn("Billing service unavailable. Invoice creation skipped for appointmentId={}",
-                request.getAppointmentId());
-        return null;
+        throw new ExternalServiceException("Billing service is currently unavailable. Invoice not created for appointment id=" + request.getAppointmentId());
     }
 }

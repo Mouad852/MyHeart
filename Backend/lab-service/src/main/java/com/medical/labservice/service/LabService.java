@@ -14,5 +14,7 @@ public interface LabService {
 
     LabRequestDTO getRequestById(Long id);
 
+    List<LabRequestDTO> getAllRequests();
+
     List<LabResultDTO> getResultsByRequest(Long labRequestId);
 }

@@ -148,7 +148,7 @@ export default function PrescriptionsPage() {
                     {/* Medicine count + expand */}
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span className="badge bg-violet-500/10 text-violet-400">
-                        {rx.medicines?.length ?? 0} medicine{rx.medicines?.length !== 1 ? 's' : ''}
+                        {rx.items?.length ?? 0} medicine{rx.items?.length !== 1 ? 's' : ''}
                       </span>
                       {isExpanded
                         ? <ChevronUp size={15} className="text-slate-500" />
@@ -158,7 +158,7 @@ export default function PrescriptionsPage() {
                   </div>
 
                   {/* ── Expanded medicines ── */}
-                  {isExpanded && rx.medicines?.length > 0 && (
+                  {isExpanded && rx.items?.length > 0 && (
                     <div className="px-6 pb-5">
                       <div className="ml-13 bg-navy-900/50 rounded-2xl border border-white/5 overflow-hidden">
                         <table className="w-full text-sm">
@@ -176,9 +176,9 @@ export default function PrescriptionsPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {rx.medicines.map((m, mi) => (
+                            {rx.items.map((m, mi) => (
                               <tr key={mi} className="border-b border-white/5 last:border-0">
-                                <td className="px-4 py-2.5 font-medium text-white">{m.name}</td>
+                                <td className="px-4 py-2.5 font-medium text-white">{m.medicineName}</td>
                                 <td className="px-4 py-2.5 text-slate-400">{m.dosage}</td>
                                 <td className="px-4 py-2.5 text-slate-400">{m.frequency}</td>
                                 <td className="px-4 py-2.5 text-slate-400">{m.duration}</td>
