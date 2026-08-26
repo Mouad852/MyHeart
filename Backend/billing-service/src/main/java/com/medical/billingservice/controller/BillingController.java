@@ -43,6 +43,28 @@ public class BillingController {
         return ResponseEntity.ok(billingService.cancelInvoice(id));
     }
 
+    /**
+     * PUT /billing/void/{id}
+     * Cancel an unpaid invoice, recording why.
+     */
+    @PutMapping("/void/{id}")
+    public ResponseEntity<InvoiceDTO> voidInvoice(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(billingService.voidInvoice(id, reason));
+    }
+
+    /**
+     * PUT /billing/refund/{id}
+     * Return money on a paid invoice, recording why.
+     */
+    @PutMapping("/refund/{id}")
+    public ResponseEntity<InvoiceDTO> refundInvoice(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(billingService.refundInvoice(id, reason));
+    }
+
     @GetMapping
     public ResponseEntity<List<InvoiceDTO>> getAllInvoices() {
         return ResponseEntity.ok(billingService.getAllInvoices());

@@ -43,6 +43,12 @@ public class AppointmentDTO {
         @Min(value = 5, message = "An appointment must last at least 5 minutes")
         @Max(value = 480, message = "An appointment cannot last longer than 8 hours")
         private Integer durationMinutes;
+
+        /**
+         * Which clinic service this appointment is for, which decides what the
+         * invoice charges. Billing assumes a general consultation when absent.
+         */
+        private String serviceCode;
     }
 
     /**

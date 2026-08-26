@@ -10,7 +10,8 @@ import { formatDate } from '../../utils'
 export default function InvoiceDetails({ invoice, onPay, isPaying }) {
   if (!invoice) return null
 
-  const canPay = invoice.status === 'PENDING' || invoice.status === 'OVERDUE'
+  // The server states which transitions it will accept.
+  const canPay = (invoice.allowedTransitions || []).includes('PAID')
 
   return (
     <div className="space-y-5">

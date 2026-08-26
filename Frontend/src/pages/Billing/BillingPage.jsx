@@ -7,7 +7,7 @@
  *  - Filter invoices by patient (dropdown selector)
  *  - Create invoice (modal)
  *  - View invoice details + pay (modal)
- *  - Status badges: PENDING / PAID / CANCELLED / OVERDUE
+ *  - Status badges: ISSUED / PAID / VOID / REFUNDED, with overdue derived
  *  - Loading / empty / error states
  * ─────────────────────────────────────────────────────────────────
  */
@@ -50,7 +50,8 @@ export default function BillingPage() {
   // Summary stats (derived from fetched invoices)
   const totalAmount = invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0)
   const paidCount = invoices.filter((i) => i.status === 'PAID').length
-  const pendingCount = invoices.filter((i) => i.status === 'PENDING').length
+  // Money the clinic is still owed.
+  const pendingCount = invoices.filter((i) => i.status === 'ISSUED').length
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -186,7 +187,7 @@ export default function BillingPage() {
                       >
                         <Eye size={14} />
                       </button>
-                      {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && (
+                      {(inv.allowedTransitions || []).includes('PAID') && (
                         <button
                           className="btn-primary py-1.5 px-3 text-xs"
                           title="Pay now"

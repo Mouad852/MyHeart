@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -90,10 +89,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // ─── Step 5: Trigger invoice creation in billing-service ─────────────
         try {
+            // No amount is sent. What a consultation costs is billing's business,
+            // and it reads the price from the clinic's service catalogue, so a
+            // price change is an administrative act rather than a redeploy here.
             BillingRequest billingRequest = BillingRequest.builder()
                     .appointmentId(saved.getId())
                     .patientId(saved.getPatientId())
-                    .amount(BigDecimal.valueOf(100.00)) // Default consultation fee
+                    .serviceCode(request.getServiceCode())
                     .description("Consultation invoice for appointment #" + saved.getId())
                     .build();
             billingClient.createInvoice(billingRequest);

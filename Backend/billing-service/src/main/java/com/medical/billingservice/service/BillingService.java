@@ -17,5 +17,11 @@ public interface BillingService {
 
     InvoiceDTO cancelInvoice(Long id);
 
+    /** Cancel an unpaid invoice, recording why. */
+    InvoiceDTO voidInvoice(Long id, String reason);
+
+    /** Return money on a paid invoice, recording why. */
+    InvoiceDTO refundInvoice(Long id, String reason);
+
     List<InvoiceDTO> getAllInvoices();
 }
