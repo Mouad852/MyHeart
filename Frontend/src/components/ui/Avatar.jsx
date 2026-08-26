@@ -25,8 +25,8 @@ export default function Avatar({ name = '', size = 'md', className = '' }) {
       aria-hidden="true"
       title={name || undefined}
       className={`inline-flex flex-shrink-0 select-none items-center justify-center
-                  rounded-full bg-white/[0.06] font-medium tracking-wide text-slate-400
-                  ring-1 ring-inset ring-white/[0.07]
+                  rounded-full bg-raised font-medium tracking-wide text-ink-2
+                  ring-1 ring-inset ring-rule
                   ${SIZES[size] || SIZES.md} ${className}`}
     >
       {getInitials(name) || '—'}

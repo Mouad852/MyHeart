@@ -85,21 +85,21 @@ function Result({ result, requestId, canUpload }) {
       <span
         aria-hidden="true"
         className="absolute -left-[8px] top-[1.05rem] flex h-4 w-4 items-center justify-center
-                   bg-navy-900 text-slate-500"
+ bg-surface text-ink-3"
       >
         <ClipboardCheck size={12} strokeWidth={1.75} />
       </span>
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
         <p className="section-label">Result {String(result.id).padStart(4, '0')}</p>
-        <p className="ident text-meta text-slate-500">
+        <p className="ident text-meta text-ink-3">
           {formatDate(result.resultedAt, 'd MMM yyyy')}
         </p>
       </div>
 
-      <p className="mt-1.5 text-sm leading-relaxed text-slate-100">{result.resultText}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink">{result.resultText}</p>
       {result.observations && (
-        <p className="mt-1 text-sm text-slate-500">{result.observations}</p>
+        <p className="mt-1 text-sm text-ink-3">{result.observations}</p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -116,11 +116,11 @@ function Result({ result, requestId, canUpload }) {
               <FileDown size={12} strokeWidth={2} aria-hidden="true" />
             )}
             {result.fileName}
-            <span className="ident text-slate-500">{fileSize(result.fileSize)}</span>
+            <span className="ident text-ink-3">{fileSize(result.fileSize)}</span>
           </button>
         ) : (
           !canUpload && (
-            <span className="text-meta text-slate-500">No report attached.</span>
+            <span className="text-meta text-ink-3">No report attached.</span>
           )
         )}
 
@@ -139,9 +139,9 @@ function Result({ result, requestId, canUpload }) {
             />
             <label
               htmlFor={inputId}
-              className={`btn btn-sm cursor-pointer border-dashed border-rule text-slate-300
-                          hover:border-teal-400/60 hover:text-teal-300
-                          focus-within:border-teal-400/60
+              className={`btn btn-sm cursor-pointer border-dashed border-rule text-ink-2
+                          hover:border-primary hover:text-primary
+                          focus-within:border-primary
                           ${upload.isPending ? 'pointer-events-none opacity-50' : ''}`}
             >
               {upload.isPending ? (
@@ -157,7 +157,7 @@ function Result({ result, requestId, canUpload }) {
             </label>
 
             {/* Said before a file is chosen, not after one is refused. */}
-            <span className="text-meta text-slate-500">{ACCEPTED_LABEL}</span>
+            <span className="text-meta text-ink-3">{ACCEPTED_LABEL}</span>
           </>
         )}
       </div>
@@ -173,7 +173,7 @@ function Results({ requestId, canUpload, canRecord, onRecord }) {
   const { data: results = [], isLoading, isError, refetch } = useLabResults(requestId)
 
   return (
-    <div className="border-t border-hairline bg-white/[0.015] px-5 py-4">
+    <div className="border-t border-rule bg-raised px-5 py-4">
       {isLoading && (
         <div className="space-y-2" aria-busy="true">
           <SkeletonText chars={30} />
@@ -192,7 +192,7 @@ function Results({ requestId, canUpload, canRecord, onRecord }) {
 
       {!isLoading && !isError && results.length === 0 && (
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-3">
             The laboratory has not returned a finding for this request yet.
           </p>
           {canRecord && (
@@ -320,7 +320,7 @@ export default function LabsPage() {
       )}
 
       <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-rule px-3">
           <Segmented
             label="Which laboratory work to show"
             value={scope}
@@ -392,7 +392,7 @@ export default function LabsPage() {
         )}
 
         {!requests.isLoading && rows.length > 0 && (
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-rule">
             {rows.map((request) => {
               const isOpen = openId === request.id
               const panelId = `lab-request-${request.id}`
@@ -410,22 +410,22 @@ export default function LabsPage() {
                         size={14}
                         strokeWidth={2}
                         aria-hidden="true"
-                        className={`mt-1 flex-shrink-0 text-slate-500 transition-transform
+                        className={`mt-1 flex-shrink-0 text-ink-3 transition-transform
                                     duration-fast ${isOpen ? 'rotate-0' : '-rotate-90'}`}
                       />
                       <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                          <span className="text-sm font-medium text-white">
+                          <span className="text-sm font-medium text-ink">
                             {request.testName}
                           </span>
                           <StatusBadge status={request.status} size="sm" />
                         </span>
-                        <span className="mt-1 block truncate text-meta text-slate-500">
+                        <span className="mt-1 block truncate text-meta text-ink-3">
                           {patientNames.get(request.patientId) || `Patient ${request.patientId}`}
                           {` · ordered ${formatDate(request.requestedAt, 'd MMM yyyy')}`}
                         </span>
                         {request.testDescription && (
-                          <span className="mt-1 block max-w-[70ch] text-sm text-slate-500">
+                          <span className="mt-1 block max-w-[70ch] text-sm text-ink-3">
                             {request.testDescription}
                           </span>
                         )}

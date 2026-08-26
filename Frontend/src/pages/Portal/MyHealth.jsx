@@ -97,13 +97,13 @@ function NextAppointment({ appointment }) {
 
   return (
     <Panel className="mb-6">
-      <div className="border-l-2 border-teal-400 px-5 py-6 sm:px-7 sm:py-7">
-        <p className="section-label text-teal-400">Your next appointment</p>
+      <div className="border-l-2 border-primary px-5 py-6 sm:px-7 sm:py-7">
+        <p className="section-label">Your next appointment</p>
 
         <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-          <p className="font-display text-figure font-bold text-white">{howSoon(date)}</p>
-          <p className="text-lg text-slate-300">{format(date, 'EEEE d MMMM')}</p>
-          <p className="ident text-lg font-medium text-white">{format(date, 'HH:mm')}</p>
+          <p className="text-figure font-bold text-ink">{howSoon(date)}</p>
+          <p className="text-lg text-ink-2">{format(date, 'EEEE d MMMM')}</p>
+          <p className="ident text-lg font-medium text-ink">{format(date, 'HH:mm')}</p>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -111,17 +111,17 @@ function NextAppointment({ appointment }) {
             status={appointment.status}
             label={PATIENT_WORDING[appointment.status]}
           />
-          {doctor && <span className="text-sm text-slate-400">{doctor}</span>}
+          {doctor && <span className="text-portal text-ink-2">{doctor}</span>}
         </div>
 
         {appointment.notes && (
-          <p className="mt-4 max-w-[62ch] text-sm leading-relaxed text-slate-400">
+          <p className="mt-4 max-w-[62ch] text-portal leading-relaxed text-ink-2">
             {appointment.notes}
           </p>
         )}
 
         {appointment.status === 'REQUESTED' && (
-          <p className="mt-5 border-t border-hairline pt-4 text-meta text-slate-500">
+          <p className="mt-5 border-t border-rule pt-4 text-sm text-ink-3">
             You asked for this time. The clinic will confirm it, and this page will
             say so once they have.
           </p>
@@ -141,16 +141,16 @@ function Row({ appointment, dim = false }) {
   return (
     <li
       className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3.5
-                  ${dim ? 'text-slate-500' : ''}`}
+                  ${dim ? 'text-ink-3' : ''}`}
     >
       <div className="min-w-0">
-        <p className={`text-sm ${dim ? 'text-slate-400' : 'font-medium text-slate-100'}`}>
+        <p className={`text-portal ${dim ? 'text-ink-2' : 'font-medium text-ink'}`}>
           {on(appointment.appointmentDate, 'EEEE d MMMM yyyy')}
           {' · '}
           <span className="ident">{on(appointment.appointmentDate, 'HH:mm')}</span>
         </p>
         {(doctor || appointment.notes) && (
-          <p className="mt-0.5 truncate text-meta text-slate-500">
+          <p className="mt-1 truncate text-sm text-ink-3">
             {[doctor, appointment.notes].filter(Boolean).join(' · ')}
           </p>
         )}
@@ -273,7 +273,7 @@ export default function MyHealth() {
           {upcoming.length > 0 && (
             <Panel>
               <PanelHead title="Also coming up" count={upcoming.length} />
-              <ul className="divide-y divide-hairline">
+              <ul className="divide-y divide-rule">
                 {upcoming.map((appointment) => (
                   <Row key={appointment.id} appointment={appointment} />
                 ))}
@@ -292,13 +292,13 @@ export default function MyHealth() {
                 aria-expanded={showPast}
                 className="row-hover flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
               >
-                <span className="text-sm font-medium text-white">Past appointments</span>
-                <span className="text-meta text-slate-500">
+                <span className="text-portal font-medium text-ink">Past appointments</span>
+                <span className="text-sm text-ink-3">
                   {showPast ? 'Hide' : `Show ${past.length}`}
                 </span>
               </button>
               {showPast && (
-                <ul className="divide-y divide-hairline border-t border-hairline">
+                <ul className="divide-y divide-rule border-t border-rule">
                   {past.map((appointment) => (
                     <Row key={appointment.id} appointment={appointment} dim />
                   ))}
@@ -341,7 +341,7 @@ export default function MyHealth() {
               </dl>
             )}
 
-            <p className="mt-6 border-t border-hairline pt-4 text-meta leading-relaxed text-slate-500">
+            <p className="mt-6 border-t border-rule pt-4 text-sm leading-relaxed text-ink-3">
               To correct any of these, ask the front desk on your next visit.
             </p>
           </div>

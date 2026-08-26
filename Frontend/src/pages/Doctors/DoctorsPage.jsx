@@ -89,14 +89,14 @@ export default function DoctorsPage() {
       )}
 
       <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-rule px-5 py-3">
           <div className="flex flex-1 flex-wrap items-center gap-3">
             <div className="relative w-full max-w-xs">
               <Search
                 size={14}
                 strokeWidth={2}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
               />
               <input
                 type="search"
@@ -104,8 +104,8 @@ export default function DoctorsPage() {
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by name or specialty"
                 aria-label="Search the staff list"
-                className="input h-9 bg-white/[0.03] py-0 pl-9 pr-9
-                           [&::-webkit-search-cancel-button]:hidden"
+                className="input h-9 bg-raised py-0 pl-9 pr-9
+ [&::-webkit-search-cancel-button]:hidden"
               />
               {search && (
                 <button
@@ -113,7 +113,7 @@ export default function DoctorsPage() {
                   onClick={() => setSearch('')}
                   aria-label="Clear the search"
                   className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2
-                             items-center justify-center rounded text-slate-500 hover:text-slate-200"
+ items-center justify-center rounded text-ink-3 hover:text-ink"
                 >
                   <X size={13} strokeWidth={2} aria-hidden="true" />
                 </button>
@@ -142,7 +142,7 @@ export default function DoctorsPage() {
             )}
           </div>
 
-          <p aria-live="polite" className="text-meta text-slate-500">
+          <p aria-live="polite" className="text-meta text-ink-3">
             {searching ? `${total} ${total === 1 ? 'match' : 'matches'}` : `${total} on staff`}
           </p>
         </div>
@@ -210,20 +210,20 @@ export default function DoctorsPage() {
                           <div className="flex items-center gap-3">
                             <Avatar name={doctor.name} size="sm" />
                             <div className="min-w-0">
-                              <p className="truncate font-medium text-white">{doctor.name}</p>
-                              <p className="truncate text-meta text-slate-500 sm:hidden">
+                              <p className="truncate font-medium text-ink">{doctor.name}</p>
+                              <p className="truncate text-meta text-ink-3 sm:hidden">
                                 {doctor.specialty}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="td hidden text-slate-300 sm:table-cell">
-                          {doctor.specialty || <span className="text-slate-500">—</span>}
+                        <td className="td hidden text-ink-2 sm:table-cell">
+                          {doctor.specialty || <span className="text-ink-3">—</span>}
                         </td>
 
-                        <td className="td hidden text-slate-400 md:table-cell">
-                          {doctor.email || <span className="text-slate-500">—</span>}
+                        <td className="td hidden text-ink-2 md:table-cell">
+                          {doctor.email || <span className="text-ink-3">—</span>}
                         </td>
 
                         <td className="td pr-5">

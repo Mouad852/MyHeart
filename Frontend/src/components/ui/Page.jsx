@@ -26,10 +26,10 @@ export default function PageHeader({
         <div className="min-w-0">
           {eyebrow && <p className="section-label mb-2">{eyebrow}</p>}
 
-          <h1 className="font-display text-title font-bold text-white">{title}</h1>
+          <h1 className="text-title font-semibold text-ink">{title}</h1>
 
           {description && (
-            <p className="mt-2 max-w-[62ch] text-sm text-slate-400">{description}</p>
+            <p className="mt-2 max-w-[62ch] text-sm text-ink-2">{description}</p>
           )}
         </div>
 

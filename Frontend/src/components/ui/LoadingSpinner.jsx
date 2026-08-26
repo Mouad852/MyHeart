@@ -38,7 +38,7 @@ export function SkeletonText({ chars = 18, className = '' }) {
  */
 export function SkeletonRows({ rows = 3, label = 'Loading' }) {
   return (
-    <ul className="divide-y divide-hairline" aria-busy="true" aria-label={label}>
+    <ul className="divide-y divide-rule" aria-busy="true" aria-label={label}>
       {Array.from({ length: rows }, (_, i) => (
         <li key={i} className="flex items-center gap-4 px-5 py-4">
           <Skeleton className="h-4 w-12" />
@@ -63,8 +63,8 @@ export function PageSpinner({ label = 'Loading' }) {
       className="flex min-h-[50vh] flex-col items-center justify-center gap-4"
       role="status"
     >
-      <Spinner size={20} className="text-teal-400" />
-      <p className="text-meta text-slate-500">{label}</p>
+      <Spinner size={20} className="text-primary" />
+      <p className="text-meta text-ink-3">{label}</p>
     </div>
   )
 }

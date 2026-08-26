@@ -15,10 +15,10 @@ function AuthPending() {
   return (
     <div
       role="status"
-      className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-navy-950"
+      className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-ground"
     >
-      <span className="h-6 w-[3px] bg-teal-400" aria-hidden="true" />
-      <p className="text-sm text-slate-500">Checking your session</p>
+      <span className="h-6 w-[3px] bg-primary" aria-hidden="true" />
+      <p className="text-sm text-ink-3">Checking your session</p>
     </div>
   )
 }
@@ -38,15 +38,15 @@ function NotPermitted({ homeRoute }) {
       {/* Left-aligned and plainly worded. A centred column under a large icon
           reads as an apology; this is not a failure, it is the system working
           exactly as it was configured to. */}
-      <div className="border-l-2 border-strong px-6 py-8">
+      <div className="border-l-2 border-rule-strong px-6 py-8">
         <p className="section-label flex items-center gap-2">
           <ShieldOff size={12} strokeWidth={2} aria-hidden="true" />
           Not permitted
         </p>
-        <h1 className="mt-3 font-display text-title font-bold text-white">
+        <h1 className="mt-3 text-title font-bold text-ink">
           This part of the clinic is not open to your role
         </h1>
-        <p className="mt-4 max-w-[58ch] text-sm leading-relaxed text-slate-400">
+        <p className="mt-4 max-w-[58ch] text-sm leading-relaxed text-ink-2">
           Access is decided by the API gateway, not by this page, so the screen would
           have nothing to show even if it opened. If you think your role is wrong, an
           administrator can change it.

@@ -37,9 +37,9 @@ export default function LabResultForm({ requestId, requestName, onSubmit, isLoad
 
       {/* Context */}
       {requestName && (
-        <div className="p-3.5 rounded-xl bg-navy-900/60 border border-white/5">
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">Test</p>
-          <p className="text-sm font-medium text-white">{requestName}</p>
+        <div className="p-3.5 rounded-xl bg-surface border border-rule">
+          <p className="text-[10px] text-ink-3 font-bold mb-0.5">Test</p>
+          <p className="text-sm font-medium text-ink">{requestName}</p>
         </div>
       )}
 
@@ -58,7 +58,7 @@ export default function LabResultForm({ requestId, requestName, onSubmit, isLoad
 
       <div>
         <label className="label">
-          Notes <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span>
+          Notes <span className="text-ink-3 normal-case font-normal tracking-normal">(optional)</span>
         </label>
         <textarea
           value={form.notes}

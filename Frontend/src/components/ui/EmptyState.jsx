@@ -28,14 +28,14 @@ export default function EmptyState({
       <div className={`flex items-center gap-3 px-5 py-6 ${className}`}>
         <span
           className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full
-                     bg-teal-400/10 text-teal-400"
+ bg-settled-soft text-settled"
           aria-hidden="true"
         >
           <Check size={12} strokeWidth={2.5} />
         </span>
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-ink-2">
           {title}
-          {description && <span className="text-slate-500"> {description}</span>}
+          {description && <span className="text-ink-3"> {description}</span>}
         </p>
       </div>
     )
@@ -47,13 +47,13 @@ export default function EmptyState({
         <Icon
           size={20}
           strokeWidth={1.5}
-          className="mx-auto mb-4 text-slate-500"
+          className="mx-auto mb-4 text-ink-3"
           aria-hidden="true"
         />
       )}
-      <p className="text-base font-medium text-slate-300">{title}</p>
+      <p className="text-base font-medium text-ink-2">{title}</p>
       {description && (
-        <p className="mx-auto mt-1.5 max-w-[46ch] text-sm text-slate-500">{description}</p>
+        <p className="mx-auto mt-1.5 max-w-[46ch] text-sm text-ink-3">{description}</p>
       )}
       {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>

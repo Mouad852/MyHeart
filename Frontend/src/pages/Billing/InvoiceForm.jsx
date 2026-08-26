@@ -53,7 +53,7 @@ export default function InvoiceForm({ onSubmit, isLoading }) {
       />
 
       <div>
-        <label className="label">Appointment ID <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span></label>
+        <label className="label">Appointment ID <span className="text-ink-3 normal-case font-normal tracking-normal">(optional)</span></label>
         <input
           type="number"
           value={form.appointmentId}
@@ -68,7 +68,7 @@ export default function InvoiceForm({ onSubmit, isLoading }) {
       <div>
         <label className="label">Amount (USD) <span className="text-red-400">*</span></label>
         <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3 text-sm">$</span>
           <input
             type="number"
             value={form.amount}
@@ -84,7 +84,7 @@ export default function InvoiceForm({ onSubmit, isLoading }) {
       </div>
 
       <div>
-        <label className="label">Description <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span></label>
+        <label className="label">Description <span className="text-ink-3 normal-case font-normal tracking-normal">(optional)</span></label>
         <textarea
           value={form.description}
           onChange={(e) => set('description', e.target.value)}

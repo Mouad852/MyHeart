@@ -35,7 +35,7 @@ export default function Layout() {
   }, [navOpen])
 
   return (
-    <div className="flex min-h-[100dvh] bg-navy-950">
+    <div className="flex min-h-[100dvh] bg-ground">
       {/* Desktop: a column of its own, sticky so the navigation stays put
           while a long register scrolls past it. */}
       <div className="sticky top-0 hidden h-[100dvh] flex-shrink-0 lg:block">
@@ -49,7 +49,7 @@ export default function Layout() {
             type="button"
             aria-label="Close navigation"
             onClick={() => setNavOpen(false)}
-            className="absolute inset-0 animate-fade-in bg-navy-950/75 backdrop-blur-sm"
+            className="absolute inset-0 animate-fade-in bg-ground/75 backdrop-blur-sm"
           />
           <div className="absolute inset-y-0 left-0 animate-drawer-in shadow-overlay">
             <Sidebar isDrawer onNavigate={() => setNavOpen(false)} />

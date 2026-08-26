@@ -38,7 +38,7 @@ import { formatDate } from '../../utils'
 function Medications({ items = [] }) {
   if (items.length === 0) {
     return (
-      <p className="px-5 pb-5 text-sm text-slate-500">
+      <p className="px-5 pb-5 text-sm text-ink-3">
         No medication was recorded against this prescription.
       </p>
     )
@@ -46,9 +46,9 @@ function Medications({ items = [] }) {
 
   return (
     <div className="overflow-x-auto px-5 pb-5">
-      <table className="w-full border border-hairline">
+      <table className="w-full border border-rule">
         <thead>
-          <tr className="bg-white/[0.02]">
+          <tr className="bg-raised">
             <th className="th">Medicine</th>
             <th className="th">Dosage</th>
             <th className="th">Frequency</th>
@@ -58,10 +58,10 @@ function Medications({ items = [] }) {
         <tbody>
           {items.map((item, index) => (
             <tr key={index}>
-              <td className="td font-medium text-white">{item.medicineName}</td>
-              <td className="td ident text-slate-300">{item.dosage || '—'}</td>
-              <td className="td text-slate-300">{item.frequency || '—'}</td>
-              <td className="td text-slate-300">{item.duration || '—'}</td>
+              <td className="td font-medium text-ink">{item.medicineName}</td>
+              <td className="td ident text-ink-2">{item.dosage || '—'}</td>
+              <td className="td text-ink-2">{item.frequency || '—'}</td>
+              <td className="td text-ink-2">{item.duration || '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -89,23 +89,23 @@ function Row({ prescription, patientName, doctorName, isOpen, onToggle, print })
             size={14}
             strokeWidth={2}
             aria-hidden="true"
-            className={`mt-1 flex-shrink-0 text-slate-500 transition-transform duration-fast
+            className={`mt-1 flex-shrink-0 text-ink-3 transition-transform duration-fast
                         ${isOpen ? 'rotate-0' : '-rotate-90'}`}
           />
 
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="ident text-sm font-medium text-white">
+              <span className="ident text-sm font-medium text-ink">
                 RX-{String(prescription.id).padStart(5, '0')}
               </span>
               {prescription.diagnosis && (
-                <span className="min-w-0 truncate text-sm text-slate-300">
+                <span className="min-w-0 truncate text-sm text-ink-2">
                   {prescription.diagnosis}
                 </span>
               )}
             </span>
 
-            <span className="mt-1 block truncate text-meta text-slate-500">
+            <span className="mt-1 block truncate text-meta text-ink-3">
               {patientName}
               {' · '}
               {doctorName}
@@ -131,9 +131,9 @@ function Row({ prescription, patientName, doctorName, isOpen, onToggle, print })
       </div>
 
       {isOpen && (
-        <div id={panelId} className="border-t border-hairline bg-white/[0.015] pt-4">
+        <div id={panelId} className="border-t border-rule bg-raised pt-4">
           {prescription.notes && (
-            <p className="px-5 pb-4 text-sm leading-relaxed text-slate-400">
+            <p className="px-5 pb-4 text-sm leading-relaxed text-ink-2">
               {prescription.notes}
             </p>
           )}
@@ -206,7 +206,7 @@ export default function PrescriptionsPage() {
       )}
 
       <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-rule px-5 py-3">
           <div className="w-full max-w-[15rem]">
             <label className="sr-only" htmlFor="rx-patient-filter">
               Filter by patient
@@ -229,7 +229,7 @@ export default function PrescriptionsPage() {
             </select>
           </div>
 
-          <p aria-live="polite" className="text-meta text-slate-500">
+          <p aria-live="polite" className="text-meta text-ink-3">
             {patientFilter
               ? `${rows.length} for this patient`
               : `${total} in the record`}
@@ -267,7 +267,7 @@ export default function PrescriptionsPage() {
         )}
 
         {!prescriptions.isLoading && rows.length > 0 && (
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-rule">
             {rows.map((prescription) => (
               <Row
                 key={prescription.id}

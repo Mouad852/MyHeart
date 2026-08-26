@@ -97,7 +97,7 @@ export default function Modal({
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-6">
       <div
-        className="absolute inset-0 animate-fade-in bg-navy-950/80"
+        className="absolute inset-0 animate-fade-in bg-ground/80"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -112,13 +112,13 @@ export default function Modal({
                     shadow-overlay ${SIZES[size] || SIZES.md}`}
       >
         {title && (
-          <div className="flex items-start justify-between gap-4 border-b border-hairline px-5 py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-rule px-5 py-4">
             <div className="min-w-0">
-              <h2 id={labelledBy} className="text-base font-semibold text-white">
+              <h2 id={labelledBy} className="text-base font-semibold text-ink">
                 {title}
               </h2>
               {description && (
-                <p className="mt-1 max-w-[54ch] text-meta text-slate-500">{description}</p>
+                <p className="mt-1 max-w-[54ch] text-meta text-ink-3">{description}</p>
               )}
             </div>
             <button

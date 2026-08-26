@@ -25,8 +25,8 @@ export default function ErrorBanner({
   const degraded = variant === 'degraded'
 
   const skin = degraded
-    ? 'border-hairline bg-white/[0.02] text-slate-400'
-    : 'border-rose-500/25 bg-rose-500/[0.07] text-rose-200'
+    ? 'border-rule bg-raised text-ink-2'
+    : 'border-critical/40 bg-critical-soft text-critical'
 
   return (
     <div
@@ -37,17 +37,17 @@ export default function ErrorBanner({
         size={14}
         strokeWidth={2}
         aria-hidden="true"
-        className={`mt-0.5 flex-shrink-0 ${degraded ? 'text-slate-500' : 'text-rose-400'}`}
+        className={`mt-0.5 flex-shrink-0 ${degraded ? 'text-ink-3' : 'text-critical'}`}
       />
 
       <div className="min-w-0 flex-1">
-        <p className={`text-sm ${degraded ? 'text-slate-300' : 'font-medium text-rose-200'}`}>
+        <p className={`text-sm ${degraded ? 'text-ink-2' : 'font-medium text-critical'}`}>
           {title || (degraded ? 'Temporarily unavailable' : 'That did not load')}
         </p>
         {message && (
           <p
             className={`mt-0.5 break-words text-meta ${
-              degraded ? 'text-slate-500' : 'text-rose-300/75'
+              degraded ? 'text-ink-3' : 'text-critical'
             }`}
           >
             {message}
@@ -62,8 +62,8 @@ export default function ErrorBanner({
           disabled={isRetrying}
           className={`btn btn-sm flex-shrink-0 ${
             degraded
-              ? 'border-rule text-slate-300 hover:border-strong hover:text-white'
-              : 'border-rose-500/35 text-rose-200 hover:border-rose-400/60 hover:bg-rose-500/15'
+              ? 'border-rule text-ink-2 hover:border-rule-strong hover:text-ink'
+              : 'border-critical/40 text-critical hover:border-critical hover:bg-critical-soft'
           }`}
         >
           {isRetrying ? (

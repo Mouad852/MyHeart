@@ -117,7 +117,7 @@ export default function AppointmentForm({ onSubmit, isLoading }) {
 
       {/* Notes (optional) */}
       <div>
-        <label className="label">Notes <span className="text-slate-500 normal-case tracking-normal font-normal">(optional)</span></label>
+        <label className="label">Notes <span className="text-ink-3 normal-case tracking-normal font-normal">(optional)</span></label>
         <textarea
           name="notes"
           value={form.notes}

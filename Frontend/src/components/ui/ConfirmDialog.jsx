@@ -26,7 +26,7 @@ export default function ConfirmDialog({
 }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-sm leading-relaxed text-slate-400">{message}</p>
+      <p className="text-sm leading-relaxed text-ink-2">{message}</p>
 
       <div className="mt-6 flex flex-wrap justify-end gap-2">
         <button type="button" className="btn-secondary" onClick={onClose} disabled={isLoading}>

@@ -91,7 +91,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
       {/* Diagnosis */}
       <div>
         <label className="label">
-          Diagnosis <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span>
+          Diagnosis <span className="text-ink-3 normal-case font-normal tracking-normal">(optional)</span>
         </label>
         <input
           type="text"
@@ -113,8 +113,8 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
             type="button"
             onClick={addMedicine}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 text-xs text-teal-400
-                       hover:text-teal-300 font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-primary
+ hover:text-primary font-semibold transition-colors"
           >
             <Plus size={13} /> Add a medicine
           </button>
@@ -124,21 +124,21 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
           {form.medicines.map((med, i) => (
             <div
               key={i}
-              className="p-4 rounded-xl bg-navy-900/60 border border-white/8 space-y-3
-                         animate-slide-up"
+              className="p-4 rounded-xl bg-surface border border-rule space-y-3
+ animate-slide-up"
               style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
             >
               {/* Header row */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <span className="text-xs font-bold text-ink-3">
                   Medicine {i + 1}
                 </span>
                 {form.medicines.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeMedicine(i)}
-                    className="p-1 rounded-lg text-slate-500 hover:text-red-400
-                               hover:bg-red-500/10 transition-all duration-150"
+                    className="p-1 rounded-lg text-ink-3 hover:text-red-400
+ hover:bg-red-500/10 transition-all duration-150"
                     title="Remove medicine"
                   >
                     <Trash2 size={13} />

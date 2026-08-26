@@ -67,8 +67,8 @@ export default function Menu({ label = 'More actions', items = [], align = 'righ
                     disabled:opacity-40
                     ${
                       item.danger
-                        ? 'text-rose-300 hover:bg-rose-500/10'
-                        : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
+                        ? 'text-critical hover:bg-critical-soft'
+                        : 'text-ink-2 hover:bg-raised hover:text-ink'
                     }`}
       >
         {Icon && <Icon size={13} strokeWidth={2} aria-hidden="true" />}
@@ -85,7 +85,7 @@ export default function Menu({ label = 'More actions', items = [], align = 'righ
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={label}
-        className={`btn-icon h-7 w-7 ${open ? 'bg-white/[0.06] text-white' : ''}`}
+        className={`btn-icon h-7 w-7 ${open ? 'bg-raised text-ink' : ''}`}
       >
         <MoreHorizontal size={15} strokeWidth={2} aria-hidden="true" />
       </button>
@@ -94,12 +94,12 @@ export default function Menu({ label = 'More actions', items = [], align = 'righ
         <div
           role="menu"
           className={`absolute top-[calc(100%+4px)] z-50 min-w-[11rem] animate-fade-in
-                      overflow-hidden rounded border border-rule bg-navy-850 py-1
+                      overflow-hidden rounded border border-rule bg-raised py-1
                       shadow-overlay ${align === 'right' ? 'right-0' : 'left-0'}`}
         >
           {safe.map(renderItem)}
           {destructive.length > 0 && safe.length > 0 && (
-            <div className="my-1 border-t border-hairline" />
+            <div className="my-1 border-t border-rule" />
           )}
           {destructive.map(renderItem)}
         </div>

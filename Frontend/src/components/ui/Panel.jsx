@@ -27,17 +27,17 @@ export function PanelHead({ title, description, action, count, className = '' })
   return (
     <header
       className={`flex flex-wrap items-start justify-between gap-x-6 gap-y-3
-                  border-b border-hairline px-5 py-4 ${className}`}
+                  border-b border-rule px-5 py-4 ${className}`}
     >
       <div className="min-w-0">
         <div className="flex items-baseline gap-2.5">
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
+          <h2 className="text-sm font-semibold text-ink">{title}</h2>
           {count != null && (
-            <span className="ident text-meta text-slate-500">{count}</span>
+            <span className="ident text-meta text-ink-3">{count}</span>
           )}
         </div>
         {description && (
-          <p className="mt-1 max-w-[58ch] text-meta text-slate-500">{description}</p>
+          <p className="mt-1 max-w-[58ch] text-meta text-ink-3">{description}</p>
         )}
       </div>
       {action && <div className="flex flex-shrink-0 items-center gap-2">{action}</div>}
@@ -59,8 +59,8 @@ export function Field({ label, children, mono = false, className = '' }) {
   return (
     <div className={className}>
       <dt className="section-label">{label}</dt>
-      <dd className={`mt-1.5 text-sm text-slate-100 ${mono ? 'ident' : ''}`}>
-        {children ?? <span className="text-slate-500">—</span>}
+      <dd className={`mt-1.5 text-sm text-ink ${mono ? 'ident' : ''}`}>
+        {children ?? <span className="text-ink-3">—</span>}
       </dd>
     </div>
   )

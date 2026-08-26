@@ -91,7 +91,7 @@ export default function LabRequestForm({ onSubmit, isLoading }) {
 
       <div>
         <label className="label">
-          Notes <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span>
+          Notes <span className="text-ink-3 normal-case font-normal tracking-normal">(optional)</span>
         </label>
         <textarea
           value={form.notes}

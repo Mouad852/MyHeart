@@ -18,13 +18,13 @@ export default function NotFoundPage() {
 
   return (
     <Panel className="mx-auto max-w-xl">
-      <div className="border-l-2 border-strong px-6 py-8">
+      <div className="border-l-2 border-rule-strong px-6 py-8">
         <p className="section-label">Not found</p>
-        <h1 className="mt-3 font-display text-title font-bold text-white">
+        <h1 className="mt-3 text-title font-bold text-ink">
           There is nothing at this address
         </h1>
-        <p className="ident mt-3 break-all text-sm text-slate-500">{pathname}</p>
-        <p className="mt-4 max-w-[54ch] text-sm leading-relaxed text-slate-400">
+        <p className="ident mt-3 break-all text-sm text-ink-3">{pathname}</p>
+        <p className="mt-4 max-w-[54ch] text-sm leading-relaxed text-ink-2">
           The page may have been renamed, or the link that brought you here may be out
           of date.
         </p>

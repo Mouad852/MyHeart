@@ -72,7 +72,7 @@ function Decisions({ awaiting }) {
         description="Slots a patient has asked for, that nobody has answered yet."
         action={
           awaiting.count > 0 && (
-            <span className="font-display text-figure font-bold tabular-nums text-amber-300">
+            <span className="text-figure font-bold tabular-nums text-attention">
               {awaiting.count}
             </span>
           )
@@ -103,7 +103,7 @@ function Decisions({ awaiting }) {
 
       {!awaiting.isLoading && rows.length > 0 && (
         <>
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-rule">
             {rows.map((row) => (
               <li
                 key={row.id}
@@ -112,16 +112,16 @@ function Decisions({ awaiting }) {
                 <Avatar name={row.patient?.name || 'Patient'} size="sm" />
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-100">
+                  <p className="truncate text-sm font-medium text-ink">
                     {row.patient?.name || `Patient ${row.patientId}`}
                   </p>
                   {/* Only the clock time is set in the identifier face. A date
                       written in mono is just a date that has been made harder
                       to read. */}
-                  <p className="mt-0.5 truncate text-meta text-slate-500">
-                    <span className="text-slate-400">{at(row.appointmentDate, 'd MMM')}</span>
+                  <p className="mt-0.5 truncate text-meta text-ink-3">
+                    <span className="text-ink-2">{at(row.appointmentDate, 'd MMM')}</span>
                     {' at '}
-                    <span className="ident text-slate-300">
+                    <span className="ident text-ink-2">
                       {at(row.appointmentDate, 'HH:mm')}
                     </span>
                     {row.doctor?.name ? ` · ${row.doctor.name}` : ''}
@@ -147,7 +147,7 @@ function Decisions({ awaiting }) {
           </ul>
 
           {awaiting.count > rows.length && (
-            <div className="border-t border-hairline px-5 py-3">
+            <div className="border-t border-rule px-5 py-3">
               <Link to="/appointments?status=REQUESTED" className="link inline-flex items-center gap-1.5 text-meta">
                 {awaiting.count - rows.length} more waiting
                 <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />
@@ -206,19 +206,19 @@ function RestOfDay({ day }) {
               <span
                 aria-hidden="true"
                 className={`absolute -left-[3px] top-1.5 h-[7px] w-[7px] rounded-full
-                            ${row.status === 'REQUESTED' ? 'bg-amber-400' : 'bg-teal-500'}`}
+                            ${row.status === 'REQUESTED' ? 'bg-attention' : 'bg-settled'}`}
               />
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="ident text-sm font-medium text-white">
+                <span className="ident text-sm font-medium text-ink">
                   {at(row.appointmentDate, 'HH:mm')}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm text-slate-300">
+                <span className="min-w-0 flex-1 truncate text-sm text-ink-2">
                   {row.patient?.name || `Patient ${row.patientId}`}
                 </span>
                 {row.status === 'REQUESTED' && <StatusBadge status="REQUESTED" size="sm" />}
               </div>
               {row.doctor?.name && (
-                <p className="mt-0.5 truncate text-meta text-slate-500">{row.doctor.name}</p>
+                <p className="mt-0.5 truncate text-meta text-ink-3">{row.doctor.name}</p>
               )}
             </li>
           ))}
@@ -293,38 +293,38 @@ function Money({ billing }) {
               a handful of small settled ones. */}
           {settled > 0 && (
             <div
-              className="flex h-1 overflow-hidden bg-amber-400/25"
+              className="flex h-1 overflow-hidden bg-attention/35"
               role="img"
               aria-label={`${money(collected, currency)} collected of ${money(settled, currency)} invoiced`}
             >
-              <span className="bg-teal-400" style={{ width: `${collectedShare}%` }} />
+              <span className="bg-settled" style={{ width: `${collectedShare}%` }} />
             </div>
           )}
 
           <dl className="mt-5 grid gap-5 sm:grid-cols-2">
             <div>
-              <dt className="text-meta text-slate-500">Outstanding</dt>
-              <dd className="ident mt-1.5 text-figure font-semibold text-amber-300">
+              <dt className="text-meta text-ink-3">Outstanding</dt>
+              <dd className="ident mt-1.5 text-figure font-semibold text-attention">
                 {money(outstanding, currency)}
               </dd>
-              <p className="mt-1 text-meta text-slate-500">
+              <p className="mt-1 text-meta text-ink-3">
                 {data.outstandingCount} unpaid
               </p>
             </div>
             <div>
-              <dt className="text-meta text-slate-500">Collected</dt>
-              <dd className="ident mt-1.5 text-figure font-semibold text-white">
+              <dt className="text-meta text-ink-3">Collected</dt>
+              <dd className="ident mt-1.5 text-figure font-semibold text-ink">
                 {money(collected, currency)}
               </dd>
-              <p className="mt-1 text-meta text-slate-500">{data.collectedCount} settled</p>
+              <p className="mt-1 text-meta text-ink-3">{data.collectedCount} settled</p>
             </div>
           </dl>
 
           {/* The only number on this panel anyone has to act on, and so the
               only one that gets colour of its own. */}
           {data.overdueCount > 0 && (
-            <p className="mt-5 border-t border-hairline pt-4 text-sm text-slate-300">
-              <span className="ident font-medium text-rose-300">
+            <p className="mt-5 border-t border-rule pt-4 text-sm text-ink-2">
+              <span className="ident font-medium text-critical">
                 {money(data.overdueAmount, currency)}
               </span>{' '}
               is past its due date, across {data.overdueCount}{' '}
@@ -333,7 +333,7 @@ function Money({ billing }) {
           )}
 
           {!currency && data.invoiceCount > 0 && (
-            <p className="mt-4 text-meta text-slate-500">
+            <p className="mt-4 text-meta text-ink-3">
               Invoices are held in more than one currency, so these totals are not
               added together.
             </p>
@@ -400,7 +400,7 @@ export default function Dashboard() {
                 { label: 'Booked today', value: day.booked },
                 { label: 'Still to see', value: day.remaining },
                 { label: 'Seen', value: day.seen },
-                { label: 'Did not attend', value: day.noShow, tone: 'miss' },
+                { label: 'Did not attend', value: day.noShow, tone: 'attention' },
               ]}
             />
           )
@@ -429,9 +429,9 @@ export default function Dashboard() {
         {!permissions.canReadAppointments && !permissions.canReadBilling && (
           <Panel>
             <div className="px-5 py-6">
-              <h2 className="text-sm font-semibold text-white">Nothing to show here</h2>
-              <p className="mt-2 max-w-[60ch] text-sm text-slate-400">
-                The account <span className="ident text-slate-300">{username}</span> does
+              <h2 className="text-sm font-semibold text-ink">Nothing to show here</h2>
+              <p className="mt-2 max-w-[60ch] text-sm text-ink-2">
+                The account <span className="ident text-ink-2">{username}</span> does
                 not reach appointments or billing. Your work lives on the pages listed in
                 the sidebar.
               </p>
@@ -442,18 +442,18 @@ export default function Dashboard() {
         {/* Register totals are background, not news: one line, at the bottom,
             rather than two more boxes competing with the day. */}
         {(permissions.canReadPatients || permissions.canReadDoctors) && (
-          <p className="flex flex-wrap items-center gap-x-7 gap-y-2 border-t border-hairline pt-5 text-meta text-slate-500">
+          <p className="flex flex-wrap items-center gap-x-7 gap-y-2 border-t border-rule pt-5 text-meta text-ink-3">
             {permissions.canReadPatients && (
-              <Link to="/patients" className="inline-flex items-center gap-2 rounded hover:text-slate-300">
-                <span className="ident text-slate-300">
+              <Link to="/patients" className="inline-flex items-center gap-2 rounded hover:text-ink-2">
+                <span className="ident text-ink-2">
                   {register.isLoading ? '·' : register.patients}
                 </span>
                 patients on the register
               </Link>
             )}
             {permissions.canReadDoctors && (
-              <Link to="/doctors" className="inline-flex items-center gap-2 rounded hover:text-slate-300">
-                <span className="ident text-slate-300">
+              <Link to="/doctors" className="inline-flex items-center gap-2 rounded hover:text-ink-2">
+                <span className="ident text-ink-2">
                   {register.isLoading ? '·' : register.doctors}
                 </span>
                 practising doctors

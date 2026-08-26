@@ -1,22 +1,30 @@
 /**
- * MedCore design tokens.
+ * MedCore design tokens — direction "Ledger".
  *
- * The interface is a working surface for people who sit in front of it all day,
- * so the palette is built to stay quiet. Almost everything on screen is one of
- * five near-neutral surfaces and three text weights; colour is reserved for
- * things that carry meaning.
+ * Every colour here resolves to a CSS custom property rather than a hex value,
+ * so one set of utility classes serves both themes and neither is a second
+ * design. The properties themselves live in src/index.css.
  *
- * Two rules that the rest of the codebase depends on:
+ * The two decisions the rest of the system rests on:
  *
- *   Colour means something. Teal is interaction and "now". Amber is money owed.
- *   Rose is late or broken. Orange is a patient who did not come. Blue is
- *   laboratory. Nothing is coloured because a section looked empty.
+ *   Light is the default, dark is a real option. The positive-polarity
+ *   advantage — text read faster and with more errors caught on a light ground
+ *   — grows as type gets smaller, and this is a product made of 14px names,
+ *   doses, dates and amounts. The counter-argument is genuine: clinicians spend
+ *   tens of thousands of hours in front of this, and less display light means
+ *   less scatter for anyone with early lens clouding. That argues for offering
+ *   dark, not for defaulting to it.
  *
- *   Corners are square. The radius scale tops out at 4px, and the only round
- *   things in the product are status dots and avatars. Clinical records are
- *   ruled sheets, not cards with soft edges, and the shape carries more of the
- *   product's character than any single decoration would.
+ *   Four colours, four meanings. The peer-reviewed guidance on clinical
+ *   interfaces caps colour coding at four and requires colour to be paired with
+ *   a word or a symbol, because a hue on its own is nothing to a colour-blind
+ *   reader. Attention, critical, settled, closed. Laboratory does not get a
+ *   colour: it is a kind of record, not a state, and the glyph and the word
+ *   already say so.
  */
+
+/** `rgb(var(--x) / <alpha-value>)` keeps Tailwind's opacity modifiers working. */
+const token = (name) => `rgb(var(--${name}) / <alpha-value>)`
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -24,134 +32,103 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Wordmark, page titles and large figures only.
-        display: ['Syne', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Everything operational.
-        body: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Anything read as an identifier: times, numbers, amounts, codes.
+        // Everything that is read.
+        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Everything that is identified.
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // Kept pointing at the text face so any stray `font-display` in an
+        // unconverted corner renders in the system rather than in a fallback.
+        display: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
 
       colors: {
-        /**
-         * Surfaces, darkest first. `navy` is kept as the name because the whole
-         * codebase already reaches for it; the values are retuned to be less
-         * saturated so that teal and amber read as signals against them rather
-         * than as more blue.
-         */
-        navy: {
-          950: '#080B12', // the page itself
-          900: '#0C1019', // a panel sitting on the page
-          850: '#111623', // a raised row, a hover, a header strip
-          800: '#161C2B', // an input, a pressed control
-          700: '#1D2537', // the strongest surface in normal use
-          600: '#28324a', // borders that need to be seen
+        // ── Surfaces ────────────────────────────────────────────────
+        ground: token('ground'), // the page
+        surface: token('surface'), // panels, rows, inputs
+        raised: token('raised'), // a hovered row, a header strip, a menu
+
+        // ── Text ────────────────────────────────────────────────────
+        ink: token('ink'), // the subject of a row
+        'ink-2': token('ink-2'), // supporting detail
+        'ink-3': token('ink-3'), // metadata, timestamps
+
+        // ── Interaction ─────────────────────────────────────────────
+        primary: {
+          DEFAULT: token('primary'),
+          hover: token('primary-hover'),
+          soft: token('primary-soft'), // tinted ground for a selected row
+          ink: token('primary-ink'), // text sitting on a solid primary
         },
 
-        // Interaction, focus, and the current moment. Used sparingly.
-        teal: {
-          300: '#5EEAD4',
-          400: '#2DD4BF',
-          500: '#14B8A6',
-          600: '#0D9488',
+        // ── The four meanings ───────────────────────────────────────
+        attention: {
+          DEFAULT: token('attention'), // needs a decision, money owed
+          soft: token('attention-soft'),
+        },
+        critical: {
+          DEFAULT: token('critical'), // overdue, failed, destructive
+          soft: token('critical-soft'),
+        },
+        settled: {
+          DEFAULT: token('settled'), // paid, confirmed, complete
+          soft: token('settled-soft'),
+        },
+        closed: {
+          DEFAULT: token('closed'), // cancelled, void, no longer expected
+          soft: token('closed-soft'),
         },
 
-        // Money outstanding.
-        amber: {
-          300: '#FCD34D',
-          400: '#F5B932',
-          500: '#D99A18',
-        },
-
-        // Late, failed, destructive.
-        rose: {
-          300: '#FDA4B4',
-          400: '#F87089',
-          500: '#E5476A',
-        },
-
-        // A patient who did not attend. Distinct from "late" on purpose.
-        orange: {
-          400: '#F59E4B',
-          500: '#E07C22',
-        },
-
-        // Laboratory context.
-        blue: {
-          400: '#63A0F5',
-          500: '#3B7DE0',
-        },
-
-        /**
-         * Text greys, overriding two steps of Tailwind's slate.
-         *
-         * The scale has exactly three levels for text, and every one of them
-         * clears WCAG AA at 4.5:1 against both the page and a panel:
-         *
-         *   slate-200  #E2E8F0   ~14:1   what the row is about
-         *   slate-400  #94A3B8   ~6.9:1  supporting detail
-         *   slate-500  #737F92   ~4.7:1  metadata, hints, timestamps
-         *
-         * Tailwind's own slate-500 measured 3.97:1 and was carrying most of
-         * the metadata in the product; slate-600 measured 2.2:1 and was being
-         * used for hints that a reader is actually expected to read. Both were
-         * comfortably illegible on a laptop screen in a lit room.
-         *
-         * slate-600 stays dark and is now for marks rather than words: rules,
-         * the dot on a closed status, a disabled glyph.
-         */
-        slate: {
-          500: '#737F92',
-          600: '#59647A',
-        },
+        // Also in `colors` so a rule can be drawn as a background — the spine,
+        // a 1px divider inside a grid — and used as a ring.
+        rule: token('rule'),
+        'rule-strong': token('rule-strong'),
       },
 
-      /**
-       * Named rather than numbered, because the point of each one is its job.
-       * `hairline` is the workhorse: it separates rows, columns and sections
-       * everywhere a card would otherwise have been reached for.
-       */
       borderColor: {
-        hairline: 'rgba(255,255,255,0.06)',
-        rule: 'rgba(255,255,255,0.10)',
-        strong: 'rgba(255,255,255,0.16)',
+        DEFAULT: token('rule'),
+        rule: token('rule'), // hairlines, gridlines, panel edges
+        strong: token('rule-strong'), // a border that has to be seen
       },
 
       borderRadius: {
         none: '0',
         sm: '2px',
-        DEFAULT: '3px',
+        DEFAULT: '2px',
         md: '3px',
-        lg: '4px',
+        lg: '3px',
         xl: '4px',
-        '2xl': '5px',
+        '2xl': '4px',
         '3xl': '6px',
-        // Kept for the two things that genuinely are round.
-        full: '9999px',
+        full: '9999px', // status dots and avatars only
       },
 
+      /**
+       * Staff screens sit at 14px, the size the clinical guidance names as
+       * optimal. The patient portal steps to 16 through `text-portal`: the same
+       * system, read by somebody who is not paid to be fluent in it.
+       */
       fontSize: {
-        micro: ['10.5px', { lineHeight: '1.35', letterSpacing: '0.07em' }],
-        // `xs` and `meta` are the same size on purpose: the codebase already
-        // says text-xs in a hundred places and both should mean "metadata".
-        xs: ['12px', { lineHeight: '1.45' }],
-        meta: ['12px', { lineHeight: '1.45' }],
+        micro: ['11px', { lineHeight: '1.4' }],
+        meta: ['12.5px', { lineHeight: '1.45' }],
+        xs: ['12.5px', { lineHeight: '1.45' }],
         sm: ['13px', { lineHeight: '1.5' }],
-        base: ['14px', { lineHeight: '1.55' }],
-        lg: ['16px', { lineHeight: '1.45' }],
-        xl: ['18px', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
-        '2xl': ['21px', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
-        '3xl': ['26px', { lineHeight: '1.05', letterSpacing: '-0.02em' }],
-        '4xl': ['34px', { lineHeight: '1', letterSpacing: '-0.025em' }],
-        title: ['21px', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
-        figure: ['26px', { lineHeight: '1.05', letterSpacing: '-0.02em' }],
-        'figure-lg': ['34px', { lineHeight: '1', letterSpacing: '-0.025em' }],
+        base: ['14px', { lineHeight: '1.5' }],
+        portal: ['16px', { lineHeight: '1.55' }],
+        lg: ['15px', { lineHeight: '1.45' }],
+        subject: ['17px', { lineHeight: '1.3', letterSpacing: '-0.005em' }],
+        xl: ['19px', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
+        '2xl': ['22px', { lineHeight: '1.2', letterSpacing: '-0.015em' }],
+        title: ['26px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
+        '3xl': ['26px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
+        figure: ['28px', { lineHeight: '1.05', letterSpacing: '-0.022em' }],
+        '4xl': ['34px', { lineHeight: '1.05', letterSpacing: '-0.025em' }],
+        'figure-lg': ['34px', { lineHeight: '1.05', letterSpacing: '-0.025em' }],
       },
 
       boxShadow: {
-        // One shadow, tinted to the background, and only for things that float
-        // above the page: menus, dialogs, the mobile drawer.
-        overlay: '0 16px 40px -12px rgba(2,5,12,0.85), 0 0 0 1px rgba(255,255,255,0.07)',
+        // One shadow, and only for things that genuinely float above the page.
+        overlay: 'var(--shadow-overlay)',
       },
 
       transitionDuration: {
@@ -160,20 +137,15 @@ export default {
       },
 
       keyframes: {
-        'fade-in': {
-          from: { opacity: '0' },
-          to: { opacity: '1' },
-        },
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
         'rise-in': {
-          from: { opacity: '0', transform: 'translateY(6px)' },
+          from: { opacity: '0', transform: 'translateY(4px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'drawer-in': {
           from: { transform: 'translateX(-100%)' },
           to: { transform: 'translateX(0)' },
         },
-        // A slow sweep across a placeholder. Deliberately unhurried: a fast
-        // shimmer reads as an error state.
         sweep: {
           from: { backgroundPosition: '200% 0' },
           to: { backgroundPosition: '-200% 0' },
@@ -181,9 +153,9 @@ export default {
       },
 
       animation: {
-        'fade-in': 'fade-in 160ms ease-out both',
-        'rise-in': 'rise-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both',
-        'drawer-in': 'drawer-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both',
+        'fade-in': 'fade-in 140ms ease-out both',
+        'rise-in': 'rise-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both',
+        'drawer-in': 'drawer-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both',
         sweep: 'sweep 1.8s linear infinite',
       },
     },

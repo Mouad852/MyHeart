@@ -38,15 +38,15 @@ export default function Segmented({ options, value, onChange, label, className =
                         transition-colors duration-fast
                         ${
                           selected
-                            ? 'border-teal-400 font-medium text-white'
-                            : 'border-transparent text-slate-400 hover:border-white/15 hover:text-slate-200'
+                            ? 'border-primary font-medium text-ink'
+                            : 'border-transparent text-ink-2 hover:border-rule-strong hover:text-ink'
                         }`}
           >
             {option.label}
             {option.count != null && (
               <span
                 className={`ml-2 text-meta tabular-nums ${
-                  selected ? 'text-teal-400' : 'text-slate-500'
+                  selected ? 'text-primary' : 'text-ink-3'
                 }`}
               >
                 {option.count}

@@ -8,20 +8,49 @@
     <meta name="description" content="MedCore — clinic operations: the day, the register, prescriptions, laboratory work and billing." />
 
     <!--
-      Syne carries the wordmark, page titles and large figures.
-      DM Sans carries every piece of operational text.
-      IBM Plex Mono carries anything a clinician reads as an identifier: clock
-      times, invoice and result numbers, amounts. Those want a fixed advance
-      width so a column of them lines up and a transposed digit is visible.
+      One family, two cuts.
+
+      IBM Plex Sans carries everything that is read and IBM Plex Mono carries
+      everything that is identified — clock times, invoice and result numbers,
+      amounts, phone numbers. Plex was drawn for technical and enterprise data,
+      and it does the thing the medical-typography literature actually asks for:
+      0 is distinguishable from O, and 1 from l from I. In a product where a
+      dose and a reference number are read at speed, that is a safety property
+      rather than a preference.
+
+      Syne is gone. It was a display face doing work at 12px, where none of its
+      character survives.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+
+    <!--
+      Paint the ground before React mounts, in the theme the reader will
+      actually get, so there is no flash of the wrong one. Kept inline and tiny
+      on purpose: it has to run before first paint.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('medcore-theme')
+          if (saved === 'light' || saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', saved)
+          }
+          var density = localStorage.getItem('medcore-density')
+          if (density === 'compact') {
+            document.documentElement.setAttribute('data-density', 'compact')
+          }
+        } catch (e) {
+          /* Private browsing can refuse storage; the defaults are correct. */
+        }
+      })()
+    </script>
   </head>
-  <body style="background:#080B12">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

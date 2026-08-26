@@ -113,13 +113,13 @@ export default function PatientsPage() {
       )}
 
       <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-rule px-5 py-3">
           <div className="relative w-full max-w-sm">
             <Search
               size={14}
               strokeWidth={2}
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
             />
             <input
               type="search"
@@ -127,8 +127,8 @@ export default function PatientsPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by name, email or phone"
               aria-label="Search the register"
-              className="input h-9 bg-white/[0.03] py-0 pl-9 pr-9
-                         [&::-webkit-search-cancel-button]:hidden"
+              className="input h-9 bg-raised py-0 pl-9 pr-9
+ [&::-webkit-search-cancel-button]:hidden"
             />
             {search && (
               <button
@@ -136,7 +136,7 @@ export default function PatientsPage() {
                 onClick={() => setSearch('')}
                 aria-label="Clear the search"
                 className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2
-                           items-center justify-center rounded text-slate-500 hover:text-slate-200"
+ items-center justify-center rounded text-ink-3 hover:text-ink"
               >
                 <X size={13} strokeWidth={2} aria-hidden="true" />
               </button>
@@ -145,11 +145,11 @@ export default function PatientsPage() {
 
           {/* Says what the count refers to. A bare number next to a search box
               is ambiguous between "found" and "in total". */}
-          <p aria-live="polite" className="text-meta text-slate-500">
+          <p aria-live="polite" className="text-meta text-ink-3">
             {searching
               ? `${total} ${total === 1 ? 'match' : 'matches'}`
               : `${total} registered`}
-            {isFetching && !isLoading && <span className="ml-2 text-slate-500">updating…</span>}
+            {isFetching && !isLoading && <span className="ml-2 text-ink-3">updating…</span>}
           </p>
         </div>
 
@@ -202,27 +202,27 @@ export default function PatientsPage() {
                         >
                           <Avatar name={patient.name} size="sm" />
                           <span className="min-w-0">
-                            <span className="block truncate font-medium text-white">
+                            <span className="block truncate font-medium text-ink">
                               {patient.name}
                             </span>
                             {/* The columns hidden at this width fold into the
                                 name cell rather than disappearing. */}
-                            <span className="block truncate text-meta text-slate-500 md:hidden">
+                            <span className="block truncate text-meta text-ink-3 md:hidden">
                               {patient.email || patient.phone}
                             </span>
                           </span>
                         </Link>
                       </td>
 
-                      <td className="td hidden text-slate-400 md:table-cell">
-                        {patient.email || <span className="text-slate-500">—</span>}
+                      <td className="td hidden text-ink-2 md:table-cell">
+                        {patient.email || <span className="text-ink-3">—</span>}
                       </td>
 
-                      <td className="td ident hidden text-slate-400 lg:table-cell">
-                        {patient.phone || <span className="text-slate-500">—</span>}
+                      <td className="td ident hidden text-ink-2 lg:table-cell">
+                        {patient.phone || <span className="text-ink-3">—</span>}
                       </td>
 
-                      <td className="td hidden text-meta text-slate-500 xl:table-cell">
+                      <td className="td hidden text-meta text-ink-3 xl:table-cell">
                         {formatDate(patient.createdAt, 'd MMM yyyy')}
                       </td>
 

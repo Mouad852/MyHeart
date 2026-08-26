@@ -26,10 +26,10 @@ export default function InvoiceDetails({ invoice, patientName, onTransition, isP
   return (
     <div>
       {/* The amount, set at the size the amount deserves. */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-5">
         <div>
           <p className="section-label">Amount</p>
-          <p className="ident mt-2 text-figure-lg font-semibold text-white">
+          <p className="ident mt-2 text-figure-lg font-semibold text-ink">
             {money(invoice.amount, invoice.currency)}
           </p>
         </div>
@@ -48,7 +48,7 @@ export default function InvoiceDetails({ invoice, patientName, onTransition, isP
         </Field>
         <Field label="Due" mono>
           {invoice.dueDate ? (
-            <span className={invoice.overdue ? 'text-rose-300' : undefined}>
+            <span className={invoice.overdue ? 'text-critical' : undefined}>
               {formatDate(invoice.dueDate, 'd MMM yyyy')}
             </span>
           ) : null}
@@ -67,23 +67,23 @@ export default function InvoiceDetails({ invoice, patientName, onTransition, isP
       </dl>
 
       {invoice.description && (
-        <div className="border-t border-hairline py-5">
+        <div className="border-t border-rule py-5">
           <p className="section-label">For</p>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">{invoice.description}</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-2">{invoice.description}</p>
         </div>
       )}
 
       {/* Recorded when the invoice was closed, and worth surfacing: it is the
           only explanation of why money stopped being expected. */}
       {invoice.voidReason && (
-        <div className="border-t border-hairline py-5">
+        <div className="border-t border-rule py-5">
           <p className="section-label">Reason</p>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">{invoice.voidReason}</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-2">{invoice.voidReason}</p>
         </div>
       )}
 
       {(allowed.includes('PAID') || allowed.includes('REFUNDED') || allowed.includes('VOID')) && (
-        <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-5">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-rule pt-5">
           {allowed.includes('VOID') && (
             <button
               type="button"

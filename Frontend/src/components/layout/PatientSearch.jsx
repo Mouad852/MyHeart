@@ -104,7 +104,7 @@ export default function PatientSearch() {
         size={14}
         strokeWidth={2}
         aria-hidden="true"
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
       />
 
       <input
@@ -122,8 +122,8 @@ export default function PatientSearch() {
           setOpen(true)
         }}
         onKeyDown={onKeyDown}
-        className="input h-9 bg-white/[0.03] py-0 pl-9 pr-10 text-sm
-                   [&::-webkit-search-cancel-button]:hidden"
+        className="input h-9 bg-raised py-0 pl-9 pr-10 text-sm
+ [&::-webkit-search-cancel-button]:hidden"
       />
 
       {/* The hint gets out of the way the moment there is something to clear. */}
@@ -136,7 +136,7 @@ export default function PatientSearch() {
           }}
           aria-label="Clear search"
           className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center
-                     justify-center rounded text-slate-500 hover:text-slate-200"
+ justify-center rounded text-ink-3 hover:text-ink"
         >
           <X size={13} strokeWidth={2} aria-hidden="true" />
         </button>
@@ -144,8 +144,8 @@ export default function PatientSearch() {
         <kbd
           aria-hidden="true"
           className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2
-                     rounded-sm border border-hairline px-1.5 py-0.5 font-mono text-[10px]
-                     leading-none text-slate-500"
+ rounded-sm border border-rule px-1.5 py-0.5 font-mono text-[10px]
+                     leading-none text-ink-3"
         >
           /
         </kbd>
@@ -156,17 +156,17 @@ export default function PatientSearch() {
           id="patient-search-results"
           role="listbox"
           className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 animate-fade-in
-                     overflow-hidden rounded border border-rule bg-navy-850 shadow-overlay"
+ overflow-hidden rounded border border-rule bg-raised shadow-overlay"
         >
           {isFetching && results.length === 0 && (
-            <p className="flex items-center gap-2.5 px-4 py-3.5 text-meta text-slate-500">
+            <p className="flex items-center gap-2.5 px-4 py-3.5 text-meta text-ink-3">
               <Spinner size={12} />
               Searching the register
             </p>
           )}
 
           {!isFetching && results.length === 0 && (
-            <p className="px-4 py-3.5 text-meta text-slate-500">
+            <p className="px-4 py-3.5 text-meta text-ink-3">
               No patient matches “{query}”.
             </p>
           )}
@@ -181,23 +181,23 @@ export default function PatientSearch() {
               onClick={() => openPatient(patient)}
               className={`flex w-full items-center gap-3 px-3 py-2.5 text-left
                           transition-colors duration-fast
-                          ${index === cursor ? 'bg-white/[0.06]' : ''}`}
+                          ${index === cursor ? 'bg-raised' : ''}`}
             >
               <Avatar name={patient.name} size="xs" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-slate-100">{patient.name}</span>
-                <span className="block truncate text-meta text-slate-500">
+                <span className="block truncate text-sm text-ink">{patient.name}</span>
+                <span className="block truncate text-meta text-ink-3">
                   {patient.email || patient.phone || `Patient ${patient.id}`}
                 </span>
               </span>
-              <span className="ident flex-shrink-0 text-meta text-slate-500">
+              <span className="ident flex-shrink-0 text-meta text-ink-3">
                 #{patient.id}
               </span>
             </button>
           ))}
 
           {total > results.length && (
-            <p className="border-t border-hairline px-4 py-2.5 text-meta text-slate-500">
+            <p className="border-t border-rule px-4 py-2.5 text-meta text-ink-3">
               {total - results.length} more match. Refine the search, or open the
               register.
             </p>

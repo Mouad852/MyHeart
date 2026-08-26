@@ -39,12 +39,12 @@ const AREAS = ['Scheduling', 'Patient records', 'Prescribing', 'Laboratory', 'Bi
 function Wordmark({ className = '' }) {
   return (
     <span className={`flex items-center gap-3 ${className}`}>
-      <span className="h-8 w-[3px] flex-shrink-0 bg-teal-400" aria-hidden="true" />
+      <span className="h-8 w-[3px] flex-shrink-0 bg-primary" aria-hidden="true" />
       <span>
-        <span className="block font-display text-xl font-extrabold leading-none tracking-tight text-white">
+        <span className="block text-xl font-bold leading-none tracking-tight text-ink">
           MedCore
         </span>
-        <span className="mt-1 block text-micro font-medium uppercase text-slate-500">
+        <span className="mt-1 block text-meta font-medium text-ink-3">
           Clinic operations
         </span>
       </span>
@@ -93,19 +93,19 @@ export default function Login() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-navy-950 text-slate-200">
+    <main className="min-h-[100dvh] bg-surface text-ink">
       <div className="mx-auto grid min-h-[100dvh] max-w-[1500px] lg:grid-cols-[1.1fr_1fr]">
         {/* ── The statement ─────────────────────────────────────────── */}
-        <section className="hidden border-r border-hairline bg-navy-900 px-14 py-14 lg:flex lg:flex-col lg:justify-between xl:px-20">
+        <section className="hidden border-r border-rule bg-ground px-14 py-14 lg:flex lg:flex-col lg:justify-between xl:px-20">
           <Wordmark />
 
           <div className="max-w-[36rem]">
-            <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white xl:text-5xl">
+            <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-ink xl:text-5xl">
               Every part of the clinic,
               <br />
-              <span className="text-teal-400">in one record.</span>
+              <span className="text-primary">in one record.</span>
             </h1>
-            <p className="mt-6 max-w-[52ch] leading-relaxed text-slate-400">
+            <p className="mt-6 max-w-[52ch] leading-relaxed text-ink-2">
               Scheduling, patient history, prescribing, laboratory work and billing —
               held by separate services, read as one thing, so nobody re-types what the
               clinic already knows.
@@ -114,9 +114,9 @@ export default function Login() {
 
           {/* Named, not counted. A list of what the product does is worth more
               than a large number saying how many of them there are. */}
-          <ul className="flex flex-wrap gap-x-8 gap-y-2 border-t border-hairline pt-7">
+          <ul className="flex flex-wrap gap-x-8 gap-y-2 border-t border-rule pt-7">
             {AREAS.map((area) => (
-              <li key={area} className="text-meta text-slate-500">
+              <li key={area} className="text-meta text-ink-3">
                 {area}
               </li>
             ))}
@@ -128,8 +128,8 @@ export default function Login() {
           <div className="mx-auto w-full max-w-md">
             <Wordmark className="mb-12 lg:hidden" />
 
-            <h2 className="font-display text-title font-bold text-white">Sign in</h2>
-            <p className="mt-2.5 leading-relaxed text-slate-400">
+            <h2 className="text-title font-bold text-ink">Sign in</h2>
+            <p className="mt-2.5 leading-relaxed text-ink-2">
               You will be taken to the MedCore identity service to enter your credentials.
               They are never typed into this application.
             </p>
@@ -161,15 +161,15 @@ export default function Login() {
               )}
             </button>
 
-            <p className="mt-4 flex items-center justify-center gap-1.5 text-meta text-slate-500">
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-meta text-ink-3">
               <ShieldCheck size={13} strokeWidth={2} aria-hidden="true" />
               OpenID Connect, Authorization Code Flow with PKCE
             </p>
 
             {/* ── Demo accounts ─────────────────────────────────────── */}
-            <div className="mt-12 border border-hairline">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3">
-                <h3 className="text-sm font-semibold text-white">Demo accounts</h3>
+            <div className="mt-12 border border-rule">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-4 py-3">
+                <h3 className="text-sm font-semibold text-ink">Demo accounts</h3>
                 <CopyButton
                   mono
                   value={DEMO_PASSWORD}
@@ -179,17 +179,17 @@ export default function Login() {
                 />
               </div>
 
-              <ul className="divide-y divide-hairline">
+              <ul className="divide-y divide-rule">
                 {DEMO_ACCOUNTS.map((account) => (
                   <li
                     key={account.username}
                     className="flex items-center justify-between gap-4 px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="ident truncate text-sm text-slate-100">
+                      <p className="ident truncate text-sm text-ink">
                         {account.username}
                       </p>
-                      <p className="mt-0.5 truncate text-meta text-slate-500">
+                      <p className="mt-0.5 truncate text-meta text-ink-3">
                         {account.role} · {account.summary}
                       </p>
                     </div>
@@ -203,7 +203,7 @@ export default function Login() {
                 ))}
               </ul>
 
-              <p className="border-t border-hairline px-4 py-3 text-meta leading-relaxed text-slate-500">
+              <p className="border-t border-rule px-4 py-3 text-meta leading-relaxed text-ink-3">
                 Every record in this deployment is fictional. Do not enter real patient
                 information.
               </p>

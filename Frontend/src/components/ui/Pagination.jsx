@@ -32,13 +32,13 @@ export default function Pagination({
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-between gap-4 border-t border-hairline px-5 py-3"
+      className="flex flex-wrap items-center justify-between gap-4 border-t border-rule px-5 py-3"
       aria-label="Pagination"
     >
-      <p className="text-meta text-slate-500">
-        Showing <span className="ident text-slate-300">{from}</span> to{' '}
-        <span className="ident text-slate-300">{to}</span> of{' '}
-        <span className="ident text-slate-300">{totalElements}</span>
+      <p className="text-meta text-ink-3">
+        Showing <span className="ident text-ink-2">{from}</span> to{' '}
+        <span className="ident text-ink-2">{to}</span> of{' '}
+        <span className="ident text-ink-2">{totalElements}</span>
       </p>
 
       <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export default function Pagination({
           Previous
         </button>
 
-        <span className="px-2 text-meta text-slate-500" aria-current="page">
+        <span className="px-2 text-meta text-ink-3" aria-current="page">
           Page {page + 1} of {totalPages}
         </span>
 

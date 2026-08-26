@@ -3,6 +3,148 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════
+   Themes
+
+   Three states, not two. An explicit choice stamps data-theme on the root;
+   the default is no stamp at all, where only the operating system's
+   preference separates light from dark. All three are handled here, and
+   every component reads the tokens rather than a literal, so no colour is
+   ever defined in only one of them.
+
+   The dark theme is derived from the same three inputs as the light one —
+   ground, accent, contrast — rather than being a second design. That is
+   what makes a genuine high-contrast mode a setting rather than a rewrite.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── Surfaces ─────────────────────────────────────────────────────
+       A hair warm rather than clinical white. It is the thing on screen
+       the reader looks at constantly, and warmth is the cheapest way to
+       stop a clinical tool reading as a hospital login screen. */
+    --ground: 240 239 236; /* #F0EFEC */
+    --surface: 255 255 255; /* #FFFFFF */
+    --raised: 247 246 243; /* #F7F6F3 */
+
+    /* ── Text ─────────────────────────────────────────────────────────
+       Three levels. Every one clears WCAG AA against both the ground and a
+       panel, and the ratios below were measured in the browser rather than
+       worked out on paper. */
+    --ink: 22 24 29; /* #16181D · 15.6:1 on the ground, 18.0:1 on a panel */
+    --ink-2: 90 98 112; /* #5A6270 ·  5.3:1 on the ground,  6.1:1 on a panel */
+    /* Measured, not estimated. The first value tried here was #767E8B, which
+       reads 3.6:1 against the ground — under AA, and it was carrying every
+       timestamp and every section label in the product. */
+    --ink-3: 97 105 119; /* #616977 ·  4.8:1 on the ground,  5.5:1 on a panel */
+
+    /* ── Rules ────────────────────────────────────────────────────────
+       Hairlines instead of shadows, everywhere except things that float. */
+    --rule: 226 225 220; /* #E2E1DC */
+    --rule-strong: 205 203 197; /* #CDCBC5 */
+
+    /* ── Interaction ──────────────────────────────────────────────────
+       A deep institutional blue, not the default SaaS blue. Dark enough
+       that it never fluoresces against white, and it reads as the one
+       colour on the page that does something. 7.6:1 on the ground. */
+    --primary: 18 81 138; /* #12518A */
+    --primary-hover: 14 63 108; /* #0E3F6C */
+    --primary-soft: 232 238 245; /* #E8EEF5 */
+    --primary-ink: 255 255 255;
+
+    /* ── The four meanings ────────────────────────────────────────────
+       Attention: a decision is owed, or money is.
+       Critical:  late, failed, or about to be destroyed.
+       Settled:   paid, confirmed, done.
+       Closed:    correctly finished; nothing further is expected. */
+    --attention: 154 91 0; /* #9A5B00 · 5.4:1 */
+    --attention-soft: 247 239 226; /* #F7EFE2 */
+    --critical: 196 52 43; /* #C4342B · 5.4:1 */
+    --critical-soft: 251 236 234; /* #FBECEA */
+    --settled: 31 122 71; /* #1F7A47 · 5.3:1 */
+    --settled-soft: 232 241 235; /* #E8F1EB */
+    --closed: 97 105 119; /* #616977 · 4.8:1 */
+    --closed-soft: 240 240 238; /* #F0F0EE */
+
+    --shadow-overlay: 0 12px 32px -10px rgb(22 24 29 / 0.22),
+      0 0 0 1px rgb(22 24 29 / 0.08);
+
+    /* ── Density ──────────────────────────────────────────────────────
+       Shipped as a setting rather than chosen for everybody: a
+       receptionist working a register and a doctor glancing between
+       patients genuinely want different row heights. */
+    --row-y: 0.7rem;
+    --row-y-tight: 0.5rem;
+  }
+
+  :root[data-density='compact'] {
+    --row-y: 0.4rem;
+    --row-y-tight: 0.3rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --ground: 19 20 23;
+      --surface: 26 28 32;
+      --raised: 33 36 41;
+
+      --ink: 236 238 241;
+      --ink-2: 163 171 183;
+      --ink-3: 130 138 150;
+
+      --rule: 42 45 51;
+      --rule-strong: 60 65 73;
+
+      --primary: 120 180 238;
+      --primary-hover: 154 201 244;
+      --primary-soft: 25 39 55;
+      --primary-ink: 12 16 22;
+
+      --attention: 224 163 74;
+      --attention-soft: 45 36 22;
+      --critical: 240 131 121;
+      --critical-soft: 51 29 28;
+      --settled: 94 196 138;
+      --settled-soft: 22 42 32;
+      --closed: 130 138 150;
+      --closed-soft: 35 38 43;
+
+      --shadow-overlay: 0 16px 40px -12px rgb(0 0 0 / 0.7),
+        0 0 0 1px rgb(255 255 255 / 0.08);
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --ground: 19 20 23;
+    --surface: 26 28 32;
+    --raised: 33 36 41;
+
+    --ink: 236 238 241;
+    --ink-2: 163 171 183;
+    --ink-3: 130 138 150;
+
+    --rule: 42 45 51;
+    --rule-strong: 60 65 73;
+
+    --primary: 120 180 238;
+    --primary-hover: 154 201 244;
+    --primary-soft: 25 39 55;
+    --primary-ink: 12 16 22;
+
+    --attention: 224 163 74;
+    --attention-soft: 45 36 22;
+    --critical: 240 131 121;
+    --critical-soft: 51 29 28;
+    --settled: 94 196 138;
+    --settled-soft: 22 42 32;
+    --closed: 130 138 150;
+    --closed-soft: 35 38 43;
+
+    --shadow-overlay: 0 16px 40px -12px rgb(0 0 0 / 0.7),
+      0 0 0 1px rgb(255 255 255 / 0.08);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    Base
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -14,39 +156,52 @@
   }
 
   html {
-    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Stops iOS from inflating text in landscape, which quietly breaks
-       every carefully set type scale on a phone. */
     -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme='light']) {
+      color-scheme: dark;
+    }
+  }
+  html[data-theme='dark'] {
+    color-scheme: dark;
   }
 
   body {
-    @apply bg-navy-950 text-slate-200 text-base;
+    @apply bg-ground text-base text-ink;
     min-height: 100dvh;
   }
 
-  /* Headings inherit the body face. Syne is applied deliberately with
-     `font-display` where it belongs — the wordmark, page titles and large
-     figures — rather than to every h1..h6 on the page. A section label set in
-     a display face at 12px is just a display face rendered too small to show
-     any of its character. */
-  h1, h2, h3, h4, h5, h6 {
+  /* Headings inherit the text face. Sentence case throughout: all-caps is
+     named in the clinical guidance as measurably harming comprehension, and
+     it was doing most of the labelling in this product. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.012em;
   }
 
   /* Every number the eye reads down a column lines up. */
-  th, td, time, output, .tabular {
+  th,
+  td,
+  time,
+  output,
+  .tabular {
     font-variant-numeric: tabular-nums;
   }
 
-  /* One focus treatment for the whole product, so a keyboard user learns it
-     once. Two rings — teal over a dark inset — keep it visible on both the
-     page and the lighter panel surfaces. */
+  /* One focus treatment for the whole product, learned once. */
   :focus-visible {
-    outline: 2px solid theme('colors.teal.400');
+    outline: 2px solid rgb(var(--primary));
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -55,90 +210,77 @@
   }
 
   ::selection {
-    background: theme('colors.teal.500' / 35%);
-    color: #fff;
+    background: rgb(var(--primary) / 0.2);
+    color: rgb(var(--ink));
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.09);
+    background: rgb(var(--ink-3) / 0.35);
     border: 3px solid transparent;
     background-clip: content-box;
     border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgb(var(--ink-3) / 0.6);
     background-clip: content-box;
   }
 
-  /* Native controls inherit the palette rather than rendering a light
-     dropdown list against a dark page. */
   select option {
-    background: theme('colors.navy.800');
-    color: theme('colors.slate.200');
+    background: rgb(var(--surface));
+    color: rgb(var(--ink));
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
    Components
 
-   The vocabulary is deliberately small. A surface is either the page, a
-   panel, or a row; a control is either primary, secondary, quiet or
-   destructive. Anything that needs a fifth option usually needs rethinking
-   instead.
+   A deliberately small vocabulary. A surface is the page, a panel or a row;
+   a control is primary, secondary, quiet, row-level or destructive.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @layer components {
   /* ── Surfaces ──────────────────────────────────────────────────────── */
 
-  /**
-   * A panel: one hairline and a slightly lifted ground. No shadow, no
-   * rounded corner worth noticing. It groups content; it does not float.
-   *
-   * `.card` keeps its old name so that pages not yet recomposed pick up the
-   * new language automatically.
-   */
+  /** One hairline on a lifted ground. It groups; it does not float, and it
+      is never nested inside another one. */
   .panel,
   .card {
-    @apply border border-hairline bg-navy-900;
+    @apply border border-rule bg-surface;
   }
 
-  /** A panel's own header strip, separated by a rule rather than a gap. */
   .panel-head {
     @apply flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2
-           border-b border-hairline px-5 py-4;
+           border-b border-rule px-5 py-4;
   }
 
-  /**
-   * The section label that runs through the whole product: small, wide, and
-   * quiet. It names a region without competing with the content in it.
-   */
+  /** The section label used throughout: small, semibold, sentence case. */
   .section-label {
-    @apply text-micro font-semibold uppercase text-slate-500;
+    @apply text-meta font-semibold text-ink-3;
   }
 
-  /* Old alias, kept so unconverted pages still render sensibly. */
   .section-title {
-    @apply font-display text-lg font-bold text-white;
+    @apply text-xl font-semibold text-ink;
   }
 
   /**
-   * The signature motif: a left rule with content hanging off it. The day's
-   * schedule, the patient timeline and the laboratory chain all use this, so
-   * a clinician moving between them reads the same shape each time.
+   * The spine: a left rule with content hanging off it, markers sitting on
+   * the line. The doctor's day, the patient's history and the laboratory's
+   * request-result-report chain all use it, so a clinician moving between
+   * them reads the same shape each time.
    */
   .spine {
     @apply relative pl-6;
   }
   .spine::before {
     content: '';
-    @apply absolute bottom-0 left-0 top-0 w-px bg-white/[0.09];
+    @apply absolute bottom-0 left-0 top-0 w-px bg-rule;
   }
 
   /* ── Controls ──────────────────────────────────────────────────────── */
@@ -147,33 +289,31 @@
     @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap
            rounded border px-3.5 py-2 text-sm font-medium
            transition-colors duration-fast
-           active:translate-y-px
-           disabled:pointer-events-none disabled:opacity-40;
+           disabled:pointer-events-none disabled:opacity-45;
   }
 
-  /* Exactly one primary action per screen region. Solid teal, dark text. */
+  /** One per screen region. */
   .btn-primary {
-    @apply btn border-teal-400 bg-teal-400 text-navy-950
-           hover:border-teal-300 hover:bg-teal-300;
+    @apply btn border-primary bg-primary text-primary-ink
+           hover:border-primary-hover hover:bg-primary-hover;
   }
 
   .btn-secondary {
-    @apply btn border-rule bg-white/[0.03] text-slate-200
-           hover:border-strong hover:bg-white/[0.07] hover:text-white;
+    @apply btn border-rule-strong bg-surface text-ink
+           hover:border-ink-3 hover:bg-raised;
   }
 
-  /** No border until it is wanted. For toolbars and repeated row actions. */
+  /** No border until it is reached for. Toolbars, icon controls. */
   .btn-quiet {
-    @apply btn border-transparent text-slate-400
-           hover:bg-white/[0.06] hover:text-white;
+    @apply btn border-transparent text-ink-2
+           hover:bg-raised hover:text-ink;
   }
 
   .btn-danger {
-    @apply btn border-rose-500/30 bg-rose-500/10 text-rose-300
-           hover:border-rose-500/55 hover:bg-rose-500/20 hover:text-rose-200;
+    @apply btn border-critical/40 bg-critical-soft text-critical
+           hover:border-critical hover:bg-critical hover:text-white;
   }
 
-  /** Row-level actions: the same shapes, one step smaller. */
   .btn-sm {
     @apply px-2.5 py-1 text-meta;
   }
@@ -181,23 +321,21 @@
   /**
    * The action a row is waiting for.
    *
-   * Quiet until it is reached for. A filled teal button is right when there is
-   * one of it on the screen; repeated down a column of twenty-seven invoices it
-   * becomes a stripe of paint that says nothing, in exactly the way a column of
-   * red Cancel buttons used to. The label still says what it does, and the
-   * accent arrives on hover and on focus.
+   * Quiet until it is reached for. A solid button is right when there is one
+   * of it on the screen; repeated down a column of twenty-seven invoices it
+   * becomes a stripe of paint that says nothing.
    */
   .btn-row {
-    @apply btn btn-sm border-rule text-slate-200
-           hover:border-teal-400/60 hover:bg-teal-400/10 hover:text-teal-300
-           focus-visible:border-teal-400/60 focus-visible:text-teal-300;
+    @apply btn btn-sm border-rule-strong bg-surface text-ink-2
+           hover:border-primary hover:bg-primary-soft hover:text-primary
+           focus-visible:border-primary focus-visible:text-primary;
   }
 
   .btn-icon {
     @apply inline-flex h-8 w-8 items-center justify-center rounded
-           border border-transparent text-slate-400 transition-colors duration-fast
-           hover:bg-white/[0.06] hover:text-white
-           disabled:pointer-events-none disabled:opacity-40;
+           border border-transparent text-ink-2 transition-colors duration-fast
+           hover:bg-raised hover:text-ink
+           disabled:pointer-events-none disabled:opacity-45;
   }
 
   /* ── Forms ─────────────────────────────────────────────────────────── */
@@ -205,62 +343,77 @@
   .input,
   .select,
   .textarea {
-    @apply w-full rounded border border-rule bg-navy-800 px-3 py-2 text-sm text-white
+    @apply w-full rounded border border-rule-strong bg-surface px-3 py-2 text-sm text-ink
            transition-colors duration-fast
-           placeholder:text-slate-500
-           hover:border-strong
-           focus:border-teal-500 focus:outline-none
-           disabled:cursor-not-allowed disabled:opacity-50;
+           placeholder:text-ink-3
+           hover:border-ink-3
+           focus:border-primary focus:outline-none
+           disabled:cursor-not-allowed disabled:bg-raised disabled:opacity-60;
   }
 
   .select {
     @apply cursor-pointer appearance-none bg-no-repeat pr-9;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2397A2B4' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235A6270' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 0.75rem center;
   }
-
-  .label {
-    @apply mb-1.5 block text-micro font-semibold uppercase text-slate-500;
+  :root[data-theme='dark'] .select,
+  :root:not([data-theme='light']) .select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A3ABB7' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme='dark']) .select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235A6270' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
   }
 
-  /** Shown under a field when the value is refused, in the field's own row. */
+  /** Above the field, never inside it, and in sentence case. */
+  .label {
+    @apply mb-1.5 block text-meta font-semibold text-ink-2;
+  }
+
   .field-error {
-    @apply mt-1.5 flex items-start gap-1.5 text-meta text-rose-400;
+    @apply mt-1.5 flex items-start gap-1.5 text-meta text-critical;
   }
 
   /* ── Tables ────────────────────────────────────────────────────────── */
 
   .th {
-    @apply border-b border-hairline px-4 py-2.5 text-left text-micro
-           font-semibold uppercase text-slate-500;
+    @apply border-b border-rule-strong px-4 py-2.5 text-left text-meta
+           font-semibold text-ink-3;
   }
 
   .td {
-    @apply border-b border-hairline px-4 py-3 align-middle text-sm;
+    @apply border-b border-rule px-4 align-middle text-sm;
+    padding-top: var(--row-y);
+    padding-bottom: var(--row-y);
   }
 
-  /* Rows respond, but only just. A strong hover on a 40-row table is a
+  /* Rows respond, but only just: a strong hover on a forty-row table is a
      flicker every time the pointer crosses it. */
   .row-hover {
-    @apply transition-colors duration-fast hover:bg-white/[0.025];
+    @apply transition-colors duration-fast hover:bg-raised;
   }
 
   /* ── Text ──────────────────────────────────────────────────────────── */
 
-  /** Identifiers: invoice numbers, result numbers, clock times, amounts. */
+  /** Identifiers: clock times, reference numbers, amounts, phone numbers. */
   .ident {
-    @apply font-mono tabular-nums tracking-tight;
+    @apply font-mono tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /** The one thing a row is about. */
+  .subject {
+    @apply text-subject font-semibold text-ink;
   }
 
   .text-muted {
-    @apply text-meta text-slate-500;
+    @apply text-meta text-ink-3;
   }
 
-  /* ── Link ──────────────────────────────────────────────────────────── */
-
   .link {
-    @apply rounded text-teal-400 underline-offset-4 transition-colors duration-fast
-           hover:text-teal-300 hover:underline;
+    @apply rounded font-medium text-primary underline-offset-4
+           transition-colors duration-fast hover:underline;
   }
 }
 
@@ -269,23 +422,27 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 @layer utilities {
-  /* The placeholder sweep. Defined here rather than inline so that every
-     skeleton in the product moves at the same speed. */
   .sweeping {
     background-image: linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.09) 50%,
-      rgba(255, 255, 255, 0.04) 100%
+      rgb(var(--ink-3) / 0.1) 0%,
+      rgb(var(--ink-3) / 0.2) 50%,
+      rgb(var(--ink-3) / 0.1) 100%
     );
     background-size: 200% 100%;
+  }
+
+  /** Rows in the patient portal, which reads one step larger than staff. */
+  .portal-text {
+    @apply text-portal;
   }
 }
 
 /*
-  Motion is used to explain what changed — a drawer arriving, a row settling
-  into place. None of it is load-bearing, so a reader who has asked their
-  system for less of it loses nothing by having all of it removed.
+  Motion explains what changed — a drawer arriving, a menu opening, a row
+  settling after a state change. None of it is load-bearing, so a reader who
+  has asked their system for less of it loses nothing by having all of it
+  removed.
 */
 @media (prefers-reduced-motion: reduce) {
   *,

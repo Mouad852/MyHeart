@@ -67,7 +67,7 @@ function DayNavigator({ day, onChange }) {
         <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
       </button>
 
-      <p className="min-w-[11rem] px-1 text-center text-sm font-medium text-slate-100">
+      <p className="min-w-[11rem] px-1 text-center text-sm font-medium text-ink">
         {format(date, 'EEE d MMM yyyy')}
       </p>
 
@@ -109,7 +109,7 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
 
   return (
     <li
-      className={`spine relative py-3.5 ${isNext ? 'bg-white/[0.035] pr-3' : ''}`}
+      className={`spine relative py-3.5 ${isNext ? 'bg-primary-soft pr-3' : ''}`}
     >
       {/* The marker on the rule. Filled once the consultation is settled,
           hollow while it is still ahead, and ringed for the next one. */}
@@ -118,10 +118,10 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
         className={`absolute left-0 top-[1.35rem] h-2 w-2 -translate-x-1/2 rounded-full
                     ${
                       isNext
-                        ? 'bg-teal-400 ring-4 ring-teal-400/20'
+                        ? 'bg-primary ring-4 ring-primary/25'
                         : settled
-                          ? 'bg-slate-600'
-                          : 'border border-slate-500 bg-navy-900'
+                          ? 'bg-closed'
+                          : 'border border-rule-strong bg-surface'
                     }`}
       />
 
@@ -129,12 +129,12 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
         <div className="w-16 flex-shrink-0">
           <p
             className={`ident font-medium leading-none
-                        ${isNext ? 'text-lg text-white' : isPast ? 'text-sm text-slate-500' : 'text-sm text-slate-200'}`}
+                        ${isNext ? 'text-lg text-ink' : isPast ? 'text-sm text-ink-3' : 'text-sm text-ink'}`}
           >
             {clock(appointment.appointmentDate)}
           </p>
           {appointment.durationMinutes != null && (
-            <p className="mt-1.5 text-micro text-slate-500">
+            <p className="mt-1.5 text-meta text-ink-3">
               {appointment.durationMinutes} min
             </p>
           )}
@@ -148,13 +148,13 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
               <Link
                 to={`/patients/${patient.id}`}
                 className={`truncate rounded font-medium underline-offset-4 hover:underline
-                            ${isPast ? 'text-slate-400' : 'text-white'}
+                            ${isPast ? 'text-ink-2' : 'text-ink'}
                             ${isNext ? 'text-base' : 'text-sm'}`}
               >
                 {patient.name}
               </Link>
             ) : (
-              <span className="truncate text-sm text-slate-400">
+              <span className="truncate text-sm text-ink-2">
                 {patient?.name || `Patient ${appointment.patientId}`}
               </span>
             )}
@@ -163,7 +163,7 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
 
           {appointment.notes && (
             <p
-              className={`mt-1.5 text-sm leading-relaxed text-slate-500
+              className={`mt-1.5 text-sm leading-relaxed text-ink-3
                           ${isNext ? '' : 'truncate'}`}
             >
               {appointment.notes}
@@ -213,9 +213,9 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
 function NowMarker() {
   return (
     <li className="spine relative py-1" aria-hidden="true">
-      <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-teal-400/30" />
-      <span className="absolute left-0 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-400" />
-      <span className="relative ml-1 inline-block bg-navy-900 pr-2 text-micro font-semibold uppercase text-teal-400">
+      <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-primary-soft" />
+      <span className="absolute left-0 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
+      <span className="relative ml-1 inline-block bg-surface pr-2 text-meta font-semibold text-primary">
         Now · {format(new Date(), 'HH:mm')}
       </span>
     </li>
@@ -293,7 +293,7 @@ export default function TodayWorkspace() {
               { label: 'Booked', value: counts.booked },
               { label: 'Still to see', value: counts.remaining },
               { label: 'Seen', value: counts.seen },
-              { label: 'Did not attend', value: counts.missed, tone: 'miss' },
+              { label: 'Did not attend', value: counts.missed, tone: 'attention' },
             ]}
           />
         }
@@ -339,7 +339,7 @@ export default function TodayWorkspace() {
         )}
       </Panel>
 
-      <p className="mt-4 text-meta text-slate-500">
+      <p className="mt-4 text-meta text-ink-3">
         Times are shown in the clinic’s local time zone.
       </p>
     </>

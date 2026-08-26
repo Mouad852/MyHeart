@@ -27,12 +27,17 @@ import {
   CalendarDays,
   CalendarPlus,
   Check,
+  ChevronLeft,
+  ChevronRight,
   CircleCheck,
+  Columns2,
+  List,
   Search,
   UserX,
   X,
 } from 'lucide-react'
 import {
+  addDays,
   format,
   isAfter,
   isSameDay,
@@ -53,6 +58,7 @@ import PageHeader from '../../components/ui/Page'
 import { Panel } from '../../components/ui/Panel'
 import { SkeletonRows } from '../../components/ui/LoadingSpinner'
 import AppointmentForm from './AppointmentForm'
+import DayGrid from './DayGrid'
 import {
   useAppointments,
   useCreateAppointment,
@@ -129,7 +135,7 @@ function Row({ appointment, onTransition, onCancel, isPending }) {
   return (
     <li className="row-hover flex flex-wrap items-start gap-x-5 gap-y-2 px-5 py-3">
       {/* Time leads: within a day, that is the only thing being compared. */}
-      <p className="ident w-14 flex-shrink-0 pt-0.5 text-sm font-medium text-slate-200">
+      <p className="ident w-14 flex-shrink-0 pt-0.5 text-sm font-medium text-ink">
         {date ? format(date, 'HH:mm') : '--:--'}
       </p>
 
@@ -138,25 +144,25 @@ function Row({ appointment, onTransition, onCancel, isPending }) {
           {patient?.id ? (
             <Link
               to={`/patients/${patient.id}`}
-              className="truncate rounded text-sm font-medium text-white underline-offset-4 hover:underline"
+              className="truncate rounded text-sm font-medium text-ink underline-offset-4 hover:underline"
             >
               {patient.name}
             </Link>
           ) : (
-            <span className="truncate text-sm font-medium text-slate-300">
+            <span className="truncate text-sm font-medium text-ink-2">
               {patient?.name || `Patient ${appointment.patientId}`}
             </span>
           )}
           <StatusBadge status={appointment.status} size="sm" />
         </div>
 
-        <p className="mt-0.5 truncate text-meta text-slate-500">
+        <p className="mt-0.5 truncate text-meta text-ink-3">
           {doctor?.name || `Doctor ${appointment.doctorId}`}
           {doctor?.specialty ? ` · ${doctor.specialty}` : ''}
         </p>
 
         {appointment.notes && (
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-500">{appointment.notes}</p>
+          <p className="mt-1 max-w-[70ch] text-sm text-ink-3">{appointment.notes}</p>
         )}
       </div>
 
@@ -186,6 +192,10 @@ export default function AppointmentsPage() {
   const { data: appointments = [], isLoading, error, refetch } = useAppointments()
 
   const [scope, setScope] = useState('upcoming')
+  // The list answers "what is next"; the day answers "where is the gap".
+  // Both exist because neither can do the other's job.
+  const [view, setView] = useState('list')
+  const [gridDay, setGridDay] = useState(() => startOfDay(new Date()))
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [toCancel, setToCancel] = useState(null)
@@ -281,7 +291,7 @@ export default function AppointmentsPage() {
       )}
 
       <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-rule px-3">
           <Segmented
             label="Which appointments to show"
             value={scope}
@@ -295,12 +305,46 @@ export default function AppointmentsPage() {
             ]}
           />
 
-          <div className="relative mb-2 w-full max-w-xs sm:mb-0">
+          <div className="mb-2 flex flex-wrap items-center gap-3 sm:mb-0">
+            {/* Two views of the same diary, switched in place. */}
+            <div
+              role="group"
+              aria-label="How to show the diary"
+              className="flex overflow-hidden rounded border border-rule-strong"
+            >
+              {[
+                { value: 'list', label: 'List', icon: List },
+                { value: 'day', label: 'Day', icon: Columns2 },
+              ].map((option) => {
+                const Icon = option.icon
+                const selected = view === option.value
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setView(option.value)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 text-meta
+                                transition-colors duration-fast
+                                ${
+                                  selected
+                                    ? 'bg-primary-soft font-medium text-primary'
+                                    : 'text-ink-2 hover:bg-raised hover:text-ink'
+                                }`}
+                  >
+                    <Icon size={13} strokeWidth={2} aria-hidden="true" />
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+
+          <div className="relative w-full max-w-xs">
             <Search
               size={13}
               strokeWidth={2}
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
             />
             <input
               type="search"
@@ -308,8 +352,8 @@ export default function AppointmentsPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Filter by patient, doctor or note"
               aria-label="Filter the diary"
-              className="input h-8 bg-white/[0.03] py-0 pl-8 pr-8 text-meta
-                         [&::-webkit-search-cancel-button]:hidden"
+              className="input h-8 bg-raised py-0 pl-8 pr-8 text-meta
+ [&::-webkit-search-cancel-button]:hidden"
             />
             {filtering && (
               <button
@@ -317,17 +361,82 @@ export default function AppointmentsPage() {
                 onClick={() => setSearch('')}
                 aria-label="Clear the filter"
                 className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2
-                           items-center justify-center rounded text-slate-500 hover:text-slate-200"
+ items-center justify-center rounded text-ink-3 hover:text-ink"
               >
                 <X size={12} strokeWidth={2} aria-hidden="true" />
               </button>
             )}
           </div>
+          </div>
         </div>
 
         {isLoading && <SkeletonRows rows={5} label="Loading the diary" />}
 
-        {!isLoading && shown === 0 && (
+        {/* ── The day ─────────────────────────────────────────────────── */}
+        {!isLoading && view === 'day' && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="btn-icon"
+                  aria-label="Previous day"
+                  onClick={() => setGridDay((d) => addDays(d, -1))}
+                >
+                  <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+                </button>
+                <p className="min-w-[11rem] px-1 text-center text-sm font-medium text-ink">
+                  {isToday(gridDay) ? 'Today · ' : ''}
+                  {format(gridDay, 'EEE d MMM yyyy')}
+                </p>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  aria-label="Next day"
+                  onClick={() => setGridDay((d) => addDays(d, 1))}
+                >
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+                </button>
+                {!isToday(gridDay) && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm ml-2"
+                    onClick={() => setGridDay(startOfDay(new Date()))}
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+              <p className="text-meta text-ink-3">
+                Booked slots drawn to length. Empty space is bookable.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto px-5 py-5">
+              <div className="min-w-[26rem]">
+                <DayGrid
+                  day={gridDay}
+                  appointments={appointments.filter((row) => {
+                    const date = when(row.appointmentDate)
+                    return date && isSameDay(date, gridDay)
+                  })}
+                  onSelect={(appointment) => {
+                    // Opening a slot from the grid drops you into the list at
+                    // that day, where the actions are.
+                    const date = when(appointment.appointmentDate)
+                    if (date) setGridDay(startOfDay(date))
+                    setView('list')
+                    setScope('all')
+                  }}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── The list ────────────────────────────────────────────────── */}
+        {!isLoading && view === 'list' && shown === 0 && (
+
           <EmptyState
             icon={CalendarDays}
             title={
@@ -361,18 +470,19 @@ export default function AppointmentsPage() {
         )}
 
         {!isLoading &&
+          view === 'list' &&
           groups.map((group) => (
             <section key={group.key}>
               {/* The day heading is the row above its own appointments, on the
                   raised ground, so a long diary stays navigable while it
                   scrolls. */}
-              <h2 className="flex items-baseline justify-between gap-4 border-b border-hairline bg-white/[0.02] px-5 py-2">
-                <span className="text-meta font-medium text-slate-300">
+              <h2 className="flex items-baseline justify-between gap-4 border-b border-rule bg-raised px-5 py-2">
+                <span className="text-meta font-medium text-ink-2">
                   {group.date ? dayLabel(group.date) : 'Undated'}
                 </span>
-                <span className="ident text-meta text-slate-500">{group.rows.length}</span>
+                <span className="ident text-meta text-ink-3">{group.rows.length}</span>
               </h2>
-              <ul className="divide-y divide-hairline">
+              <ul className="divide-y divide-rule">
                 {group.rows.map((appointment) => (
                   <Row
                     key={appointment.id}
@@ -388,7 +498,7 @@ export default function AppointmentsPage() {
       </Panel>
 
       {filtering && shown > 0 && (
-        <p className="mt-3 text-meta text-slate-500">
+        <p className="mt-3 text-meta text-ink-3">
           {shown} {shown === 1 ? 'appointment matches' : 'appointments match'} “{search.trim()}”.
         </p>
       )}

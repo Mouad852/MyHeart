@@ -65,11 +65,11 @@ export function getInitials(name = '') {
  * Get a deterministic background color for an avatar based on a string.
  */
 const AVATAR_COLORS = [
-  'bg-teal-500/20 text-teal-400',
-  'bg-blue-500/20 text-blue-400',
+  'bg-primary-soft text-primary',
+  'bg-closed-soft text-ink-2',
   'bg-violet-500/20 text-violet-400',
-  'bg-amber-500/20 text-amber-400',
-  'bg-rose-500/20 text-rose-400',
+  'bg-attention-soft text-attention',
+  'bg-critical-soft text-critical',
   'bg-emerald-500/20 text-emerald-400',
 ]
 export function getAvatarColor(str = '') {
@@ -83,13 +83,13 @@ export function getAvatarColor(str = '') {
 export function getStatusBadge(status) {
   switch (status) {
     case 'CONFIRMED':
-      return { className: 'bg-teal-500/15 text-teal-400', label: 'Scheduled' }
+      return { className: 'bg-primary-soft text-primary', label: 'Scheduled' }
     case 'COMPLETED':
-      return { className: 'bg-blue-500/15 text-blue-400', label: 'Completed' }
+      return { className: 'bg-closed-soft text-ink-2', label: 'Completed' }
     case 'CANCELLED':
       return { className: 'bg-red-500/15 text-red-400', label: 'Cancelled' }
     default:
-      return { className: 'bg-slate-500/15 text-slate-400', label: status }
+      return { className: 'bg-closed-soft text-ink-2', label: status }
   }
 }
 

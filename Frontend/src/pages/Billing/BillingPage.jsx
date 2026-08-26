@@ -76,44 +76,44 @@ function Ledger({ summary }) {
       label: 'Outstanding',
       value: money(data?.outstandingAmount, currency),
       note: `${data?.outstandingCount ?? 0} unpaid`,
-      tone: 'text-amber-300',
+      tone: 'text-attention',
     },
     {
       label: 'Overdue',
       value: money(data?.overdueAmount, currency),
       note: `${data?.overdueCount ?? 0} past due`,
       // Rose only when there is actually something late.
-      tone: data?.overdueCount > 0 ? 'text-rose-300' : 'text-slate-500',
+      tone: data?.overdueCount > 0 ? 'text-critical' : 'text-ink-3',
     },
     {
       label: 'Collected',
       value: money(data?.collectedAmount, currency),
       note: `${data?.collectedCount ?? 0} settled`,
-      tone: 'text-white',
+      tone: 'text-ink',
     },
     {
       label: 'Invoices raised',
       value: String(data?.invoiceCount ?? 0),
       note: 'since the clinic opened',
-      tone: 'text-white',
+      tone: 'text-ink',
     },
   ]
 
   return (
-    <dl className="grid grid-cols-1 border-y border-hairline sm:grid-cols-2 lg:grid-cols-4">
+    <dl className="grid grid-cols-1 border-y border-rule sm:grid-cols-2 lg:grid-cols-4">
       {cells.map((cell, index) => (
         <div
           key={cell.label}
           className={`px-4 py-4 first:pl-0 sm:px-5 sm:first:pl-0
-                      ${index % 2 !== 0 ? 'sm:border-l sm:border-hairline' : ''}
-                      ${index !== 0 ? 'lg:border-l lg:border-hairline' : 'lg:border-l-0'}
-                      ${index < cells.length - 1 ? 'border-b border-hairline sm:border-b-0' : ''}`}
+                      ${index % 2 !== 0 ? 'sm:border-l sm:border-rule' : ''}
+                      ${index !== 0 ? 'lg:border-l lg:border-rule' : 'lg:border-l-0'}
+                      ${index < cells.length - 1 ? 'border-b border-rule sm:border-b-0' : ''}`}
         >
-          <dt className="text-meta text-slate-500">{cell.label}</dt>
+          <dt className="text-meta text-ink-3">{cell.label}</dt>
           <dd className={`ident mt-1.5 text-xl font-semibold ${cell.tone}`}>
             {summary.isLoading ? <Skeleton className="h-6 w-28" /> : cell.value}
           </dd>
-          <p className="mt-1 text-meta text-slate-500">{cell.note}</p>
+          <p className="mt-1 text-meta text-ink-3">{cell.note}</p>
         </div>
       ))}
     </dl>
@@ -225,7 +225,7 @@ export default function BillingPage() {
       )}
 
       <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-rule px-3">
           <Segmented
             label="Which invoices to show"
             value={scope}
@@ -262,7 +262,7 @@ export default function BillingPage() {
         </div>
 
         {invoices.isLoading && (
-          <div className="divide-y divide-hairline" aria-busy="true">
+          <div className="divide-y divide-rule" aria-busy="true">
             {[0, 1, 2, 3].map((row) => (
               <div key={row} className="flex items-center gap-6 px-5 py-3.5">
                 <SkeletonText chars={9} />
@@ -301,7 +301,7 @@ export default function BillingPage() {
                 <tr>
                   <th className="th pl-5">Invoice</th>
                   <th className="th hidden sm:table-cell">Patient</th>
-                  <th className="th hidden whitespace-nowrap lg:table-cell">Due</th>
+                  <th className="th hidden whitespace-nowrap xl:table-cell">Due</th>
                   <th className="th">Status</th>
                   <th className="th hidden text-right sm:table-cell">Amount</th>
                   <th className="th pr-5 text-right">
@@ -320,16 +320,16 @@ export default function BillingPage() {
                           onClick={() => setViewing(invoice)}
                           className="rounded text-left"
                         >
-                          <span className="ident block font-medium text-white">
+                          <span className="ident block font-medium text-ink">
                             INV-{String(invoice.id).padStart(5, '0')}
                           </span>
                           {/* On a phone the amount folds into this cell and
                               the description gives way to it: the sum owed is
                               the reason anybody opened the ledger. */}
-                          <span className="ident mt-0.5 block text-meta text-slate-300 sm:hidden">
+                          <span className="ident mt-0.5 block text-meta text-ink-2 sm:hidden">
                             {money(invoice.amount, invoice.currency)}
                           </span>
-                          <span className="mt-0.5 hidden max-w-[26ch] truncate text-meta text-slate-500 sm:block">
+                          <span className="mt-0.5 hidden max-w-[26ch] truncate text-meta text-ink-3 sm:block">
                             {invoice.description || on(invoice.createdAt)}
                           </span>
                         </button>
@@ -339,28 +339,28 @@ export default function BillingPage() {
                         {canReadPatients ? (
                           <Link
                             to={`/patients/${invoice.patientId}`}
-                            className="rounded text-slate-300 underline-offset-4 hover:text-white hover:underline"
+                            className="rounded text-ink-2 underline-offset-4 hover:text-ink hover:underline"
                           >
                             {patientName(invoice)}
                           </Link>
                         ) : (
-                          <span className="ident text-slate-400">
+                          <span className="ident text-ink-2">
                             Patient {invoice.patientId}
                           </span>
                         )}
                       </td>
 
-                      <td className="td hidden whitespace-nowrap lg:table-cell">
+                      <td className="td hidden whitespace-nowrap xl:table-cell">
                         {invoice.dueDate ? (
                           <span
                             className={`ident text-meta ${
-                              invoice.overdue ? 'text-rose-300' : 'text-slate-500'
+                              invoice.overdue ? 'text-critical' : 'text-ink-3'
                             }`}
                           >
                             {on(invoice.dueDate)}
                           </span>
                         ) : (
-                          <span className="text-slate-500">—</span>
+                          <span className="text-ink-3">—</span>
                         )}
                       </td>
 
@@ -373,7 +373,7 @@ export default function BillingPage() {
 
                       {/* Right-aligned: a column of money is read by comparing
                           magnitudes, and that only works from the units up. */}
-                      <td className="td ident hidden text-right font-medium text-white sm:table-cell">
+                      <td className="td ident hidden text-right font-medium text-ink sm:table-cell">
                         {money(invoice.amount, invoice.currency)}
                       </td>
 
@@ -390,7 +390,7 @@ export default function BillingPage() {
                               onClick={() =>
                                 transition.mutate({ id: invoice.id, action: 'pay' })
                               }
-                              className="btn-row hidden whitespace-nowrap lg:inline-flex"
+                              className="btn-row hidden whitespace-nowrap xl:inline-flex"
                             >
                               <Banknote size={12} strokeWidth={2} aria-hidden="true" />
                               Mark paid
