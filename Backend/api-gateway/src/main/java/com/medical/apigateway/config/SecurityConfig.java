@@ -85,7 +85,12 @@ public class SecurityConfig {
                         .pathMatchers("/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
 
                         // Labs
-                        .pathMatchers(HttpMethod.GET, "/labs/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        // PATIENT is allowed through; lab-service checks
+                        // ownership against the token.
+                        .pathMatchers(HttpMethod.GET, "/labs/**")
+                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST", "PATIENT", "LAB_TECHNICIAN")
+                        .pathMatchers(HttpMethod.POST, "/labs/results/*/file")
+                        .hasAnyRole("DOCTOR", "ADMIN", "LAB_TECHNICIAN")
                         .pathMatchers(HttpMethod.POST, "/labs/**").hasAnyRole("DOCTOR", "ADMIN")
                         .pathMatchers("/labs/**").hasAnyRole("DOCTOR", "ADMIN")
 

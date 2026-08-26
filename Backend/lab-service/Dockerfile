@@ -9,6 +9,13 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 RUN addgroup -S medical && adduser -S medical -G medical
 COPY --from=build /app/target/*.jar app.jar
+
+# The storage directory has to exist in the image, owned by the user the service
+# runs as. Docker seeds an empty named volume from the image path it is mounted
+# over, ownership included; without this the volume is created root-owned and
+# every upload fails with a permission error at the first write.
+RUN mkdir -p /var/lib/medcore/lab-results     && chown -R medical:medical /var/lib/medcore
+
 USER medical
 EXPOSE 8005
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

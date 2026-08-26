@@ -38,8 +38,15 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info")
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                        // PATIENT is allowed through here on purpose. The rule
+                        // cannot tell whose result is being asked for, so the
+                        // controller checks ownership against the token and
+                        // refuses anything that is not the caller's own.
                         .requestMatchers(HttpMethod.GET, "/labs/**")
-                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST", "PATIENT", "LAB_TECHNICIAN")
+                        // Uploading a report is laboratory work.
+                        .requestMatchers(HttpMethod.POST, "/labs/results/*/file")
+                        .hasAnyRole("DOCTOR", "ADMIN", "LAB_TECHNICIAN")
                         // Every write, whatever the verb.
                         .requestMatchers("/labs/**").hasAnyRole("DOCTOR", "ADMIN")
                         .anyRequest().authenticated())

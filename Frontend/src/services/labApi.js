@@ -49,6 +49,40 @@ const labApi = {
     axiosInstance.get(`${BASE}/${requestId}/results`).then((r) => r.data),
 
   /**
+   * POST /labs/results/{resultId}/file
+   * Attach the scanned or exported report to a result.
+   *
+   * The Content-Type header is left unset on purpose: the browser has to write
+   * it itself so it can append the multipart boundary. Setting it here would
+   * produce a header with no boundary and a body the server cannot parse.
+   */
+  uploadResultFile: (resultId, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return axiosInstance
+      .post(`${BASE}/results/${resultId}/file`, form, {
+        headers: { 'Content-Type': undefined },
+        // A scan over a slow connection needs longer than the default.
+        timeout: 60_000,
+      })
+      .then((r) => r.data)
+  },
+
+  /**
+   * GET /labs/results/{resultId}/file
+   * The attached report, as a blob. Needs the bearer token, so it cannot be a
+   * plain link.
+   */
+  downloadResultFile: (resultId) =>
+    axiosInstance
+      .get(`${BASE}/results/${resultId}/file`, {
+        responseType: 'blob',
+        headers: { Accept: '*/*' },
+        timeout: 60_000,
+      })
+      .then((r) => r.data),
+
+  /**
    * GET /labs/requests
    * Fetch all lab requests (used by dashboard for total count).
    */

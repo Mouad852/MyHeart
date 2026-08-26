@@ -15,6 +15,8 @@ import { useState } from 'react'
 import {
   FlaskConical, Plus, ChevronDown, ChevronUp,
   FileText, User, Stethoscope, ClipboardCheck,
+  Paperclip,
+  FileDown,
 } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import EmptyState from '../../components/ui/EmptyState'
@@ -24,11 +26,15 @@ import { PageSpinner } from '../../components/ui/LoadingSpinner'
 import PatientSelector from '../../components/ui/PatientSelector'
 import LabRequestForm from './LabRequestForm'
 import LabResultForm from './LabResultForm'
+import { useAuth } from '../../auth/AuthProvider'
+import { ROLES } from '../../auth/roles'
 import {
   useLabRequestsByPatient,
   useLabResults,
   useCreateLabRequest,
   useCreateLabResult,
+  useUploadLabResultFile,
+  useDownloadLabResultFile,
 } from '../../hooks/useLabs'
 import { formatDate } from '../../utils'
 
@@ -218,9 +224,114 @@ export default function LabsPage() {
   )
 }
 
+/**
+ * One result, with whatever report is attached to it.
+ *
+ * The upload control is shown only to roles the gateway will actually accept an
+ * upload from. A receptionist can read a result all day and will never be
+ * allowed to file one, so offering them a button that can only produce a 403 is
+ * worse than offering nothing.
+ */
+function LabResultRow({ result, requestId, canUpload }) {
+  const upload = useUploadLabResultFile(requestId)
+  const download = useDownloadLabResultFile()
+  const inputId = `lab-result-file-${result.id}`
+
+  const onPick = (event) => {
+    const file = event.target.files?.[0]
+    // Reset the input so choosing the same file twice still fires a change.
+    event.target.value = ''
+    if (file) upload.mutate({ resultId: result.id, file })
+  }
+
+  return (
+    <div className="p-4">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck size={14} className="text-teal-400 flex-shrink-0 mt-0.5" />
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+            Result #{result.id}
+          </span>
+        </div>
+        <span className="text-xs text-slate-600">
+          {formatDate(result.resultedAt, 'MMM d, yyyy')}
+        </span>
+      </div>
+
+      <p className="text-sm text-white leading-relaxed ml-5">{result.resultText}</p>
+      {result.observations && (
+        <p className="text-xs text-slate-500 italic ml-5 mt-1">{result.observations}</p>
+      )}
+
+      <div className="ml-5 mt-3 flex flex-wrap items-center gap-2">
+        {result.hasFile && (
+          <button
+            type="button"
+            disabled={download.isPending}
+            onClick={() => download.mutate(result)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10
+                       px-2.5 py-1.5 text-xs font-medium text-slate-300
+                       transition-all duration-150
+                       hover:border-teal-500/40 hover:text-teal-400
+                       focus:outline-none focus:ring-2 focus:ring-teal-400
+                       focus:ring-offset-2 focus:ring-offset-navy-900
+                       active:translate-y-px
+                       disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FileDown size={13} strokeWidth={2} aria-hidden="true" />
+            {result.fileName}
+            <span className="text-slate-600">{formatFileSize(result.fileSize)}</span>
+          </button>
+        )}
+
+        {canUpload && (
+          <>
+            <input
+              id={inputId}
+              type="file"
+              className="sr-only"
+              accept="application/pdf,image/png,image/jpeg"
+              onChange={onPick}
+            />
+            <label
+              htmlFor={inputId}
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border
+                          border-dashed border-white/15 px-2.5 py-1.5 text-xs font-medium
+                          text-slate-400 transition-all duration-150
+                          hover:border-teal-500/40 hover:text-teal-400
+                          focus-within:ring-2 focus-within:ring-teal-400
+                          focus-within:ring-offset-2 focus-within:ring-offset-navy-900
+                          ${upload.isPending ? 'pointer-events-none opacity-40' : ''}`}
+            >
+              <Paperclip size={13} strokeWidth={2} aria-hidden="true" />
+              {upload.isPending
+                ? 'Uploading'
+                : result.hasFile
+                  ? 'Replace report'
+                  : 'Attach report'}
+            </label>
+            {/* Said plainly rather than discovered by having a file refused. */}
+            <span className="text-[11px] text-slate-600">PDF, PNG or JPEG, up to 10 MB</span>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Bytes as something a human reads. */
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 /** Inline component that fetches and renders results for a single request */
 function LabResultsPanel({ requestId }) {
   const { data: results = [], isLoading } = useLabResults(requestId)
+  const { hasAnyRole } = useAuth()
+  const canUpload = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN, ROLES.LAB_TECHNICIAN])
 
   return (
     <div className="px-6 pb-5">
@@ -242,23 +353,12 @@ function LabResultsPanel({ requestId }) {
         {!isLoading && results.length > 0 && (
           <div className="divide-y divide-white/5">
             {results.map((res) => (
-              <div key={res.id} className="p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex items-center gap-2">
-                    <ClipboardCheck size={14} className="text-teal-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                      Result #{res.id}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-600">
-                    {formatDate(res.createdAt, 'MMM d, yyyy')}
-                  </span>
-                </div>
-                <p className="text-sm text-white leading-relaxed ml-5">{res.resultText}</p>
-                {res.observations && (
-                  <p className="text-xs text-slate-500 italic ml-5 mt-1">{res.observations}</p>
-                )}
-              </div>
+              <LabResultRow
+                key={res.id}
+                result={res}
+                requestId={requestId}
+                canUpload={canUpload}
+              />
             ))}
           </div>
         )}

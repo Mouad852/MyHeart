@@ -299,6 +299,12 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${LAB_DB_PASSWORD:?LAB_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - LAB_STORAGE_PATH=/var/lib/medcore/lab-results
+    volumes:
+      # Uploaded laboratory reports. A named volume rather than a bind mount so
+      # the files survive a container rebuild and do not depend on the host's
+      # directory layout.
+      - lab-result-files:/var/lib/medcore/lab-results
     depends_on:
       lab-db:
         condition: service_healthy
@@ -429,6 +435,8 @@ volumes:
   prescription-db-data:
     driver: local
   lab-db-data:
+    driver: local
+  lab-result-files:
     driver: local
   keycloak-db-data:
     driver: local

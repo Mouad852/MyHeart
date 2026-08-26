@@ -59,6 +59,51 @@ export function useCreateLabRequest(options = {}) {
 }
 
 /** Submit a lab result for a request */
+/**
+ * Attach a report to a result.
+ *
+ * The results list is invalidated on success so the row picks up hasFile and
+ * shows a download button without the page being reloaded.
+ */
+export function useUploadLabResultFile(requestId, options = {}) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ resultId, file }) => labApi.uploadResultFile(resultId, file),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: KEYS.results(requestId) })
+      toast.success(`${data.fileName} attached`)
+      options.onSuccess?.(data)
+    },
+    onError: (err) => {
+      // The server explains refusals precisely (wrong format, too large), and
+      // that explanation is more use to the person holding the file than a
+      // generic failure message would be.
+      toast.error(err.message || 'The report could not be attached')
+    },
+  })
+}
+
+/** Download the report attached to a result. */
+export function useDownloadLabResultFile() {
+  return useMutation({
+    mutationFn: (result) =>
+      labApi.downloadResultFile(result.id).then((blob) => ({ blob, result })),
+    onSuccess: ({ blob, result }) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = result.fileName || `result-${result.id}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    },
+    onError: (err) => {
+      toast.error(err.message || 'The report could not be downloaded')
+    },
+  })
+}
+
 export function useCreateLabResult(options = {}) {
   const qc = useQueryClient()
   return useMutation({
