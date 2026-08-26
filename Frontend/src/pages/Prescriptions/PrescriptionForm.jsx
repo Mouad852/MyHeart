@@ -91,7 +91,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
       {/* Diagnosis */}
       <div>
         <label className="label">
-          Diagnosis <span className="text-slate-600 normal-case font-normal tracking-normal">(optional)</span>
+          Diagnosis <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span>
         </label>
         <input
           type="text"
@@ -116,7 +116,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
             className="inline-flex items-center gap-1.5 text-xs text-teal-400
                        hover:text-teal-300 font-semibold transition-colors"
           >
-            <Plus size={13} /> Add Medicine
+            <Plus size={13} /> Add a medicine
           </button>
         </div>
 
@@ -137,7 +137,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
                   <button
                     type="button"
                     onClick={() => removeMedicine(i)}
-                    className="p-1 rounded-lg text-slate-600 hover:text-red-400
+                    className="p-1 rounded-lg text-slate-500 hover:text-red-400
                                hover:bg-red-500/10 transition-all duration-150"
                     title="Remove medicine"
                   >
@@ -219,7 +219,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
       <div className="flex justify-end pt-2">
         <button type="submit" className="btn-primary" disabled={isLoading}>
           {isLoading && <Spinner size={14} />}
-          {isLoading ? 'Saving…' : 'Create Prescription'}
+          {isLoading ? 'Saving…' : 'Write the prescription'}
         </button>
       </div>
     </form>

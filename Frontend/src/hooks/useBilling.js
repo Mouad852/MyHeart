@@ -78,6 +78,42 @@ export function useCreateInvoice(options = {}) {
   })
 }
 
+/**
+ * Move an invoice to another state.
+ *
+ * One hook for pay, void and refund, because the three are the same operation
+ * from the screen's point of view: the server publishes which of them this
+ * invoice will accept, and the UI offers exactly those.
+ */
+export function useInvoiceTransition(options = {}) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, action, reason }) => {
+      if (action === 'void') return billingApi.voidInvoice(id, reason)
+      if (action === 'refund') return billingApi.refundInvoice(id, reason)
+      return billingApi.payInvoice(id)
+    },
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: KEYS.all })
+      qc.invalidateQueries({ queryKey: KEYS.summary })
+      qc.invalidateQueries({ queryKey: KEYS.patient(data?.patientId) })
+      // The overview and the patient timeline both read invoices.
+      qc.invalidateQueries({ queryKey: ['overview'] })
+      qc.invalidateQueries({ queryKey: ['timeline'] })
+      const said = {
+        void: 'Invoice voided',
+        refund: 'Invoice refunded',
+        pay: 'Invoice marked as paid',
+      }
+      toast.success(said[variables.action] || 'Invoice updated')
+      options.onSuccess?.(data)
+    },
+    onError: (err) => {
+      toast.error(err.message || 'The invoice could not be updated')
+    },
+  })
+}
+
 /** Mark invoice as PAID */
 export function usePayInvoice(options = {}) {
   const qc = useQueryClient()

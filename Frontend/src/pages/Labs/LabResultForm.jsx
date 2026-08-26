@@ -58,7 +58,7 @@ export default function LabResultForm({ requestId, requestName, onSubmit, isLoad
 
       <div>
         <label className="label">
-          Notes <span className="text-slate-600 normal-case font-normal tracking-normal">(optional)</span>
+          Notes <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span>
         </label>
         <textarea
           value={form.notes}
@@ -73,7 +73,7 @@ export default function LabResultForm({ requestId, requestName, onSubmit, isLoad
       <div className="flex justify-end pt-2">
         <button type="submit" className="btn-primary" disabled={isLoading}>
           {isLoading && <Spinner size={14} />}
-          {isLoading ? 'Submitting…' : 'Submit Result'}
+          {isLoading ? 'Saving…' : 'Record the result'}
         </button>
       </div>
     </form>

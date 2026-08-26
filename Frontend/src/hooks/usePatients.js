@@ -29,11 +29,19 @@ export function usePatients(params = {}) {
   })
 }
 
-/** Every patient, for select boxes. */
-export function usePatientOptions() {
+/**
+ * Every patient, for select boxes.
+ *
+ * @param {{ enabled?: boolean }} options pass enabled:false for roles the
+ *        gateway will refuse. A billing clerk cannot read the register, so
+ *        asking on their behalf produces a guaranteed 403 and a red banner
+ *        about a permission they were never meant to have.
+ */
+export function usePatientOptions({ enabled = true } = {}) {
   return useQuery({
     queryKey: [...QUERY_KEY, 'options'],
     queryFn: patientApi.getOptions,
+    enabled,
     staleTime: 5 * 60 * 1000,
   })
 }

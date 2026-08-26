@@ -1,72 +1,126 @@
 /**
- * InvoiceDetails.jsx
- * Shows full details of a single invoice with payment action.
+ * InvoiceDetails.jsx — one invoice, in full.
+ *
+ * Laid out as a document rather than as a grid of small boxes. The amount and
+ * its state lead, because those are the two facts anybody opens an invoice to
+ * check; the reference numbers and dates follow as labelled fields on
+ * hairlines; and the actions the server will accept are at the foot, where the
+ * signature would be.
+ *
+ * The four bordered tiles this replaced held one short value each — an id, a
+ * patient number and two dates — and spent four borders, four icons and four
+ * uppercase labels to say them.
  */
-import { DollarSign, User, CalendarDays, Hash, FileText } from 'lucide-react'
+import { Banknote, RotateCcw, Ban } from 'lucide-react'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { Spinner } from '../../components/ui/LoadingSpinner'
+import { Field } from '../../components/ui/Panel'
 import { formatDate } from '../../utils'
+import { money } from './BillingPage'
 
-export default function InvoiceDetails({ invoice, onPay, isPaying }) {
+export default function InvoiceDetails({ invoice, patientName, onTransition, isPending }) {
   if (!invoice) return null
 
-  // The server states which transitions it will accept.
-  const canPay = (invoice.allowedTransitions || []).includes('PAID')
+  const allowed = invoice.allowedTransitions || []
 
   return (
-    <div className="space-y-5">
-
-      {/* Status + amount hero */}
-      <div className="flex items-center justify-between p-5 rounded-2xl bg-navy-900/60 border border-white/5">
+    <div>
+      {/* The amount, set at the size the amount deserves. */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-5">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-1">Total Due</p>
-          <p className="font-display text-3xl font-bold text-white">
-            ${Number(invoice.amount ?? 0).toFixed(2)}
+          <p className="section-label">Amount</p>
+          <p className="ident mt-2 text-figure-lg font-semibold text-white">
+            {money(invoice.amount, invoice.currency)}
           </p>
         </div>
-        <StatusBadge status={invoice.status} />
+        <StatusBadge status={invoice.overdue ? 'OVERDUE' : invoice.status} />
       </div>
 
-      {/* Details grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { icon: Hash,        label: 'Invoice #',    value: `INV-${String(invoice.id).padStart(5,'0')}` },
-          { icon: User,        label: 'Patient ID',   value: `#${invoice.patientId}` },
-          { icon: CalendarDays,label: 'Created',      value: formatDate(invoice.createdAt, 'MMM d, yyyy') },
-          { icon: CalendarDays,label: 'Updated',      value: formatDate(invoice.updatedAt, 'MMM d, yyyy') },
-        ].map(({ icon: Icon, label, value }) => (
-          <div key={label} className="p-3.5 rounded-xl bg-navy-900/50 border border-white/5">
-            <div className="flex items-center gap-2 mb-1">
-              <Icon size={12} className="text-slate-600" />
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</p>
-            </div>
-            <p className="text-sm font-medium text-white">{value || '—'}</p>
-          </div>
-        ))}
-      </div>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 py-5">
+        <Field label="Reference" mono>
+          INV-{String(invoice.id).padStart(5, '0')}
+        </Field>
+        <Field label="Patient">
+          {patientName || `Patient ${invoice.patientId}`}
+        </Field>
+        <Field label="Raised" mono>
+          {formatDate(invoice.createdAt, 'd MMM yyyy')}
+        </Field>
+        <Field label="Due" mono>
+          {invoice.dueDate ? (
+            <span className={invoice.overdue ? 'text-rose-300' : undefined}>
+              {formatDate(invoice.dueDate, 'd MMM yyyy')}
+            </span>
+          ) : null}
+        </Field>
+        {invoice.paidAt && (
+          <Field label="Settled" mono>
+            {formatDate(invoice.paidAt, 'd MMM yyyy')}
+          </Field>
+        )}
+        {invoice.appointmentId && (
+          <Field label="Appointment" mono>
+            {String(invoice.appointmentId)}
+          </Field>
+        )}
+        {invoice.serviceCode && <Field label="Service">{invoice.serviceCode}</Field>}
+      </dl>
 
-      {/* Description */}
       {invoice.description && (
-        <div className="p-4 rounded-xl bg-navy-900/50 border border-white/5">
-          <div className="flex items-center gap-2 mb-2">
-            <FileText size={12} className="text-slate-600" />
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</p>
-          </div>
-          <p className="text-sm text-slate-300 leading-relaxed">{invoice.description}</p>
+        <div className="border-t border-hairline py-5">
+          <p className="section-label">For</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">{invoice.description}</p>
         </div>
       )}
 
-      {/* Payment action */}
-      {canPay && (
-        <div className="flex justify-end pt-2">
-          <button
-            className="btn-primary"
-            onClick={onPay}
-            disabled={isPaying}
-          >
-            {isPaying ? <Spinner size={14} /> : <DollarSign size={15} />}
-            {isPaying ? 'Processing…' : 'Mark as Paid'}
-          </button>
+      {/* Recorded when the invoice was closed, and worth surfacing: it is the
+          only explanation of why money stopped being expected. */}
+      {invoice.voidReason && (
+        <div className="border-t border-hairline py-5">
+          <p className="section-label">Reason</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">{invoice.voidReason}</p>
+        </div>
+      )}
+
+      {(allowed.includes('PAID') || allowed.includes('REFUNDED') || allowed.includes('VOID')) && (
+        <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-5">
+          {allowed.includes('VOID') && (
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={isPending}
+              onClick={() => onTransition('void')}
+            >
+              <Ban size={13} strokeWidth={2} aria-hidden="true" />
+              Void
+            </button>
+          )}
+          {allowed.includes('REFUNDED') && (
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={isPending}
+              onClick={() => onTransition('refund')}
+            >
+              <RotateCcw size={13} strokeWidth={2} aria-hidden="true" />
+              Refund
+            </button>
+          )}
+          {allowed.includes('PAID') && (
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={isPending}
+              onClick={() => onTransition('pay')}
+            >
+              {isPending ? (
+                <Spinner size={13} />
+              ) : (
+                <Banknote size={13} strokeWidth={2} aria-hidden="true" />
+              )}
+              Mark as paid
+            </button>
+          )}
         </div>
       )}
     </div>

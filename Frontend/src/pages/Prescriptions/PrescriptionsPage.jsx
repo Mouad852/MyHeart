@@ -1,233 +1,300 @@
 /**
- * PrescriptionsPage.jsx
- * ─────────────────────────────────────────────────────────────────
- * Prescription management page.
+ * PrescriptionsPage.jsx — what has been prescribed.
  *
- * Features:
- *  - Filter by patient or doctor
- *  - Create prescription (modal with dynamic medicine list)
- *  - View medicine details in an expandable row
- *  - Loading / empty / error states
- * ─────────────────────────────────────────────────────────────────
+ * Like Billing, this screen used to refuse to show anything until a patient had
+ * been chosen from a dropdown, which meant a doctor could not answer "what did
+ * I write this week" without already knowing the answer. It opens on everything,
+ * most recent first, and the patient filter is one control among several.
+ *
+ * Printing is treated as the workflow it is, not as an icon in a corner. The
+ * service renders a real A4 document — letterhead, prescriber, medication table,
+ * signature line — and it is the artefact that leaves the building with the
+ * patient, so the control that produces it is labelled in words on every row and
+ * stated again, larger, at the foot of an opened prescription.
+ *
+ * A prescription is a record of what a named person prescribed to another named
+ * person, so this shows names. It previously read "Patient #4 · Dr. #3", which
+ * is what the database stores and not what anybody needs.
  */
-import { useState } from 'react'
-import {
-  Pill, Plus, ChevronDown, ChevronUp, User, Stethoscope, FileDown,
-} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChevronDown, FileDown, Pill, Plus } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorBanner from '../../components/ui/ErrorBanner'
-import { PageSpinner } from '../../components/ui/LoadingSpinner'
-import PatientSelector from '../../components/ui/PatientSelector'
+import PageHeader from '../../components/ui/Page'
+import { Panel } from '../../components/ui/Panel'
+import { SkeletonRows, Spinner } from '../../components/ui/LoadingSpinner'
 import PrescriptionForm from './PrescriptionForm'
 import {
-  usePrescriptionsByPatient,
+  useAllPrescriptions,
   useCreatePrescription,
   usePrescriptionDocument,
 } from '../../hooks/usePrescriptions'
+import { usePatientOptions } from '../../hooks/usePatients'
+import { useDoctorOptions } from '../../hooks/useDoctors'
 import { formatDate } from '../../utils'
 
-export default function PrescriptionsPage() {
-  const [patientId, setPatientId] = useState('')
-  const [createOpen, setCreateOpen] = useState(false)
-  const [expandedId, setExpandedId] = useState(null)
-
-  const {
-    data: prescriptions = [],
-    isLoading,
-    error,
-    refetch,
-  } = usePrescriptionsByPatient(patientId)
-
-  const createMutation = useCreatePrescription({ onSuccess: () => setCreateOpen(false) })
-  const document_ = usePrescriptionDocument()
-
-  const toggleExpand = (id) =>
-    setExpandedId((prev) => (prev === id ? null : id))
+/** The medication table, shown when a prescription is opened. */
+function Medications({ items = [] }) {
+  if (items.length === 0) {
+    return (
+      <p className="px-5 pb-5 text-sm text-slate-500">
+        No medication was recorded against this prescription.
+      </p>
+    )
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="overflow-x-auto px-5 pb-5">
+      <table className="w-full border border-hairline">
+        <thead>
+          <tr className="bg-white/[0.02]">
+            <th className="th">Medicine</th>
+            <th className="th">Dosage</th>
+            <th className="th">Frequency</th>
+            <th className="th">For</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr key={index}>
+              <td className="td font-medium text-white">{item.medicineName}</td>
+              <td className="td ident text-slate-300">{item.dosage || '—'}</td>
+              <td className="td text-slate-300">{item.frequency || '—'}</td>
+              <td className="td text-slate-300">{item.duration || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="page-header">
-        <div>
-          <h2 className="section-title">Prescriptions</h2>
-          <p className="text-muted mt-1">Create and review patient prescriptions</p>
-        </div>
-        <button className="btn-primary" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} />
-          New Prescription
+function Row({ prescription, patientName, doctorName, isOpen, onToggle, print }) {
+  const items = prescription.items ?? []
+  const printingThis = print.isPending && print.variables === prescription.id
+  const panelId = `rx-${prescription.id}-medication`
+
+  return (
+    <li>
+      <div className="row-hover flex flex-wrap items-start gap-x-5 gap-y-3 px-5 py-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          className="flex min-w-0 flex-1 items-start gap-4 rounded text-left"
+        >
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            aria-hidden="true"
+            className={`mt-1 flex-shrink-0 text-slate-500 transition-transform duration-fast
+                        ${isOpen ? 'rotate-0' : '-rotate-90'}`}
+          />
+
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="ident text-sm font-medium text-white">
+                RX-{String(prescription.id).padStart(5, '0')}
+              </span>
+              {prescription.diagnosis && (
+                <span className="min-w-0 truncate text-sm text-slate-300">
+                  {prescription.diagnosis}
+                </span>
+              )}
+            </span>
+
+            <span className="mt-1 block truncate text-meta text-slate-500">
+              {patientName}
+              {' · '}
+              {doctorName}
+              {` · ${formatDate(prescription.createdAt, 'd MMM yyyy')} · `}
+              {items.length} {items.length === 1 ? 'medicine' : 'medicines'}
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={print.isPending}
+          onClick={() => print.mutate(prescription.id)}
+          className="btn-row flex-shrink-0"
+        >
+          {printingThis ? (
+            <Spinner size={12} />
+          ) : (
+            <FileDown size={12} strokeWidth={2} aria-hidden="true" />
+          )}
+          {printingThis ? 'Preparing' : 'Print'}
         </button>
       </div>
 
-      {error && <ErrorBanner message={error.message} onRetry={refetch} />}
-
-      {/* ── Patient filter ──────────────────────────────── */}
-      <div className="card p-5">
-        <div className="max-w-sm">
-          <PatientSelector
-            value={patientId}
-            onChange={setPatientId}
-            label="Filter by Patient"
-            placeholder="Choose a patient to view prescriptions…"
-          />
+      {isOpen && (
+        <div id={panelId} className="border-t border-hairline bg-white/[0.015] pt-4">
+          {prescription.notes && (
+            <p className="px-5 pb-4 text-sm leading-relaxed text-slate-400">
+              {prescription.notes}
+            </p>
+          )}
+          <Medications items={items} />
         </div>
-      </div>
+      )}
+    </li>
+  )
+}
 
-      {/* ── Prescriptions list ──────────────────────────── */}
-      <div className="card overflow-hidden">
+export default function PrescriptionsPage() {
+  const prescriptions = useAllPrescriptions()
+  const patients = usePatientOptions()
+  const doctors = useDoctorOptions()
 
-        {!patientId && (
+  const [patientFilter, setPatientFilter] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [openId, setOpenId] = useState(null)
+
+  const createMutation = useCreatePrescription({ onSuccess: () => setCreateOpen(false) })
+  const print = usePrescriptionDocument()
+
+  const patientNames = useMemo(() => {
+    const map = new Map()
+    for (const patient of patients.data ?? []) map.set(patient.id, patient.name)
+    return map
+  }, [patients.data])
+
+  const doctorNames = useMemo(() => {
+    const map = new Map()
+    for (const doctor of doctors.data ?? []) map.set(doctor.id, doctor.name)
+    return map
+  }, [doctors.data])
+
+  const rows = useMemo(() => {
+    let list = [...(prescriptions.data ?? [])]
+    if (patientFilter) {
+      list = list.filter((rx) => String(rx.patientId) === String(patientFilter))
+    }
+    return list.sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0))
+  }, [prescriptions.data, patientFilter])
+
+  const total = prescriptions.data?.length ?? 0
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Records"
+        title="Prescriptions"
+        description={
+          prescriptions.isLoading
+            ? 'Reading the prescription record…'
+            : `${total} written, most recent first. Each one prints as an A4 document.`
+        }
+        actions={
+          <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
+            <Plus size={14} strokeWidth={2} aria-hidden="true" />
+            Write prescription
+          </button>
+        }
+      />
+
+      {prescriptions.isError && (
+        <ErrorBanner
+          className="mb-6"
+          title="Prescriptions could not be loaded"
+          message={prescriptions.error?.message}
+          onRetry={prescriptions.refetch}
+        />
+      )}
+
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3">
+          <div className="w-full max-w-[15rem]">
+            <label className="sr-only" htmlFor="rx-patient-filter">
+              Filter by patient
+            </label>
+            <select
+              id="rx-patient-filter"
+              className="select h-8 py-0 text-meta"
+              value={patientFilter}
+              onChange={(event) => {
+                setPatientFilter(event.target.value)
+                setOpenId(null)
+              }}
+            >
+              <option value="">Every patient</option>
+              {(patients.data ?? []).map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p aria-live="polite" className="text-meta text-slate-500">
+            {patientFilter
+              ? `${rows.length} for this patient`
+              : `${total} in the record`}
+          </p>
+        </div>
+
+        {prescriptions.isLoading && <SkeletonRows rows={4} label="Loading prescriptions" />}
+
+        {!prescriptions.isLoading && rows.length === 0 && (
           <EmptyState
             icon={Pill}
-            title="Select a patient"
-            description="Choose a patient above to view their prescriptions."
-          />
-        )}
-
-        {patientId && isLoading && <PageSpinner />}
-
-        {patientId && !isLoading && prescriptions.length === 0 && !error && (
-          <EmptyState
-            icon={Pill}
-            title="No prescriptions found"
-            description="This patient has no prescriptions yet."
+            title={
+              patientFilter
+                ? 'Nothing prescribed for this patient'
+                : 'No prescriptions written yet'
+            }
+            description={
+              patientFilter
+                ? 'Choose “Every patient” to see the rest of the record.'
+                : 'A prescription written against a consultation appears here, ready to print.'
+            }
             action={
-              <button className="btn-primary" onClick={() => setCreateOpen(true)}>
-                <Plus size={15} /> Create Prescription
-              </button>
+              !patientFilter && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  <Plus size={14} strokeWidth={2} aria-hidden="true" />
+                  Write the first one
+                </button>
+              )
             }
           />
         )}
 
-        {patientId && !isLoading && prescriptions.length > 0 && (
-          <div className="divide-y divide-white/5">
-            {prescriptions.map((rx, i) => {
-              const isExpanded = expandedId === rx.id
-              return (
-                <div key={rx.id} className="animate-slide-up"
-                  style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}>
-
-                  {/* ── Prescription row ── */}
-                  <div
-                    className="flex items-center gap-4 px-6 py-4
-                               hover:bg-white/[0.02] transition-colors duration-150 cursor-pointer"
-                    onClick={() => toggleExpand(rx.id)}
-                  >
-                    {/* Icon */}
-                    <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20
-                                    flex items-center justify-center flex-shrink-0">
-                      <Pill size={16} className="text-violet-400" />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <p className="text-sm font-semibold text-white">
-                          Rx #{rx.id}
-                        </p>
-                        {rx.diagnosis && (
-                          <span className="text-xs text-slate-500 italic">
-                            {rx.diagnosis}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
-                          <User size={11} />
-                          Patient #{rx.patientId}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
-                          <Stethoscope size={11} />
-                          Dr. #{rx.doctorId}
-                        </span>
-                        <span className="text-xs text-slate-600">
-                          {formatDate(rx.createdAt, 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Medicine count + print + expand */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="badge bg-violet-500/10 text-violet-400">
-                        {rx.items?.length ?? 0} medicine{rx.items?.length !== 1 ? 's' : ''}
-                      </span>
-
-                      {/* stopPropagation: the whole row toggles the medicine
-                          table, and printing should not also expand it. */}
-                      <button
-                        type="button"
-                        title="Download the printable prescription"
-                        disabled={document_.isPending}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          document_.mutate(rx.id)
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/10
-                                   px-2.5 py-1.5 text-xs font-medium text-slate-300
-                                   transition-all duration-150
-                                   hover:border-teal-500/40 hover:text-teal-400
-                                   focus:outline-none focus:ring-2 focus:ring-teal-400
-                                   focus:ring-offset-2 focus:ring-offset-navy-900
-                                   active:translate-y-px
-                                   disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <FileDown size={13} strokeWidth={2} aria-hidden="true" />
-                        {document_.isPending && document_.variables === rx.id
-                          ? 'Preparing'
-                          : 'Print'}
-                      </button>
-                      {isExpanded
-                        ? <ChevronUp size={15} className="text-slate-500" />
-                        : <ChevronDown size={15} className="text-slate-500" />
-                      }
-                    </div>
-                  </div>
-
-                  {/* ── Expanded medicines ── */}
-                  {isExpanded && rx.items?.length > 0 && (
-                    <div className="px-6 pb-5">
-                      <div className="ml-13 bg-navy-900/50 rounded-2xl border border-white/5 overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-white/5">
-                              {['Medicine', 'Dosage', 'Frequency', 'Duration'].map((h) => (
-                                <th
-                                  key={h}
-                                  className="text-left px-4 py-2.5 text-[10px] font-bold
-                                             text-slate-600 uppercase tracking-widest"
-                                >
-                                  {h}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rx.items.map((m, mi) => (
-                              <tr key={mi} className="border-b border-white/5 last:border-0">
-                                <td className="px-4 py-2.5 font-medium text-white">{m.medicineName}</td>
-                                <td className="px-4 py-2.5 text-slate-400">{m.dosage}</td>
-                                <td className="px-4 py-2.5 text-slate-400">{m.frequency}</td>
-                                <td className="px-4 py-2.5 text-slate-400">{m.duration}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+        {!prescriptions.isLoading && rows.length > 0 && (
+          <ul className="divide-y divide-hairline">
+            {rows.map((prescription) => (
+              <Row
+                key={prescription.id}
+                prescription={prescription}
+                isOpen={openId === prescription.id}
+                onToggle={() =>
+                  setOpenId((current) => (current === prescription.id ? null : prescription.id))
+                }
+                print={print}
+                patientName={
+                  patientNames.get(prescription.patientId) ||
+                  `Patient ${prescription.patientId}`
+                }
+                doctorName={
+                  doctorNames.get(prescription.doctorId) || `Doctor ${prescription.doctorId}`
+                }
+              />
+            ))}
+          </ul>
         )}
-      </div>
+      </Panel>
 
-      {/* ── Create Modal ──────────────────────────────── */}
       <Modal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Create Prescription"
+        title="Write a prescription"
+        description="The patient, the prescriber and at least one medicine are required."
         size="lg"
       >
         <PrescriptionForm
@@ -235,6 +302,6 @@ export default function PrescriptionsPage() {
           isLoading={createMutation.isPending}
         />
       </Modal>
-    </div>
+    </>
   )
 }

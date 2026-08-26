@@ -1,177 +1,254 @@
 /**
- * Sidebar.jsx — Left navigation panel.
- * Shows the brand, nav links, and a system status indicator.
+ * Sidebar.jsx — where you are, and where you can go.
+ *
+ * Three decisions shape this file.
+ *
+ * The links are grouped by the kind of work they are, and the groups are
+ * ordered by who is signed in. A doctor's day starts with clinical work, so
+ * Records sits above Clinic for them; a billing clerk opens the product to do
+ * money, so Finance is second from the top. Everyone gets the same links they
+ * are entitled to, in the order that matches their job. Nobody has to learn a
+ * navigation designed around somebody else's role.
+ *
+ * The active state is a rule, not a box. A filled rounded rectangle with a
+ * border and a chevron is four separate signals saying one thing; a teal rule
+ * flush against the edge of the panel, a small lift in the ground and a shift
+ * to white text say it once, and leave the accent colour meaning something.
+ *
+ * The decoration is gone. There was a teal dot grid and a blurred teal orb
+ * behind this panel. Neither carried information, both cost contrast against
+ * the text sitting on top of them, and a blurred glow in the corner of a
+ * clinical tool is the single most reliable sign that a screen was styled
+ * rather than designed.
+ *
+ * Which links appear mirrors the gateway's SecurityConfig. Hiding one is a
+ * courtesy, never a control: the gateway refuses the request either way.
  */
-import React from 'react'
 import { NavLink } from 'react-router-dom'
+import {
+  CalendarDays,
+  FlaskConical,
+  Gauge,
+  HeartPulse,
+  Pill,
+  ReceiptText,
+  Stethoscope,
+  Sun,
+  Users,
+  X,
+} from 'lucide-react'
 import { useAuth } from '../../auth/AuthProvider'
 import { useGatewayHealth } from '../../hooks/useGatewayHealth'
 import { ROLES } from '../../auth/roles'
-import {
-  Users, Stethoscope, CalendarDays,
-  Activity, LayoutDashboard, ChevronRight,
-  ReceiptText, Pill, FlaskConical, HeartPulse, Sun,
-} from 'lucide-react'
+
+const R = ROLES
 
 /**
- * `roles` mirrors the gateway's SecurityConfig. Hiding a link is a courtesy,
- * not a security control: the gateway rejects the request regardless.
+ * Grouped by the kind of work, not by which microservice happens to serve it.
+ * "Prescriptions" and "Labs" are one thought to a doctor — things written about
+ * a patient — even though they are two services and two databases.
  */
-const NAV_ITEMS = [
-  // ── Doctor workspace ──────────────────────────────
+const GROUPS = [
   {
-    to: '/today', icon: Sun, label: 'Today', end: true,
-    roles: [ROLES.DOCTOR, ROLES.ADMIN],
-  },
-  // ── Patient portal ────────────────────────────────
-  {
-    to: '/my-health', icon: HeartPulse, label: 'My health', end: true,
-    roles: [ROLES.PATIENT],
-  },
-  // ── Core ──────────────────────────────────────────
-  {
-    to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true,
-    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.BILLING, ROLES.NURSE],
-  },
-  {
-    to: '/patients', icon: Users, label: 'Patients',
-    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.NURSE],
+    id: 'workspace',
+    label: 'Workspace',
+    items: [
+      { to: '/today', icon: Sun, label: 'Today', end: true, roles: [R.DOCTOR, R.ADMIN] },
+      { to: '/my-health', icon: HeartPulse, label: 'My health', end: true, roles: [R.PATIENT] },
+      {
+        to: '/',
+        icon: Gauge,
+        label: 'Overview',
+        end: true,
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST, R.BILLING, R.NURSE],
+      },
+    ],
   },
   {
-    to: '/doctors', icon: Stethoscope, label: 'Doctors',
-    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+    id: 'clinic',
+    label: 'Clinic',
+    items: [
+      {
+        to: '/appointments',
+        icon: CalendarDays,
+        label: 'Appointments',
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
+      },
+      {
+        to: '/patients',
+        icon: Users,
+        label: 'Patients',
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST, R.NURSE],
+      },
+      {
+        to: '/doctors',
+        icon: Stethoscope,
+        label: 'Doctors',
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
+      },
+    ],
   },
   {
-    to: '/appointments', icon: CalendarDays, label: 'Appointments',
-    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+    id: 'records',
+    label: 'Records',
+    items: [
+      {
+        to: '/prescriptions',
+        icon: Pill,
+        label: 'Prescriptions',
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
+      },
+      {
+        to: '/labs',
+        icon: FlaskConical,
+        label: 'Laboratory',
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
+      },
+    ],
   },
-  // ── Extended services ─────────────────────────────
   {
-    to: '/billing', icon: ReceiptText, label: 'Billing',
-    roles: [ROLES.ADMIN, ROLES.BILLING, ROLES.RECEPTIONIST],
-  },
-  {
-    to: '/prescriptions', icon: Pill, label: 'Prescriptions',
-    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
-  },
-  {
-    to: '/labs', icon: FlaskConical, label: 'Labs',
-    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+    id: 'finance',
+    label: 'Finance',
+    items: [
+      {
+        to: '/billing',
+        icon: ReceiptText,
+        label: 'Billing',
+        roles: [R.ADMIN, R.BILLING, R.RECEPTIONIST],
+      },
+    ],
   },
 ]
 
-/** Dot colour per gateway health state. */
-const STATUS_DOT = {
-  checking: 'bg-slate-500',
-  up: 'bg-teal-500',
-  degraded: 'bg-amber-500',
-  down: 'bg-red-500',
+/** What each role opens the product to do, most important first. */
+const GROUP_ORDER = {
+  [R.DOCTOR]: ['workspace', 'records', 'clinic', 'finance'],
+  [R.RECEPTIONIST]: ['workspace', 'clinic', 'finance', 'records'],
+  [R.BILLING]: ['workspace', 'finance', 'clinic', 'records'],
+  [R.NURSE]: ['workspace', 'clinic', 'records', 'finance'],
+  [R.ADMIN]: ['workspace', 'clinic', 'records', 'finance'],
+  [R.PATIENT]: ['workspace'],
 }
 
-/** Links that sit below the divider, when the user can see any of them. */
-const EXTENDED_SERVICES = ['/billing', '/prescriptions', '/labs']
+const DEFAULT_ORDER = ['workspace', 'clinic', 'records', 'finance']
 
-export default function Sidebar() {
-  const { hasAnyRole } = useAuth()
-  const navItems = NAV_ITEMS.filter((item) => hasAnyRole(item.roles))
+const HEALTH_DOT = {
+  checking: 'bg-slate-600',
+  up: 'bg-teal-500',
+  degraded: 'bg-amber-400',
+  down: 'bg-rose-400',
+}
+
+/** The wordmark. The teal rule is the same rule the whole product hangs off. */
+function Wordmark() {
+  return (
+    <span className="flex items-center gap-3">
+      <span className="h-7 w-[3px] flex-shrink-0 bg-teal-400" aria-hidden="true" />
+      <span>
+        <span className="block font-display text-lg font-extrabold leading-none tracking-tight text-white">
+          MedCore
+        </span>
+        <span className="mt-1 block text-micro font-medium uppercase text-slate-500">
+          Clinic operations
+        </span>
+      </span>
+    </span>
+  )
+}
+
+function NavItem({ to, icon: Icon, label, end }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `group relative flex items-center gap-3 py-2 pl-5 pr-3 text-sm
+         transition-colors duration-fast
+         ${
+           isActive
+             ? 'bg-white/[0.045] font-medium text-white'
+             : 'text-slate-400 hover:bg-white/[0.025] hover:text-slate-100'
+         }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {/* Flush to the panel edge, so the rule reads as a marker in the
+              margin rather than as a border around the link. */}
+          <span
+            aria-hidden="true"
+            className={`absolute inset-y-0 left-0 w-[2px] transition-colors duration-fast
+                        ${isActive ? 'bg-teal-400' : 'bg-transparent'}`}
+          />
+          <Icon
+            size={16}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className={`flex-shrink-0 transition-colors duration-fast
+                        ${isActive ? 'text-teal-400' : 'text-slate-500 group-hover:text-slate-300'}`}
+          />
+          {label}
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+/**
+ * @param {{ onNavigate?: () => void, isDrawer?: boolean }} props
+ *   `onNavigate` closes the mobile drawer once a destination is chosen.
+ */
+export default function Sidebar({ onNavigate, isDrawer = false }) {
+  const { hasAnyRole, role } = useAuth()
   const health = useGatewayHealth()
 
+  const order = GROUP_ORDER[role] ?? DEFAULT_ORDER
+  const groups = order
+    .map((id) => GROUPS.find((group) => group.id === id))
+    .filter(Boolean)
+    .map((group) => ({ ...group, items: group.items.filter((item) => hasAnyRole(item.roles)) }))
+    .filter((group) => group.items.length > 0)
+
   return (
-    <aside className="w-64 min-h-screen bg-navy-900 border-r border-white/5
-                      flex flex-col flex-shrink-0 relative overflow-hidden">
-
-      {/* Dot-grid decorative background */}
-      <div
-        className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(45,212,191,0.12) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      />
-
-      {/* Teal glow blob */}
-      <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full
-                      bg-teal-500/5 blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col h-full">
-
-        {/* Brand */}
-        <div className="px-6 pt-7 pb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-500 flex items-center justify-center
-                            shadow-teal-glow">
-              <Activity size={18} className="text-navy-950" strokeWidth={2.5} />
-            </div>
-            <div>
-              <p className="font-display font-bold text-white text-lg leading-none">MedCore</p>
-              <p className="text-[10px] text-teal-500/80 font-medium tracking-widest uppercase mt-0.5">
-                Medical System
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation label */}
-        <p className="px-6 mb-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-          Navigation
-        </p>
-
-        {/* Nav links */}
-        <nav className="px-3 flex flex-col gap-0.5">
-          {navItems.map(({ to, icon: Icon, label, end }, idx) => (
-            <React.Fragment key={to}>
-              {idx > 0 && EXTENDED_SERVICES.includes(to)
-                && !EXTENDED_SERVICES.includes(navItems[idx - 1].to) && (
-                <div className="mx-3 my-2 border-t border-white/5" />
-              )}
-              <NavLink
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-         transition-all duration-200
-         ${isActive
-                    ? 'bg-teal-500/15 text-teal-400 border border-teal-500/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      size={17}
-                      className={`flex-shrink-0 transition-colors duration-200
-              ${isActive ? 'text-teal-400' : 'text-slate-500 group-hover:text-slate-300'}`}
-                    />
-                    <span className="flex-1">{label}</span>
-                    {isActive && (
-                      <ChevronRight size={13} className="text-teal-500/60" />
-                    )}
-                  </>
-                )}
-              </NavLink>
-            </React.Fragment>
-          ))}
-        </nav>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* System status footer, driven by the gateway's health endpoint */}
-        <div className="px-5 py-5 border-t border-white/5">
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/3">
-            <span className="relative flex h-2 w-2" aria-hidden="true">
-              {health.state === 'up' && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full
-                                 bg-teal-400 opacity-60" />
-              )}
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${STATUS_DOT[health.state]}`} />
-            </span>
-            <span className="text-xs text-slate-400">{health.label}</span>
-          </div>
-        </div>
-
+    <div
+      className="flex h-full min-h-0 w-60 flex-col border-r border-hairline bg-navy-900"
+      onClick={onNavigate}
+    >
+      <div className="flex items-center justify-between px-5 pb-6 pt-5">
+        <Wordmark />
+        {isDrawer && (
+          <button type="button" className="btn-icon lg:hidden" aria-label="Close navigation">
+            <X size={16} strokeWidth={2} aria-hidden="true" />
+          </button>
+        )}
       </div>
-    </aside>
+
+      <nav aria-label="Sections" className="min-h-0 flex-1 overflow-y-auto pb-6">
+        {groups.map((group, index) => (
+          <div key={group.id} className={index > 0 ? 'mt-6' : ''}>
+            {/* A single-link group does not need naming; the link is its own
+                label and the heading would be pure chrome. */}
+            {(group.items.length > 1 || index > 0) && (
+              <p className="section-label mb-2 px-5">{group.label}</p>
+            )}
+            <div className="flex flex-col">
+              {group.items.map((item) => (
+                <NavItem key={item.to} {...item} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Read from the gateway's own health endpoint, so it is a fact rather
+          than a reassuring label somebody typed once. */}
+      <div className="flex items-center gap-2.5 border-t border-hairline px-5 py-3.5">
+        <span
+          className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${HEALTH_DOT[health.state]}`}
+          aria-hidden="true"
+        />
+        <span className="truncate text-meta text-slate-500">{health.label}</span>
+      </div>
+    </div>
   )
 }

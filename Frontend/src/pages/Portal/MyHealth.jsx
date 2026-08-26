@@ -1,86 +1,176 @@
 /**
  * MyHealth.jsx — the patient's own view of their care.
  *
- * Everything here is scoped server-side: patient-service returns only the
- * record matching the patientId claim, and appointment-service narrows the
- * appointment query to the same id. Nothing is filtered in the browser.
+ * This is the one screen in MedCore that is not for staff, and it is built to a
+ * different brief. A receptionist wants density; a patient wants one answer.
+ * Nine times out of ten the answer is *when is my next appointment*, so that is
+ * the largest thing on the page, given in the terms a person actually thinks in
+ * — "In three days · Thursday 27 August · 09:00" — and everything else is
+ * arranged beneath it.
+ *
+ * The previous version listed twenty appointments of equal weight, past and
+ * future together, which meant the one that mattered had to be found by reading.
+ *
+ * Two smaller things, both about not showing a patient the clinic's plumbing:
+ *
+ *   The lifecycle is renamed. "Requested" is how the clinic's state machine
+ *   describes a slot nobody has answered; to the person who asked for it, the
+ *   truthful phrase is "Awaiting confirmation".
+ *
+ *   When the doctor's name cannot be read — the gateway does not serve the
+ *   doctor register to a patient, so the enrichment falls back — the line is
+ *   omitted. It used to print the literal fallback string "Unavailable" against
+ *   every appointment, which told the patient nothing except that something had
+ *   gone wrong.
+ *
+ * Everything here is scoped server-side: patient-service returns only the record
+ * matching the patientId claim, and appointment-service narrows the query to the
+ * same id. Nothing is filtered in the browser.
  */
-import React from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarDays, Mail, Phone, UserRound } from 'lucide-react'
-import { format, isAfter, parseISO } from 'date-fns'
+import { CalendarDays, UserRound } from 'lucide-react'
+import {
+  differenceInCalendarDays,
+  format,
+  isAfter,
+  isValid,
+  parseISO,
+} from 'date-fns'
 import { useAuth } from '../../auth/AuthProvider'
 import patientApi from '../../services/patientApi'
 import appointmentApi from '../../services/appointmentApi'
-import { Skeleton } from '../../components/ui/LoadingSpinner'
+import { Skeleton, SkeletonText } from '../../components/ui/LoadingSpinner'
 import ErrorBanner from '../../components/ui/ErrorBanner'
 import EmptyState from '../../components/ui/EmptyState'
 import StatusBadge from '../../components/ui/StatusBadge'
+import PageHeader from '../../components/ui/Page'
+import { Panel, PanelHead, Field } from '../../components/ui/Panel'
 
-function safeFormat(value, pattern) {
+/** How the clinic's states are named to the person they concern. */
+const PATIENT_WORDING = {
+  REQUESTED: 'Awaiting confirmation',
+  CONFIRMED: 'Confirmed',
+  COMPLETED: 'Attended',
+  CANCELLED: 'Cancelled',
+  NO_SHOW: 'Missed',
+}
+
+function on(value, pattern) {
   if (!value) return null
-  try {
-    return format(parseISO(value), pattern)
-  } catch {
-    return value
-  }
+  const parsed = parseISO(value)
+  return isValid(parsed) ? format(parsed, pattern) : null
 }
 
-function ProfileCard({ patient }) {
-  const rows = [
-    { icon: UserRound, label: 'Full name', value: patient?.name },
-    { icon: Mail, label: 'Email', value: patient?.email },
-    { icon: Phone, label: 'Phone', value: patient?.phone },
-  ].filter((row) => row.value)
-
-  return (
-    <section className="card p-6">
-      <h2 className="font-display text-base font-bold text-white">Your details</h2>
-      <dl className="mt-5 space-y-4">
-        {rows.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="flex items-start gap-3">
-            <Icon size={16} className="mt-0.5 flex-shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />
-            <div className="min-w-0">
-              <dt className="text-xs text-slate-500">{label}</dt>
-              <dd className="mt-0.5 break-words text-sm text-slate-200">{value}</dd>
-            </div>
-          </div>
-        ))}
-      </dl>
-      <p className="mt-6 border-t border-white/5 pt-4 text-xs leading-relaxed text-slate-500">
-        To correct any of these details, ask the front desk on your next visit.
-      </p>
-    </section>
-  )
+/**
+ * The doctor, if it is genuinely known.
+ *
+ * `Unavailable` is the circuit breaker's fallback leaking through, not a
+ * person's name.
+ */
+function doctorLine(appointment) {
+  const name = appointment.doctor?.name
+  if (!name || name.toLowerCase() === 'unavailable') return null
+  const specialty = appointment.doctor?.specialty
+  return specialty && specialty.toLowerCase() !== 'unavailable'
+    ? `${name} · ${specialty}`
+    : name
 }
 
-function AppointmentRow({ appointment }) {
-  const when = safeFormat(appointment.appointmentDate, 'EEEE d MMMM yyyy')
-  const time = safeFormat(appointment.appointmentDate, 'HH:mm')
+/** "Today", "Tomorrow", "In 3 days", "In 5 weeks". */
+function howSoon(date) {
+  const days = differenceInCalendarDays(date, new Date())
+  if (days <= 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days < 14) return `In ${days} days`
+  if (days < 60) return `In ${Math.round(days / 7)} weeks`
+  return `In ${Math.round(days / 30)} months`
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   The next appointment
+   ───────────────────────────────────────────────────────────────────────── */
+
+function NextAppointment({ appointment }) {
+  const date = parseISO(appointment.appointmentDate)
+  const doctor = doctorLine(appointment)
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 py-4">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-200">
-          {when} at {time}
-        </p>
-        <p className="mt-1 text-xs text-slate-500">
-          {appointment.doctor?.name || 'Doctor to be confirmed'}
-          {appointment.doctor?.specialty ? `, ${appointment.doctor.specialty}` : ''}
-        </p>
+    <Panel className="mb-6">
+      <div className="border-l-2 border-teal-400 px-5 py-6 sm:px-7 sm:py-7">
+        <p className="section-label text-teal-400">Your next appointment</p>
+
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+          <p className="font-display text-figure font-bold text-white">{howSoon(date)}</p>
+          <p className="text-lg text-slate-300">{format(date, 'EEEE d MMMM')}</p>
+          <p className="ident text-lg font-medium text-white">{format(date, 'HH:mm')}</p>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <StatusBadge
+            status={appointment.status}
+            label={PATIENT_WORDING[appointment.status]}
+          />
+          {doctor && <span className="text-sm text-slate-400">{doctor}</span>}
+        </div>
+
         {appointment.notes && (
-          <p className="mt-2 max-w-[60ch] text-xs leading-relaxed text-slate-400">
+          <p className="mt-4 max-w-[62ch] text-sm leading-relaxed text-slate-400">
             {appointment.notes}
           </p>
         )}
+
+        {appointment.status === 'REQUESTED' && (
+          <p className="mt-5 border-t border-hairline pt-4 text-meta text-slate-500">
+            You asked for this time. The clinic will confirm it, and this page will
+            say so once they have.
+          </p>
+        )}
       </div>
-      <StatusBadge status={appointment.status} />
+    </Panel>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   A row in one of the lists
+   ───────────────────────────────────────────────────────────────────────── */
+
+function Row({ appointment, dim = false }) {
+  const doctor = doctorLine(appointment)
+
+  return (
+    <li
+      className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3.5
+                  ${dim ? 'text-slate-500' : ''}`}
+    >
+      <div className="min-w-0">
+        <p className={`text-sm ${dim ? 'text-slate-400' : 'font-medium text-slate-100'}`}>
+          {on(appointment.appointmentDate, 'EEEE d MMMM yyyy')}
+          {' · '}
+          <span className="ident">{on(appointment.appointmentDate, 'HH:mm')}</span>
+        </p>
+        {(doctor || appointment.notes) && (
+          <p className="mt-0.5 truncate text-meta text-slate-500">
+            {[doctor, appointment.notes].filter(Boolean).join(' · ')}
+          </p>
+        )}
+      </div>
+      <StatusBadge
+        size="sm"
+        status={appointment.status}
+        label={PATIENT_WORDING[appointment.status]}
+      />
     </li>
   )
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   The page
+   ───────────────────────────────────────────────────────────────────────── */
+
 export default function MyHealth() {
-  const { patientId, fullName } = useAuth()
+  const { patientId } = useAuth()
+  const [showPast, setShowPast] = useState(false)
 
   const profile = useQuery({
     queryKey: ['my-patient-record', patientId],
@@ -93,122 +183,170 @@ export default function MyHealth() {
     queryFn: () => appointmentApi.getAll(),
   })
 
-  // A patient account with no linked record cannot show anything meaningful.
+  const { next, upcoming, past } = useMemo(() => {
+    const list = appointments.data ?? []
+    const now = new Date()
+
+    const ahead = list
+      .filter((a) => a.appointmentDate && isAfter(parseISO(a.appointmentDate), now))
+      .sort((a, b) => a.appointmentDate.localeCompare(b.appointmentDate))
+
+    // A cancelled slot in the future is not something to look forward to, so it
+    // never becomes the headline — but it stays in the list, because a patient
+    // who was expecting it needs to see that it is off.
+    const live = ahead.filter((a) => ['REQUESTED', 'CONFIRMED'].includes(a.status))
+
+    return {
+      next: live[0] ?? null,
+      upcoming: ahead.filter((a) => a.id !== live[0]?.id),
+      past: list
+        .filter((a) => !a.appointmentDate || !isAfter(parseISO(a.appointmentDate), now))
+        .sort((a, b) => (b.appointmentDate || '').localeCompare(a.appointmentDate || '')),
+    }
+  }, [appointments.data])
+
+  // An account with no linked record cannot show anything meaningful.
   if (!patientId) {
     return (
-      <EmptyState
-        icon={UserRound}
-        title="Your account is not linked to a patient record"
-        description="Ask the clinic to connect your sign-in to your medical record, then reload this page."
-      />
+      <Panel>
+        <EmptyState
+          icon={UserRound}
+          title="Your sign-in is not linked to a patient record"
+          description="Ask the clinic to connect your account to your medical record, then reload this page."
+        />
+      </Panel>
     )
   }
 
-  const upcoming = (appointments.data || [])
-    .filter((a) => a.appointmentDate && isAfter(parseISO(a.appointmentDate), new Date()))
-    .sort((a, b) => a.appointmentDate.localeCompare(b.appointmentDate))
-
-  const past = (appointments.data || [])
-    .filter((a) => !a.appointmentDate || !isAfter(parseISO(a.appointmentDate), new Date()))
-    .sort((a, b) => (b.appointmentDate || '').localeCompare(a.appointmentDate || ''))
-
   return (
-    <div className="mx-auto max-w-5xl">
-      <header className="mb-8">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-white">
-          {fullName ? `Hello, ${fullName.split(' ')[0]}` : 'Your health'}
-        </h1>
-        <p className="mt-1.5 text-sm text-slate-400">
-          Your appointments and personal details, visible only to you.
-        </p>
-      </header>
+    <>
+      <PageHeader
+        eyebrow="Your care"
+        title="Your health"
+        description="Your appointments and the details the clinic holds for you. Only you can see this page."
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* Appointments */}
-        <section className="card p-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-display text-base font-bold text-white">Appointments</h2>
-            {appointments.data && (
-              <span className="text-xs text-slate-500">
-                {appointments.data.length} in total
-              </span>
-            )}
-          </div>
+      {appointments.isError && (
+        <ErrorBanner
+          className="mb-6"
+          title="Your appointments could not be loaded"
+          message="Please try again in a moment, or call the clinic if this keeps happening."
+          onRetry={appointments.refetch}
+        />
+      )}
 
-          {appointments.isLoading && (
-            <div className="mt-6 space-y-4" aria-busy="true" aria-label="Loading appointments">
-              {[0, 1, 2].map((row) => (
-                <div key={row} className="flex items-center justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-56" />
-                    <Skeleton className="h-3 w-40" />
-                  </div>
-                  <Skeleton className="h-6 w-20" />
-                </div>
-              ))}
-            </div>
-          )}
+      {appointments.isLoading && (
+        <Panel className="mb-6 px-5 py-7" aria-busy="true">
+          <SkeletonText chars={10} className="h-3" />
+          <Skeleton className="mt-4 h-8 w-64" />
+          <SkeletonText chars={24} className="mt-4" />
+        </Panel>
+      )}
 
-          {appointments.isError && (
-            <div className="mt-5">
-              <ErrorBanner message={appointments.error?.message} />
-            </div>
-          )}
+      {!appointments.isLoading && next && <NextAppointment appointment={next} />}
 
-          {appointments.data && appointments.data.length === 0 && (
-            <div className="py-6">
-              <EmptyState
-                icon={CalendarDays}
-                title="No appointments yet"
-                description="When the clinic books a visit for you, it will appear here."
-              />
-            </div>
-          )}
+      {!appointments.isLoading &&
+        !appointments.isError &&
+        !next &&
+        (appointments.data ?? []).length > 0 && (
+          <Panel className="mb-6">
+            <EmptyState
+              tone="good"
+              title="Nothing booked at the moment."
+              description="When the clinic books your next visit it will appear here."
+            />
+          </Panel>
+        )}
 
-          {upcoming.length > 0 && (
-            <>
-              <h3 className="mt-6 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Upcoming
-              </h3>
-              <ul className="divide-y divide-white/5">
-                {upcoming.map((appointment) => (
-                  <AppointmentRow key={appointment.id} appointment={appointment} />
-                ))}
-              </ul>
-            </>
-          )}
+      {!appointments.isLoading && (appointments.data ?? []).length === 0 && (
+        <Panel className="mb-6">
+          <EmptyState
+            icon={CalendarDays}
+            title="No appointments yet"
+            description="When the clinic books a visit for you, it will appear here."
+          />
+        </Panel>
+      )}
 
-          {past.length > 0 && (
-            <>
-              <h3 className="mt-8 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Earlier
-              </h3>
-              <ul className="divide-y divide-white/5 opacity-70">
-                {past.map((appointment) => (
-                  <AppointmentRow key={appointment.id} appointment={appointment} />
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-
-        {/* Profile */}
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
-          {profile.isLoading && (
-            <div className="card space-y-4 p-6" aria-busy="true" aria-label="Loading your details">
-              <Skeleton className="h-4 w-28" />
-              {[0, 1, 2].map((row) => (
-                <div key={row} className="space-y-2">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-4 w-44" />
-                </div>
-              ))}
-            </div>
+          {upcoming.length > 0 && (
+            <Panel>
+              <PanelHead title="Also coming up" count={upcoming.length} />
+              <ul className="divide-y divide-hairline">
+                {upcoming.map((appointment) => (
+                  <Row key={appointment.id} appointment={appointment} />
+                ))}
+              </ul>
+            </Panel>
           )}
-          {profile.isError && <ErrorBanner message={profile.error?.message} />}
-          {profile.data && <ProfileCard patient={profile.data} />}
+
+          {/* Folded away by default. A patient's history is worth keeping and
+              rarely worth reading; eighteen past visits above the fold is a
+              filing cabinet, not an answer. */}
+          {past.length > 0 && (
+            <Panel>
+              <button
+                type="button"
+                onClick={() => setShowPast((open) => !open)}
+                aria-expanded={showPast}
+                className="row-hover flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span className="text-sm font-medium text-white">Past appointments</span>
+                <span className="text-meta text-slate-500">
+                  {showPast ? 'Hide' : `Show ${past.length}`}
+                </span>
+              </button>
+              {showPast && (
+                <ul className="divide-y divide-hairline border-t border-hairline">
+                  {past.map((appointment) => (
+                    <Row key={appointment.id} appointment={appointment} dim />
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          )}
         </div>
+
+        <Panel>
+          <PanelHead title="Your details" />
+          <div className="px-5 py-5">
+            {profile.isLoading && (
+              <div className="space-y-5" aria-busy="true">
+                {[0, 1, 2].map((row) => (
+                  <div key={row} className="space-y-2">
+                    <SkeletonText chars={8} className="h-2.5" />
+                    <SkeletonText chars={18} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {profile.isError && (
+              <ErrorBanner
+                variant="degraded"
+                title="Your details are unavailable"
+                message="Your appointments above are unaffected."
+                onRetry={profile.refetch}
+              />
+            )}
+
+            {profile.data && (
+              <dl className="space-y-5">
+                <Field label="Full name">{profile.data.name}</Field>
+                <Field label="Email">{profile.data.email}</Field>
+                <Field label="Phone" mono>
+                  {profile.data.phone}
+                </Field>
+              </dl>
+            )}
+
+            <p className="mt-6 border-t border-hairline pt-4 text-meta leading-relaxed text-slate-500">
+              To correct any of these, ask the front desk on your next visit.
+            </p>
+          </div>
+        </Panel>
       </div>
-    </div>
+    </>
   )
 }

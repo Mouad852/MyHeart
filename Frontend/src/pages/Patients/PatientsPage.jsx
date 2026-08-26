@@ -1,22 +1,30 @@
 /**
- * PatientsPage.jsx — Full CRUD interface for Patient management.
+ * PatientsPage.jsx — the register.
  *
- * Features:
- *  - Live search filter
- *  - Create patient (modal)
- *  - Edit patient (modal)
- *  - Delete patient (confirm dialog)
- *  - Loading / error / empty states
+ * The job of this screen is search → scan → identify → open, and everything on
+ * it is arranged around that. The search field is the first thing in the panel
+ * and it queries the database rather than the loaded page; the rows are dense
+ * enough to scan a screenful at a glance; the patient's name is the link, so
+ * the thing you read is the thing you click.
+ *
+ * The actions column is gone. It held a pencil and a red bin on every row —
+ * eight identical destructive buttons on a register of eight people, none of
+ * which is the reason anybody comes to this page. Editing and deleting live in
+ * the row menu, where deleting a patient takes a deliberate second click.
  */
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { UserPlus, Search, Pencil, Trash2, Users } from 'lucide-react'
+import { Pencil, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorBanner from '../../components/ui/ErrorBanner'
 import Avatar from '../../components/ui/Avatar'
-import { PageSpinner } from '../../components/ui/LoadingSpinner'
+import Menu from '../../components/ui/Menu'
+import PageHeader from '../../components/ui/Page'
+import { Panel } from '../../components/ui/Panel'
+import Pagination from '../../components/ui/Pagination'
+import { Skeleton, SkeletonText } from '../../components/ui/LoadingSpinner'
 import PatientForm from './PatientForm'
 import {
   usePatients,
@@ -24,184 +32,226 @@ import {
   useUpdatePatient,
   useDeletePatient,
 } from '../../hooks/usePatients'
-import { formatDate } from '../../utils'
-import Pagination from '../../components/ui/Pagination'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { formatDate } from '../../utils'
+
+function LoadingRows() {
+  return Array.from({ length: 6 }, (_, i) => (
+    <tr key={i}>
+      <td className="td">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <SkeletonText chars={18} />
+        </div>
+      </td>
+      <td className="td hidden md:table-cell">
+        <SkeletonText chars={22} />
+      </td>
+      <td className="td hidden lg:table-cell">
+        <SkeletonText chars={14} />
+      </td>
+      <td className="td hidden xl:table-cell">
+        <SkeletonText chars={11} />
+      </td>
+      <td className="td" />
+    </tr>
+  ))
+}
 
 export default function PatientsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
-  // Searching without debouncing would fire a request per keystroke.
-  const debouncedSearch = useDebouncedValue(search)
+  // Without a debounce this fires a query on every keystroke.
+  const debounced = useDebouncedValue(search)
 
-  const { data, isLoading, error, refetch } = usePatients({
+  const { data, isLoading, isFetching, error, refetch } = usePatients({
     page,
-    q: debouncedSearch,
+    q: debounced,
   })
 
   const patients = data?.content ?? []
+  const total = data?.totalElements ?? 0
 
-  // A narrower search can leave you past the last page.
-  useEffect(() => {
-    setPage(0)
-  }, [debouncedSearch])
+  // A narrower search can otherwise leave the reader stranded past the last page.
+  useEffect(() => setPage(0), [debounced])
 
-  // Modal states
-  const [createOpen,    setCreateOpen]    = useState(false)
-  const [editPatient,   setEditPatient]   = useState(null) // patient object or null
-  const [deletePatient, setDeletePatient] = useState(null) // patient object or null
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editPatient, setEditPatient] = useState(null)
+  const [deletePatient, setDeletePatient] = useState(null)
 
-  // Mutations
   const createMutation = useCreatePatient({ onSuccess: () => setCreateOpen(false) })
   const updateMutation = useUpdatePatient({ onSuccess: () => setEditPatient(null) })
   const deleteMutation = useDeletePatient({ onSuccess: () => setDeletePatient(null) })
 
-  // Filtering happens in the database now, so the page shows what came back.
-  const filtered = patients
+  const searching = Boolean(debounced.trim())
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <>
+      <PageHeader
+        eyebrow="Clinic"
+        title="Patients"
+        description={
+          isLoading
+            ? 'Reading the register…'
+            : `${total} ${total === 1 ? 'person' : 'people'} on the register.`
+        }
+        actions={
+          <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
+            <UserPlus size={14} strokeWidth={2} aria-hidden="true" />
+            New patient
+          </button>
+        }
+      />
 
-      {/* Page header */}
-      <div className="page-header">
-        <div>
-          <h2 className="section-title">Patients</h2>
-          <p className="text-muted mt-1">
-            {patients.length} {patients.length === 1 ? 'patient' : 'patients'} registered
-          </p>
-        </div>
-        <button className="btn-primary" onClick={() => setCreateOpen(true)}>
-          <UserPlus size={16} />
-          New Patient
-        </button>
-      </div>
+      {error && (
+        <ErrorBanner
+          className="mb-6"
+          title="The register could not be loaded"
+          message={error.message}
+          onRetry={refetch}
+        />
+      )}
 
-      {/* Error state */}
-      {error && <ErrorBanner message={error.message} onRetry={refetch} />}
-
-      {/* Main card */}
-      <div className="card overflow-hidden">
-
-        {/* Table toolbar */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5">
-          <div className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search by name, email, phone…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input pl-9 py-2 text-sm"
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3">
+          <div className="relative w-full max-w-sm">
+            <Search
+              size={14}
+              strokeWidth={2}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
             />
-          </div>
-          {search && (
-            <span className="text-xs text-slate-500">
-              {data?.totalElements ?? 0} result{(data?.totalElements ?? 0) !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-
-        {/* Loading */}
-        {isLoading && <PageSpinner />}
-
-        {/* Empty */}
-        {!isLoading && filtered.length === 0 && (
-          <EmptyState
-            icon={Users}
-            title={search ? 'No patients match your search' : 'No patients yet'}
-            description={search ? 'Try a different search term.' : 'Create your first patient record to get started.'}
-            action={!search && (
-              <button className="btn-primary" onClick={() => setCreateOpen(true)}>
-                <UserPlus size={15} /> Add First Patient
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, email or phone"
+              aria-label="Search the register"
+              className="input h-9 bg-white/[0.03] py-0 pl-9 pr-9
+                         [&::-webkit-search-cancel-button]:hidden"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear the search"
+                className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2
+                           items-center justify-center rounded text-slate-500 hover:text-slate-200"
+              >
+                <X size={13} strokeWidth={2} aria-hidden="true" />
               </button>
             )}
-          />
-        )}
+          </div>
 
-        {/* Table */}
-        {!isLoading && filtered.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                  Patient
-                </th>
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest hidden md:table-cell">
-                  Email
-                </th>
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest hidden lg:table-cell">
-                  Phone
-                </th>
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest hidden xl:table-cell">
-                  Added
-                </th>
-                <th className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((patient, i) => (
-                <tr
-                  key={patient.id}
-                  className="table-row animate-slide-up"
-                  style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}
+          {/* Says what the count refers to. A bare number next to a search box
+              is ambiguous between "found" and "in total". */}
+          <p aria-live="polite" className="text-meta text-slate-500">
+            {searching
+              ? `${total} ${total === 1 ? 'match' : 'matches'}`
+              : `${total} registered`}
+            {isFetching && !isLoading && <span className="ml-2 text-slate-500">updating…</span>}
+          </p>
+        </div>
+
+        {!isLoading && patients.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title={searching ? 'Nobody matches that' : 'The register is empty'}
+            description={
+              searching
+                ? 'Try part of a surname, or the start of an email address.'
+                : 'Register the first patient and they will appear here.'
+            }
+            action={
+              !searching && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setCreateOpen(true)}
                 >
-                  {/* Name + avatar */}
-                  <td className="px-6 py-4">
-                    <Link
-                      to={`/patients/${patient.id}`}
-                      className="flex items-center gap-3 rounded-lg
-                                 transition-colors duration-150
-                                 focus:outline-none focus:ring-2 focus:ring-teal-400
-                                 focus:ring-offset-2 focus:ring-offset-navy-800
-                                 group/name"
-                    >
-                      <Avatar name={patient.name} size="md" />
-                      <div>
-                        <p className="font-medium text-white group-hover/name:text-teal-400">
-                          {patient.name}
-                        </p>
-                        <p className="text-xs text-slate-500 md:hidden">{patient.email}</p>
-                      </div>
-                    </Link>
-                  </td>
-
-                  <td className="px-6 py-4 text-slate-400 hidden md:table-cell">
-                    {patient.email}
-                  </td>
-
-                  <td className="px-6 py-4 text-slate-400 hidden lg:table-cell">
-                    {patient.phone}
-                  </td>
-
-                  <td className="px-6 py-4 text-slate-500 text-xs hidden xl:table-cell">
-                    {formatDate(patient.createdAt, 'MMM d, yyyy')}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="btn-icon"
-                        title="Edit patient"
-                        onClick={() => setEditPatient(patient)}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="btn-danger py-1.5 px-2"
-                        title="Delete patient"
-                        onClick={() => setDeletePatient(patient)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+                  <UserPlus size={14} strokeWidth={2} aria-hidden="true" />
+                  Register a patient
+                </button>
+              )
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="th pl-5">Patient</th>
+                  <th className="th hidden md:table-cell">Email</th>
+                  <th className="th hidden lg:table-cell">Phone</th>
+                  <th className="th hidden xl:table-cell">Registered</th>
+                  <th className="th pr-5 text-right">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <LoadingRows />
+                ) : (
+                  patients.map((patient) => (
+                    <tr key={patient.id} className="row-hover">
+                      <td className="td pl-5">
+                        <Link
+                          to={`/patients/${patient.id}`}
+                          className="flex items-center gap-3 rounded"
+                        >
+                          <Avatar name={patient.name} size="sm" />
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium text-white">
+                              {patient.name}
+                            </span>
+                            {/* The columns hidden at this width fold into the
+                                name cell rather than disappearing. */}
+                            <span className="block truncate text-meta text-slate-500 md:hidden">
+                              {patient.email || patient.phone}
+                            </span>
+                          </span>
+                        </Link>
+                      </td>
+
+                      <td className="td hidden text-slate-400 md:table-cell">
+                        {patient.email || <span className="text-slate-500">—</span>}
+                      </td>
+
+                      <td className="td ident hidden text-slate-400 lg:table-cell">
+                        {patient.phone || <span className="text-slate-500">—</span>}
+                      </td>
+
+                      <td className="td hidden text-meta text-slate-500 xl:table-cell">
+                        {formatDate(patient.createdAt, 'd MMM yyyy')}
+                      </td>
+
+                      <td className="td pr-5">
+                        <div className="flex justify-end">
+                          <Menu
+                            label={`Actions for ${patient.name}`}
+                            items={[
+                              {
+                                label: 'Edit details',
+                                icon: Pencil,
+                                onSelect: () => setEditPatient(patient),
+                              },
+                              {
+                                label: 'Delete patient',
+                                icon: Trash2,
+                                danger: true,
+                                onSelect: () => setDeletePatient(patient),
+                              },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {!isLoading && data && (
@@ -215,13 +265,13 @@ export default function PatientsPage() {
             onChange={setPage}
           />
         )}
-      </div>
+      </Panel>
 
-      {/* Create Modal */}
       <Modal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Register New Patient"
+        title="Register a patient"
+        description="Only a name is required. Contact details can be added later."
       >
         <PatientForm
           onSubmit={(data) => createMutation.mutate(data)}
@@ -229,11 +279,10 @@ export default function PatientsPage() {
         />
       </Modal>
 
-      {/* Edit Modal */}
       <Modal
-        isOpen={!!editPatient}
+        isOpen={Boolean(editPatient)}
         onClose={() => setEditPatient(null)}
-        title="Edit Patient"
+        title="Edit patient details"
       >
         <PatientForm
           initialData={editPatient}
@@ -242,16 +291,16 @@ export default function PatientsPage() {
         />
       </Modal>
 
-      {/* Delete Confirm */}
       <ConfirmDialog
-        isOpen={!!deletePatient}
+        isOpen={Boolean(deletePatient)}
         onClose={() => setDeletePatient(null)}
         onConfirm={() => deleteMutation.mutate(deletePatient?.id)}
         isLoading={deleteMutation.isPending}
-        title="Delete Patient"
-        message={`Are you sure you want to permanently delete "${deletePatient?.name}"? This cannot be undone.`}
-        confirmLabel="Delete Patient"
+        busyLabel="Deleting…"
+        title="Delete this patient?"
+        message={`${deletePatient?.name}'s record will be removed from the register permanently. Their appointments, prescriptions and invoices are held by other services and are not deleted with it.`}
+        confirmLabel="Delete the record"
       />
-    </div>
+    </>
   )
 }

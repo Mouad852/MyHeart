@@ -1,16 +1,28 @@
 /**
- * DoctorsPage.jsx — Full CRUD interface for Doctor management.
+ * DoctorsPage.jsx — who practises here.
+ *
+ * The same table as the patient register, deliberately: two lists of people in
+ * one product should not be two different designs. What differs is what the
+ * list is for. A doctor is looked up by *what they do*, so specialty is a
+ * first-class column and the list can be narrowed to one specialty in a click.
+ *
+ * Specialties are not colour-coded. The previous version assigned each one a
+ * different accent, which produced a column of violet, amber, blue and rose
+ * badges saying nothing about urgency or state — the two things colour is for
+ * in this product.
  */
-import { useEffect, useState } from 'react'
-import { UserPlus, Search, Pencil, Trash2, Stethoscope } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Pencil, Search, Stethoscope, Trash2, UserPlus, X } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorBanner from '../../components/ui/ErrorBanner'
-import Pagination from '../../components/ui/Pagination'
-import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import Avatar from '../../components/ui/Avatar'
-import { PageSpinner } from '../../components/ui/LoadingSpinner'
+import Menu from '../../components/ui/Menu'
+import PageHeader from '../../components/ui/Page'
+import { Panel } from '../../components/ui/Panel'
+import Pagination from '../../components/ui/Pagination'
+import { Skeleton, SkeletonText } from '../../components/ui/LoadingSpinner'
 import DoctorForm from './DoctorForm'
 import {
   useDoctors,
@@ -18,168 +30,230 @@ import {
   useUpdateDoctor,
   useDeleteDoctor,
 } from '../../hooks/useDoctors'
-
-// Specialty badge colours — cycles through a set
-const SPECIALTY_COLORS = [
-  'bg-teal-500/10 text-teal-400',
-  'bg-blue-500/10 text-blue-400',
-  'bg-violet-500/10 text-violet-400',
-  'bg-amber-500/10 text-amber-400',
-  'bg-rose-500/10 text-rose-400',
-  'bg-emerald-500/10 text-emerald-400',
-]
-function specialtyColor(specialty = '') {
-  const idx = specialty.charCodeAt(0) % SPECIALTY_COLORS.length
-  return SPECIALTY_COLORS[idx]
-}
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 
 export default function DoctorsPage() {
   const [search, setSearch] = useState('')
+  const [specialty, setSpecialty] = useState('')
   const [page, setPage] = useState(0)
-  const debouncedSearch = useDebouncedValue(search)
+  const debounced = useDebouncedValue(search)
 
-  const { data, isLoading, error, refetch } = useDoctors({ page, q: debouncedSearch })
-  const doctors = data?.content ?? []
+  const { data, isLoading, error, refetch } = useDoctors({ page, q: debounced })
+  const doctors = useMemo(() => data?.content ?? [], [data])
+  const total = data?.totalElements ?? 0
 
-  useEffect(() => {
-    setPage(0)
-  }, [debouncedSearch])
+  useEffect(() => setPage(0), [debounced])
 
-  const [createOpen,  setCreateOpen]  = useState(false)
-  const [editDoctor,  setEditDoctor]  = useState(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editDoctor, setEditDoctor] = useState(null)
   const [deleteDoctor, setDeleteDoctor] = useState(null)
 
   const createMutation = useCreateDoctor({ onSuccess: () => setCreateOpen(false) })
   const updateMutation = useUpdateDoctor({ onSuccess: () => setEditDoctor(null) })
   const deleteMutation = useDeleteDoctor({ onSuccess: () => setDeleteDoctor(null) })
 
-  // Searching happens in the database now.
-  const filtered = doctors
+  // Built from the page in hand, because the server has no specialty facet.
+  const specialties = useMemo(
+    () => [...new Set(doctors.map((d) => d.specialty).filter(Boolean))].sort(),
+    [doctors]
+  )
+
+  const rows = specialty ? doctors.filter((d) => d.specialty === specialty) : doctors
+  const searching = Boolean(debounced.trim())
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <>
+      <PageHeader
+        eyebrow="Clinic"
+        title="Doctors"
+        description={
+          isLoading
+            ? 'Reading the staff list…'
+            : `${total} ${total === 1 ? 'doctor' : 'doctors'} practising at the clinic.`
+        }
+        actions={
+          <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
+            <UserPlus size={14} strokeWidth={2} aria-hidden="true" />
+            Add doctor
+          </button>
+        }
+      />
 
-      <div className="page-header">
-        <div>
-          <h2 className="section-title">Doctors</h2>
-          <p className="text-muted mt-1">
-            {doctors.length} {doctors.length === 1 ? 'doctor' : 'doctors'} on staff
+      {error && (
+        <ErrorBanner
+          className="mb-6"
+          title="The staff list could not be loaded"
+          message={error.message}
+          onRetry={refetch}
+        />
+      )}
+
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative w-full max-w-xs">
+              <Search
+                size={14}
+                strokeWidth={2}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by name or specialty"
+                aria-label="Search the staff list"
+                className="input h-9 bg-white/[0.03] py-0 pl-9 pr-9
+                           [&::-webkit-search-cancel-button]:hidden"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear the search"
+                  className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2
+                             items-center justify-center rounded text-slate-500 hover:text-slate-200"
+                >
+                  <X size={13} strokeWidth={2} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {specialties.length > 1 && (
+              <div className="w-full max-w-[13rem]">
+                <label className="sr-only" htmlFor="doctor-specialty-filter">
+                  Filter by specialty
+                </label>
+                <select
+                  id="doctor-specialty-filter"
+                  className="select h-9 py-0 text-sm"
+                  value={specialty}
+                  onChange={(event) => setSpecialty(event.target.value)}
+                >
+                  <option value="">Every specialty</option>
+                  {specialties.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <p aria-live="polite" className="text-meta text-slate-500">
+            {searching ? `${total} ${total === 1 ? 'match' : 'matches'}` : `${total} on staff`}
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setCreateOpen(true)}>
-          <UserPlus size={16} />
-          Add Doctor
-        </button>
-      </div>
 
-      {error && <ErrorBanner message={error.message} onRetry={refetch} />}
-
-      <div className="card overflow-hidden">
-
-        {/* Toolbar */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5">
-          <div className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search by name, specialty, email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input pl-9 py-2 text-sm"
-            />
-          </div>
-          {search && (
-            <span className="text-xs text-slate-500">
-              {data?.totalElements ?? 0} result{(data?.totalElements ?? 0) !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-
-        {isLoading && <PageSpinner />}
-
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && rows.length === 0 ? (
           <EmptyState
             icon={Stethoscope}
-            title={search ? 'No doctors match your search' : 'No doctors yet'}
-            description={search ? 'Try a different search term.' : 'Add your first doctor to get started.'}
-            action={!search && (
-              <button className="btn-primary" onClick={() => setCreateOpen(true)}>
-                <UserPlus size={15} /> Add First Doctor
-              </button>
-            )}
-          />
-        )}
-
-        {!isLoading && filtered.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                  Doctor
-                </th>
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest hidden sm:table-cell">
-                  Specialty
-                </th>
-                <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest hidden md:table-cell">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((doctor, i) => (
-                <tr
-                  key={doctor.id}
-                  className="table-row animate-slide-up"
-                  style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}
+            title={
+              searching || specialty ? 'Nobody matches that' : 'No doctors on the staff list'
+            }
+            description={
+              searching || specialty
+                ? 'Try a shorter search, or clear the specialty filter.'
+                : 'Add the doctors who practise here so appointments can be booked against them.'
+            }
+            action={
+              !searching &&
+              !specialty && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setCreateOpen(true)}
                 >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={doctor.name} size="md" />
-                      <div>
-                        <p className="font-medium text-white">Dr. {doctor.name}</p>
-                        <p className="text-xs text-slate-500 sm:hidden">{doctor.specialty}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4 hidden sm:table-cell">
-                    <span className={`badge ${specialtyColor(doctor.specialty)}`}>
-                      {doctor.specialty}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-4 text-slate-400 hidden md:table-cell">
-                    {doctor.email}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="btn-icon"
-                        title="Edit doctor"
-                        onClick={() => setEditDoctor(doctor)}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="btn-danger py-1.5 px-2"
-                        title="Delete doctor"
-                        onClick={() => setDeleteDoctor(doctor)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+                  <UserPlus size={14} strokeWidth={2} aria-hidden="true" />
+                  Add a doctor
+                </button>
+              )
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="th pl-5">Doctor</th>
+                  <th className="th hidden sm:table-cell">Specialty</th>
+                  <th className="th hidden md:table-cell">Email</th>
+                  <th className="th pr-5 text-right">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {isLoading
+                  ? Array.from({ length: 5 }, (_, i) => (
+                      <tr key={i}>
+                        <td className="td pl-5">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <SkeletonText chars={16} />
+                          </div>
+                        </td>
+                        <td className="td hidden sm:table-cell">
+                          <SkeletonText chars={12} />
+                        </td>
+                        <td className="td hidden md:table-cell">
+                          <SkeletonText chars={20} />
+                        </td>
+                        <td className="td" />
+                      </tr>
+                    ))
+                  : rows.map((doctor) => (
+                      <tr key={doctor.id} className="row-hover">
+                        <td className="td pl-5">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={doctor.name} size="sm" />
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-white">{doctor.name}</p>
+                              <p className="truncate text-meta text-slate-500 sm:hidden">
+                                {doctor.specialty}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="td hidden text-slate-300 sm:table-cell">
+                          {doctor.specialty || <span className="text-slate-500">—</span>}
+                        </td>
+
+                        <td className="td hidden text-slate-400 md:table-cell">
+                          {doctor.email || <span className="text-slate-500">—</span>}
+                        </td>
+
+                        <td className="td pr-5">
+                          <div className="flex justify-end">
+                            <Menu
+                              label={`Actions for ${doctor.name}`}
+                              items={[
+                                {
+                                  label: 'Edit details',
+                                  icon: Pencil,
+                                  onSelect: () => setEditDoctor(doctor),
+                                },
+                                {
+                                  label: 'Remove from staff',
+                                  icon: Trash2,
+                                  danger: true,
+                                  onSelect: () => setDeleteDoctor(doctor),
+                                },
+                              ]}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
-        {!isLoading && data && (
+        {!isLoading && data && !specialty && (
           <Pagination
             page={data.page}
             size={data.size}
@@ -190,16 +264,24 @@ export default function DoctorsPage() {
             onChange={setPage}
           />
         )}
-      </div>
+      </Panel>
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Add New Doctor">
+      <Modal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Add a doctor"
+      >
         <DoctorForm
           onSubmit={(data) => createMutation.mutate(data)}
           isLoading={createMutation.isPending}
         />
       </Modal>
 
-      <Modal isOpen={!!editDoctor} onClose={() => setEditDoctor(null)} title="Edit Doctor">
+      <Modal
+        isOpen={Boolean(editDoctor)}
+        onClose={() => setEditDoctor(null)}
+        title="Edit doctor details"
+      >
         <DoctorForm
           initialData={editDoctor}
           onSubmit={(data) => updateMutation.mutate({ id: editDoctor.id, data })}
@@ -208,14 +290,15 @@ export default function DoctorsPage() {
       </Modal>
 
       <ConfirmDialog
-        isOpen={!!deleteDoctor}
+        isOpen={Boolean(deleteDoctor)}
         onClose={() => setDeleteDoctor(null)}
         onConfirm={() => deleteMutation.mutate(deleteDoctor?.id)}
         isLoading={deleteMutation.isPending}
-        title="Delete Doctor"
-        message={`Are you sure you want to remove "Dr. ${deleteDoctor?.name}" from the system?`}
-        confirmLabel="Delete Doctor"
+        busyLabel="Removing…"
+        title="Remove this doctor?"
+        message={`${deleteDoctor?.name} will be removed from the staff list. Appointments already booked against them are held by the appointment service and are not deleted with the record.`}
+        confirmLabel="Remove from staff"
       />
-    </div>
+    </>
   )
 }

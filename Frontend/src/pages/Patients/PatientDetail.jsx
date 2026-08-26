@@ -1,53 +1,56 @@
 /**
  * PatientDetail.jsx — one patient, and everything that has happened to them.
  *
- * The point of this screen is that a clinician stops opening four tabs. The
- * history is assembled from appointments, invoices, prescriptions and
- * laboratory work, and shown as one thread in time order.
+ * The point of this screen is that a clinician stops opening four tabs. Their
+ * history is assembled from four services — appointments, prescriptions,
+ * laboratory work and billing — and read as one thread in time order.
+ *
+ * Two things drive the layout.
+ *
+ * The thread gets the width. It used to sit in the right-hand two thirds of a
+ * two-column grid, next to a 300px card holding an email address and a phone
+ * number, so the most valuable content on the most important screen in the
+ * product was the part that had been squeezed. Identity is a band across the
+ * top now — it is four short facts, and it reads perfectly well on one line —
+ * and the history has the whole page.
+ *
+ * Colour is not how you tell an appointment from a lab test. Each kind of event
+ * carries a small glyph on the rule and its name in words; the colour on the
+ * row belongs to the *status*, which is the part that might need something from
+ * the reader. Four services rendered in four accent colours produced a thread
+ * where the teal, amber, blue and violet said only which database a row came
+ * from — information no clinician has ever needed.
+ *
+ * Any one of those services can be down while the others are fine. When that
+ * happens the screen says which part is missing, in place, and keeps the rest
+ * usable.
  */
-import React from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   CalendarDays,
+  ChevronLeft,
   FlaskConical,
-  Mail,
-  Phone,
   Pill,
   ReceiptText,
-  TriangleAlert,
 } from 'lucide-react'
 import { format, isValid, parseISO } from 'date-fns'
 import { usePatient } from '../../hooks/usePatients'
 import { usePatientTimeline, EVENT_KIND } from '../../hooks/usePatientTimeline'
-import { Skeleton } from '../../components/ui/LoadingSpinner'
+import { Skeleton, SkeletonText } from '../../components/ui/LoadingSpinner'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorBanner from '../../components/ui/ErrorBanner'
 import StatusBadge from '../../components/ui/StatusBadge'
+import Segmented from '../../components/ui/Segmented'
+import { Panel, Field } from '../../components/ui/Panel'
 import Avatar from '../../components/ui/Avatar'
 
-/** How each kind of event presents itself on the rail. */
-const KIND_STYLE = {
-  [EVENT_KIND.APPOINTMENT]: {
-    icon: CalendarDays,
-    ring: 'border-teal-500/30 bg-teal-500/10 text-teal-400',
-    label: 'Appointment',
-  },
-  [EVENT_KIND.INVOICE]: {
-    icon: ReceiptText,
-    ring: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-    label: 'Billing',
-  },
-  [EVENT_KIND.PRESCRIPTION]: {
-    icon: Pill,
-    ring: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
-    label: 'Prescription',
-  },
-  [EVENT_KIND.LAB]: {
-    icon: FlaskConical,
-    ring: 'border-violet-500/30 bg-violet-500/10 text-violet-400',
-    label: 'Laboratory',
-  },
+/** The glyph and the word for each kind of event. No colour. */
+const KIND = {
+  [EVENT_KIND.APPOINTMENT]: { icon: CalendarDays, label: 'Appointment' },
+  [EVENT_KIND.PRESCRIPTION]: { icon: Pill, label: 'Prescription' },
+  [EVENT_KIND.LAB]: { icon: FlaskConical, label: 'Laboratory' },
+  [EVENT_KIND.INVOICE]: { icon: ReceiptText, label: 'Billing' },
 }
 
 function safeDate(value, pattern) {
@@ -56,96 +59,114 @@ function safeDate(value, pattern) {
   return isValid(parsed) ? format(parsed, pattern) : null
 }
 
-function TimelineEvent({ event, isLast }) {
-  const style = KIND_STYLE[event.kind]
-  const Icon = style.icon
-  const day = safeDate(event.at, 'd MMM yyyy')
-  const time = safeDate(event.at, 'HH:mm')
+/* ─────────────────────────────────────────────────────────────────────────
+   Identity
+   ───────────────────────────────────────────────────────────────────────── */
+
+function IdentityBand({ patient, isLoading }) {
+  if (isLoading) {
+    return (
+      <Panel className="mb-6 px-5 py-5">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2.5">
+            <SkeletonText chars={20} className="h-5" />
+            <SkeletonText chars={14} />
+          </div>
+        </div>
+      </Panel>
+    )
+  }
+
+  if (!patient) return null
 
   return (
-    <li className="relative flex gap-4 pb-8 last:pb-0">
-      {/* The rail: a single line rather than a border on every card */}
-      {!isLast && (
-        <span
-          className="absolute left-[19px] top-10 bottom-0 w-px bg-white/10"
-          aria-hidden="true"
-        />
-      )}
-
-      <span
-        className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center
-                    rounded-xl border ${style.ring}`}
-      >
-        <Icon size={17} strokeWidth={2} aria-hidden="true" />
-      </span>
-
-      <div className="min-w-0 flex-1 pt-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <p className="text-sm font-medium text-slate-100">{event.title}</p>
-          <p className="font-mono text-xs text-slate-500">
-            {day}
-            {time ? ` · ${time}` : ''}
-          </p>
+    <Panel className="mb-6">
+      {/* The teal rule down the left is the same mark the timeline hangs off:
+          this band is the head of the thread, not a separate object. */}
+      <div className="flex flex-wrap items-center gap-x-10 gap-y-5 border-l-2 border-teal-400 px-5 py-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <Avatar name={patient.name} size="lg" />
+          <div className="min-w-0">
+            <h1 className="truncate font-display text-title font-bold text-white">
+              {patient.name}
+            </h1>
+            <p className="ident mt-1 text-meta text-slate-500">
+              Record {String(patient.id).padStart(5, '0')}
+              {patient.createdAt &&
+                ` · registered ${safeDate(patient.createdAt, 'd MMM yyyy')}`}
+            </p>
+          </div>
         </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-500">{style.label}</span>
-          {event.status && <StatusBadge status={event.status} />}
-          {event.amount != null && (
-            <span className="font-mono text-xs text-slate-300">
-              {Number(event.amount).toFixed(2)} {event.currency}
-            </span>
-          )}
-          {event.meta && <span className="text-xs text-slate-500">{event.meta}</span>}
-        </div>
-
-        {event.detail && (
-          <p className="mt-2 max-w-[70ch] text-xs leading-relaxed text-slate-400">
-            {event.detail}
-          </p>
-        )}
+        <dl className="flex flex-wrap gap-x-10 gap-y-4">
+          <Field label="Email">
+            {patient.email ? (
+              <a href={`mailto:${patient.email}`} className="link no-underline">
+                {patient.email}
+              </a>
+            ) : null}
+          </Field>
+          <Field label="Phone" mono>
+            {patient.phone ? (
+              <a href={`tel:${patient.phone}`} className="text-slate-100 hover:text-teal-300">
+                {patient.phone}
+              </a>
+            ) : null}
+          </Field>
+        </dl>
       </div>
-    </li>
+    </Panel>
   )
 }
 
-function IdentityCard({ patient }) {
-  const rows = [
-    { icon: Mail, value: patient?.email },
-    { icon: Phone, value: patient?.phone },
-  ].filter((row) => row.value)
+/* ─────────────────────────────────────────────────────────────────────────
+   The thread
+   ───────────────────────────────────────────────────────────────────────── */
+
+function Event({ event }) {
+  const kind = KIND[event.kind]
+  const Icon = kind.icon
 
   return (
-    <section className="card p-6">
-      <div className="flex items-center gap-4">
-        <Avatar name={patient?.name || 'Patient'} size="lg" />
-        <div className="min-w-0">
-          <h2 className="truncate font-display text-lg font-bold text-white">
-            {patient?.name}
-          </h2>
-          <p className="mt-0.5 font-mono text-xs text-slate-500">
-            Record #{String(patient?.id).padStart(5, '0')}
-          </p>
-        </div>
+    <li className="spine relative py-4">
+      {/* The glyph sits on the rule and paints over it, so the line reads as
+          continuous and the marker as a stop along it. */}
+      <span
+        aria-hidden="true"
+        className="absolute -left-[9px] top-[1.15rem] flex h-[18px] w-[18px] items-center
+                   justify-center bg-navy-900 text-slate-500"
+      >
+        <Icon size={13} strokeWidth={1.75} />
+      </span>
+
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <p className="min-w-0 text-sm font-medium text-slate-100">{event.title}</p>
+        <p className="flex-shrink-0 text-meta text-slate-500">
+          <span className="ident">{safeDate(event.at, 'd MMM yyyy')}</span>
+          {safeDate(event.at, 'HH:mm') && (
+            <span className="ident"> · {safeDate(event.at, 'HH:mm')}</span>
+          )}
+        </p>
       </div>
 
-      <dl className="mt-6 space-y-3 border-t border-white/5 pt-5">
-        {rows.map(({ icon: Icon, value }) => (
-          <div key={value} className="flex items-center gap-2.5">
-            <Icon size={14} className="flex-shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />
-            <dd className="truncate text-sm text-slate-300">{value}</dd>
-          </div>
-        ))}
-        {patient?.createdAt && (
-          <div className="flex items-center gap-2.5">
-            <CalendarDays size={14} className="flex-shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />
-            <dd className="text-sm text-slate-300">
-              Registered {safeDate(patient.createdAt, 'd MMM yyyy')}
-            </dd>
-          </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-micro uppercase text-slate-500">{kind.label}</span>
+        {event.status && <StatusBadge status={event.status} size="sm" />}
+        {event.amount != null && (
+          <span className="ident text-meta text-slate-300">
+            {Number(event.amount).toFixed(2)} {event.currency}
+          </span>
         )}
-      </dl>
-    </section>
+        {event.meta && <span className="text-meta text-slate-500">{event.meta}</span>}
+      </div>
+
+      {event.detail && (
+        <p className="mt-2 max-w-[76ch] text-sm leading-relaxed text-slate-400">
+          {event.detail}
+        </p>
+      )}
+    </li>
   )
 }
 
@@ -155,113 +176,136 @@ export default function PatientDetail() {
 
   const patient = usePatient(patientId)
   const timeline = usePatientTimeline(patientId)
+  const [filter, setFilter] = useState('all')
+
+  const events = useMemo(
+    () =>
+      filter === 'all'
+        ? timeline.events
+        : timeline.events.filter((event) => event.kind === filter),
+    [timeline.events, filter]
+  )
+
+  /** Events grouped under the month they happened in. */
+  const months = useMemo(() => {
+    const groups = []
+    for (const event of events) {
+      const key = safeDate(event.at, 'MMMM yyyy') || 'Undated'
+      const last = groups[groups.length - 1]
+      if (last && last.key === key) last.events.push(event)
+      else groups.push({ key, events: [event] })
+    }
+    return groups
+  }, [events])
+
+  const tabs = [
+    { value: 'all', label: 'Everything', count: timeline.events.length },
+    ...timeline.sources.map((source) => ({
+      value: source.key,
+      label: source.label,
+      count: source.count,
+    })),
+  ]
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <>
       <Link
         to="/patients"
-        className="inline-flex items-center gap-1.5 text-xs text-slate-500
-                   transition-colors duration-150 hover:text-teal-400
-                   focus:outline-none focus:ring-2 focus:ring-teal-400
-                   focus:ring-offset-2 focus:ring-offset-navy-950 rounded"
+        className="mb-5 inline-flex items-center gap-1.5 rounded text-meta text-slate-500
+                   transition-colors duration-fast hover:text-teal-400"
       >
-        <ArrowLeft size={13} strokeWidth={2} aria-hidden="true" />
+        <ChevronLeft size={13} strokeWidth={2} aria-hidden="true" />
         All patients
       </Link>
 
-      {patient.isError && <ErrorBanner message={patient.error?.message} />}
+      {patient.isError && (
+        <ErrorBanner
+          className="mb-6"
+          title="This patient could not be loaded"
+          message={patient.error?.message}
+          onRetry={patient.refetch}
+        />
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-        <div className="space-y-6">
-          {patient.isLoading ? (
-            <div className="card space-y-4 p-6">
-              <Skeleton className="h-11 w-11 rounded-full" />
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-          ) : (
-            patient.data && <IdentityCard patient={patient.data} />
-          )}
+      <IdentityBand patient={patient.data} isLoading={patient.isLoading} />
 
-          {/* Counts, so the thread below has context before it is read */}
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/5 bg-white/5">
-            {[
-              { label: 'Appointments', value: timeline.counts.appointments },
-              { label: 'Invoices', value: timeline.counts.invoices },
-              { label: 'Prescriptions', value: timeline.counts.prescriptions },
-              { label: 'Lab tests', value: timeline.counts.labs },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-navy-900 px-4 py-3">
-                <dt className="text-[11px] text-slate-500">{stat.label}</dt>
-                <dd className="mt-0.5 font-display text-xl font-bold tabular-nums text-white">
-                  {timeline.isLoading ? <Skeleton className="h-6 w-8" /> : stat.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+      {/* One banner per service that is down, naming it, in the place the
+          missing rows would have been. Billing being unavailable does not make
+          the appointment history look broken. */}
+      {timeline.failedSources.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {timeline.failedSources.map((source) => (
+            <ErrorBanner
+              key={source.key}
+              variant="degraded"
+              title={`${source.label} temporarily unavailable`}
+              message={`This patient’s ${source.noun} are missing from the history below. Everything else is current.`}
+              onRetry={source.refetch}
+            />
+          ))}
+        </div>
+      )}
+
+      <Panel>
+        <div className="border-b border-hairline px-3">
+          <Segmented
+            label="Filter this history"
+            options={tabs}
+            value={filter}
+            onChange={setFilter}
+          />
         </div>
 
-        <section className="card p-6">
-          <h3 className="font-display text-base font-bold text-white">History</h3>
-          <p className="mt-1 text-xs text-slate-500">
-            Appointments, prescriptions, laboratory work and billing, most recent first.
-          </p>
+        {timeline.isLoading && (
+          <ul className="px-5 py-5" aria-busy="true" aria-label="Loading history">
+            {[0, 1, 2].map((row) => (
+              <li key={row} className="spine py-4">
+                <SkeletonText chars={34} className="h-4" />
+                <SkeletonText chars={16} className="mt-2.5 opacity-60" />
+              </li>
+            ))}
+          </ul>
+        )}
 
-          {timeline.failedSources.length > 0 && (
-            <div
-              role="status"
-              className="mt-5 flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5"
-            >
-              <TriangleAlert
-                size={16}
-                className="mt-0.5 flex-shrink-0 text-amber-400"
-                strokeWidth={2}
-                aria-hidden="true"
-              />
-              <p className="text-xs leading-relaxed text-amber-200/80">
-                Could not load {timeline.failedSources.join(', ')}. The rest of this
-                history is shown below.
-              </p>
-            </div>
-          )}
+        {!timeline.isLoading && events.length === 0 && (
+          <EmptyState
+            icon={CalendarDays}
+            title={
+              filter === 'all'
+                ? 'Nothing recorded for this patient yet'
+                : 'Nothing of this kind recorded yet'
+            }
+            description={
+              filter === 'all'
+                ? 'Appointments, prescriptions, laboratory work and invoices appear here as they happen.'
+                : 'Try “Everything” to see the rest of this patient’s history.'
+            }
+          />
+        )}
 
-          {timeline.isLoading && (
-            <ul className="mt-6 space-y-8" aria-busy="true" aria-label="Loading history">
-              {[0, 1, 2].map((row) => (
-                <li key={row} className="flex gap-4">
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                  <div className="flex-1 space-y-2 pt-1">
-                    <Skeleton className="h-4 w-56" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {!timeline.isLoading && timeline.events.length === 0 && (
-            <div className="py-8">
-              <EmptyState
-                icon={CalendarDays}
-                title="Nothing recorded yet"
-                description="Appointments, prescriptions and invoices for this patient will appear here."
-              />
-            </div>
-          )}
-
-          {!timeline.isLoading && timeline.events.length > 0 && (
-            <ul className="mt-6">
-              {timeline.events.map((event, index) => (
-                <TimelineEvent
-                  key={event.id}
-                  event={event}
-                  isLast={index === timeline.events.length - 1}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </div>
+        {!timeline.isLoading && months.length > 0 && (
+          <div className="px-5 py-2">
+            {months.map((group) => (
+              <section key={group.key}>
+                {/* The month sits on the rule, breaking it, so a long history
+                    reads as a series of periods rather than one endless list. */}
+                <h2 className="spine relative py-3">
+                  <span
+                    aria-hidden="true"
+                    className="absolute -left-[5px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 bg-navy-900"
+                  />
+                  <span className="section-label">{group.key}</span>
+                </h2>
+                <ol>
+                  {group.events.map((event) => (
+                    <Event key={event.id} event={event} />
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        )}
+      </Panel>
+    </>
   )
 }

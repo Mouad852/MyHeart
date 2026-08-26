@@ -117,17 +117,60 @@ export function usePatientTimeline(patientId) {
 
   events.sort((a, b) => toTime(b.at) - toTime(a.at))
 
+  /**
+   * Each source reported separately.
+   *
+   * The four services fail independently, and the screen is built to survive
+   * that: a patient's appointments are still worth reading when billing is
+   * down. Reporting per source is what lets the page say *which* part is
+   * missing instead of showing one alarming banner over a record that is
+   * otherwise complete — and it is why a failed source's count shows as
+   * unknown rather than as zero, which would be a lie about the patient.
+   */
+  const sources = [
+    {
+      key: EVENT_KIND.APPOINTMENT,
+      label: 'Appointments',
+      noun: 'appointments',
+      isError: appointments.isError,
+      isLoading: appointments.isLoading,
+      refetch: appointments.refetch,
+      count: appointments.isError ? null : (appointments.data?.totalElements ?? 0),
+    },
+    {
+      key: EVENT_KIND.PRESCRIPTION,
+      label: 'Prescriptions',
+      noun: 'prescriptions',
+      isError: prescriptions.isError,
+      isLoading: prescriptions.isLoading,
+      refetch: prescriptions.refetch,
+      count: prescriptions.isError ? null : (prescriptions.data ?? []).length,
+    },
+    {
+      key: EVENT_KIND.LAB,
+      label: 'Laboratory',
+      noun: 'laboratory work',
+      isError: labs.isError,
+      isLoading: labs.isLoading,
+      refetch: labs.refetch,
+      count: labs.isError ? null : (labs.data ?? []).length,
+    },
+    {
+      key: EVENT_KIND.INVOICE,
+      label: 'Billing',
+      noun: 'invoices',
+      isError: invoices.isError,
+      isLoading: invoices.isLoading,
+      refetch: invoices.refetch,
+      count: invoices.isError ? null : (invoices.data ?? []).length,
+    },
+  ]
+
   return {
     events,
+    sources,
     isLoading: results.some((r) => r.isLoading),
-    // A timeline is still worth showing when one service is down, so a partial
-    // failure is reported rather than allowed to blank the whole screen.
-    failedSources: [
-      appointments.isError && 'appointments',
-      invoices.isError && 'invoices',
-      prescriptions.isError && 'prescriptions',
-      labs.isError && 'laboratory results',
-    ].filter(Boolean),
+    failedSources: sources.filter((source) => source.isError),
     counts: {
       appointments: appointments.data?.totalElements ?? 0,
       invoices: (invoices.data ?? []).length,

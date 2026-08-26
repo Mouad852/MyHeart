@@ -13,11 +13,12 @@ import { homeRouteFor, rolesForPath } from './roles'
 
 function AuthPending() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-navy-950">
-      <div className="flex flex-col items-center gap-4">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-teal-500/25 border-t-teal-500" />
-        <p className="text-sm text-slate-500">Checking your session</p>
-      </div>
+    <div
+      role="status"
+      className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-navy-950"
+    >
+      <span className="h-6 w-[3px] bg-teal-400" aria-hidden="true" />
+      <p className="text-sm text-slate-500">Checking your session</p>
     </div>
   )
 }
@@ -33,19 +34,24 @@ function NotPermitted({ homeRoute }) {
   const { logout } = useAuth()
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-6">
-      <div className="max-w-md text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-navy-800">
-          <ShieldOff size={22} className="text-slate-400" strokeWidth={2} aria-hidden="true" />
-        </div>
-        <h2 className="mt-5 font-display text-xl font-bold text-white">
-          You do not have access to this area
-        </h2>
-        <p className="mt-2 leading-relaxed text-slate-400">
-          Your role does not include this part of the clinic. If you believe that is
-          wrong, ask an administrator to review your permissions.
+    <section className="panel mx-auto max-w-xl">
+      {/* Left-aligned and plainly worded. A centred column under a large icon
+          reads as an apology; this is not a failure, it is the system working
+          exactly as it was configured to. */}
+      <div className="border-l-2 border-strong px-6 py-8">
+        <p className="section-label flex items-center gap-2">
+          <ShieldOff size={12} strokeWidth={2} aria-hidden="true" />
+          Not permitted
         </p>
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <h1 className="mt-3 font-display text-title font-bold text-white">
+          This part of the clinic is not open to your role
+        </h1>
+        <p className="mt-4 max-w-[58ch] text-sm leading-relaxed text-slate-400">
+          Access is decided by the API gateway, not by this page, so the screen would
+          have nothing to show even if it opened. If you think your role is wrong, an
+          administrator can change it.
+        </p>
+        <div className="mt-7 flex flex-wrap items-center gap-2">
           <Link to={homeRoute} className="btn-primary">
             Go to your home page
           </Link>
@@ -54,7 +60,7 @@ function NotPermitted({ homeRoute }) {
           </button>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
 

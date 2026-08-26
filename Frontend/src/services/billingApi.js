@@ -53,6 +53,25 @@ const billingApi = {
    */
   payInvoice: (id) =>
     axiosInstance.put(`${BASE}/pay/${id}`).then((r) => r.data),
+
+  /**
+   * PUT /billing/void/{id}
+   * Cancel an unpaid invoice, recording why. The reason is stored on the
+   * invoice, so it is worth insisting the caller supplies one.
+   */
+  voidInvoice: (id, reason) =>
+    axiosInstance
+      .put(`${BASE}/void/${id}`, null, { params: reason ? { reason } : {} })
+      .then((r) => r.data),
+
+  /**
+   * PUT /billing/refund/{id}
+   * Return money on an invoice that has been paid.
+   */
+  refundInvoice: (id, reason) =>
+    axiosInstance
+      .put(`${BASE}/refund/${id}`, null, { params: reason ? { reason } : {} })
+      .then((r) => r.data),
 }
 
 export default billingApi

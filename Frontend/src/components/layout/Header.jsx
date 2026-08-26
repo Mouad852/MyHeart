@@ -1,154 +1,163 @@
 /**
- * Header.jsx — Top bar showing current page title + global actions.
+ * Header.jsx — the bar across the top.
+ *
+ * It no longer carries the page title. It used to hold a title and a subtitle
+ * that every page then repeated in its own words twenty pixels below, in a
+ * larger size — the reader paid for the same information twice and the shell
+ * and the pages looked like two products bolted together. The title now lives
+ * with the page that owns it.
+ *
+ * What is left is what genuinely belongs to the whole application rather than
+ * to any one screen: a way into the register from wherever you are, and who you
+ * are signed in as. On a phone it also holds the control that opens navigation.
  */
 import { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { LogOut, Search } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { useAuth } from '../../auth/AuthProvider'
-import { roleLabel } from '../../auth/roles'
+import { ROLES, roleLabel } from '../../auth/roles'
+import PatientSearch from './PatientSearch'
 
-const PAGE_TITLES = {
-  '/':             { title: 'Dashboard',     subtitle: 'Overview of your medical system'       },
-  '/today':        { title: 'Today',         subtitle: 'Your appointments for the day'         },
-  '/my-health':    { title: 'My health',     subtitle: 'Your appointments and personal details'},
-  '/patients':     { title: 'Patients',      subtitle: 'Manage patient records'                },
-  '/doctors':      { title: 'Doctors',       subtitle: 'Manage medical staff'                  },
-  '/appointments': { title: 'Appointments',  subtitle: 'Schedule and track appointments'       },
-  '/billing':      { title: 'Billing',       subtitle: 'Manage invoices and payments'          },
-  '/prescriptions':{ title: 'Prescriptions', subtitle: 'Create and review prescriptions'       },
-  '/labs':         { title: 'Labs',          subtitle: 'Manage lab requests and test results'  },
-}
-
-/** Two-letter monogram from a display name, falling back to the username. */
+/** Two letters from a display name, falling back to the account name. */
 function initials(name, username) {
   const source = (name || username || '').trim()
-  if (!source) return '??'
-  const parts = source.split(/[\s.]+/).filter(Boolean)
+  if (!source) return '··'
+  const parts = source.split(/[\s._-]+/).filter(Boolean)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-/** Titles for paths that carry an id. */
-function titleForPath(pathname) {
-  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
-  if (/^\/patients\/\d+$/.test(pathname)) {
-    return { title: 'Patient record', subtitle: 'History across the whole clinic' }
-  }
-  return PAGE_TITLES['/']
-}
+function UserMenu() {
+  const { fullName, username, role, email, logout } = useAuth()
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
 
-export default function Header() {
-  const { pathname } = useLocation()
-  const page = titleForPath(pathname)
-  const { fullName, username, role, logout } = useAuth()
-
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
-
-  // Close the menu on outside click or Escape.
   useEffect(() => {
-    if (!menuOpen) return undefined
-
+    if (!open) return undefined
     const onPointerDown = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false)
-      }
+      if (wrapRef.current && !wrapRef.current.contains(event.target)) setOpen(false)
     }
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key === 'Escape') setOpen(false)
     }
-
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [menuOpen])
+  }, [open])
 
   return (
-    <header className="h-16 bg-navy-900/60 border-b border-white/5
-                       flex items-center justify-between px-8
-                       backdrop-blur-sm sticky top-0 z-30">
-
-      {/* Page title */}
-      <div>
-        <h1 className="font-display text-lg font-bold text-white leading-none">
-          {page.title}
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5">{page.subtitle}</p>
-      </div>
-
-      {/* Right actions */}
-      <div className="flex items-center gap-3">
-        {/* Search hint */}
-        <button
-          className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg
-                     bg-white/5 border border-white/10 text-slate-400 text-xs
-                     hover:text-slate-200 hover:border-white/20 transition-all duration-150
-                     focus:outline-none focus:ring-2 focus:ring-teal-400
-                     focus:ring-offset-2 focus:ring-offset-navy-900"
-          title="Search is not available yet"
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={`flex items-center gap-2.5 rounded py-1 pl-1 pr-2 transition-colors
+                    duration-fast hover:bg-white/[0.05] ${open ? 'bg-white/[0.05]' : ''}`}
+      >
+        <span
+          aria-hidden="true"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full
+                     bg-teal-400/12 text-[11px] font-semibold text-teal-300
+                     ring-1 ring-inset ring-teal-400/25"
         >
-          <Search size={13} aria-hidden="true" />
-          <span>Search</span>
-        </button>
+          {initials(fullName, username)}
+        </span>
+        <span className="hidden text-left leading-tight md:block">
+          <span className="block text-meta font-medium text-slate-200">
+            {fullName || username || 'Signed in'}
+          </span>
+          <span className="block text-micro text-slate-500">
+            {role ? roleLabel(role) : 'No role assigned'}
+          </span>
+        </span>
+      </button>
 
-        {/* User menu */}
-        <div className="relative" ref={menuRef}>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[calc(100%+6px)] z-50 w-64 animate-fade-in
+                     overflow-hidden rounded border border-rule bg-navy-850 shadow-overlay"
+        >
+          <div className="border-b border-hairline px-4 py-3">
+            <p className="truncate text-sm font-medium text-slate-100">
+              {fullName || username}
+            </p>
+            <p className="ident mt-0.5 truncate text-meta text-slate-500">{username}</p>
+            {email && (
+              <p className="mt-1.5 truncate text-meta text-slate-500">{email}</p>
+            )}
+            <p className="mt-2.5 text-micro uppercase text-slate-500">
+              {role ? roleLabel(role) : 'No role assigned'}
+            </p>
+          </div>
           <button
             type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            className="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-2.5
-                       transition-colors duration-150 hover:bg-white/5
-                       focus:outline-none focus:ring-2 focus:ring-teal-400
-                       focus:ring-offset-2 focus:ring-offset-navy-900"
+            role="menuitem"
+            onClick={logout}
+            className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-slate-300
+                       transition-colors duration-fast hover:bg-white/[0.05] hover:text-white"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full
-                             border border-teal-500/30 bg-teal-500/20
-                             font-display text-xs font-bold text-teal-400">
-              {initials(fullName, username)}
-            </span>
-            <span className="hidden text-left leading-tight md:block">
-              <span className="block text-xs font-semibold text-slate-200">
-                {fullName || username || 'Signed in'}
-              </span>
-              <span className="block text-[10px] text-slate-500">
-                {role ? roleLabel(role) : 'No role assigned'}
-              </span>
-            </span>
+            <LogOut size={14} strokeWidth={2} aria-hidden="true" />
+            Sign out
           </button>
-
-          {menuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl
-                         border border-white/10 bg-navy-800 shadow-card"
-            >
-              <div className="border-b border-white/5 px-4 py-3">
-                <p className="truncate text-sm font-semibold text-slate-100">
-                  {fullName || username}
-                </p>
-                <p className="mt-0.5 truncate font-mono text-xs text-slate-500">
-                  {username}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={logout}
-                className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-slate-300
-                           transition-colors duration-150 hover:bg-white/5 hover:text-white
-                           focus:outline-none focus:bg-white/5"
-              >
-                <LogOut size={15} strokeWidth={2} aria-hidden="true" />
-                Sign out
-              </button>
-            </div>
-          )}
         </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * @param {{ onOpenNav: () => void }} props
+ */
+export default function Header({ onOpenNav }) {
+  const { hasAnyRole } = useAuth()
+
+  // Mirrors the gateway: only these roles can read the register, so only they
+  // are offered a way to search it.
+  const canSearchPatients = hasAnyRole([
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.RECEPTIONIST,
+    ROLES.NURSE,
+  ])
+
+  return (
+    <header
+      className="sticky top-0 z-40 flex-shrink-0 border-b border-hairline
+                 bg-navy-950/85 px-4 backdrop-blur-md sm:px-6 lg:px-8"
+    >
+      {/* The same container the page content uses, so the search field starts
+          on the same vertical as the page title beneath it. */}
+      <div className="mx-auto flex h-14 w-full max-w-[76rem] items-center gap-3">
+      <button
+        type="button"
+        onClick={onOpenNav}
+        className="btn-icon -ml-1 lg:hidden"
+        aria-label="Open navigation"
+      >
+        <Menu size={18} strokeWidth={2} aria-hidden="true" />
+      </button>
+
+      {/* The wordmark only appears where the sidebar is not showing it. */}
+      <span className="flex items-center gap-2.5 lg:hidden">
+        <span className="h-4 w-[3px] bg-teal-400" aria-hidden="true" />
+        <span className="font-display text-sm font-extrabold tracking-tight text-white">
+          MedCore
+        </span>
+      </span>
+
+      <div className="flex min-w-0 flex-1 justify-start">
+        {canSearchPatients && (
+          <div className="hidden min-w-0 flex-1 sm:block">
+            <PatientSearch />
+          </div>
+        )}
+      </div>
+
+        <UserMenu />
       </div>
     </header>
   )

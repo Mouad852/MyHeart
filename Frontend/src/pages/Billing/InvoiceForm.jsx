@@ -53,7 +53,7 @@ export default function InvoiceForm({ onSubmit, isLoading }) {
       />
 
       <div>
-        <label className="label">Appointment ID <span className="text-slate-600 normal-case font-normal tracking-normal">(optional)</span></label>
+        <label className="label">Appointment ID <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span></label>
         <input
           type="number"
           value={form.appointmentId}
@@ -84,7 +84,7 @@ export default function InvoiceForm({ onSubmit, isLoading }) {
       </div>
 
       <div>
-        <label className="label">Description <span className="text-slate-600 normal-case font-normal tracking-normal">(optional)</span></label>
+        <label className="label">Description <span className="text-slate-500 normal-case font-normal tracking-normal">(optional)</span></label>
         <textarea
           value={form.description}
           onChange={(e) => set('description', e.target.value)}
@@ -98,7 +98,7 @@ export default function InvoiceForm({ onSubmit, isLoading }) {
       <div className="flex justify-end pt-2">
         <button type="submit" className="btn-primary" disabled={isLoading}>
           {isLoading && <Spinner size={14} />}
-          {isLoading ? 'Creating…' : 'Create Invoice'}
+          {isLoading ? 'Creating…' : 'Raise the invoice'}
         </button>
       </div>
     </form>

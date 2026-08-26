@@ -111,7 +111,7 @@ export default function PatientForm({ initialData = null, onSubmit, isLoading })
           {isLoading && <Spinner size={14} />}
           {isLoading
             ? (initialData ? 'Saving…' : 'Creating…')
-            : (initialData ? 'Save Changes' : 'Create Patient')}
+            : (initialData ? 'Save changes' : 'Register the patient')}
         </button>
       </div>
     </form>

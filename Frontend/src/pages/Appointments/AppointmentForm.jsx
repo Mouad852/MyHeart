@@ -117,7 +117,7 @@ export default function AppointmentForm({ onSubmit, isLoading }) {
 
       {/* Notes (optional) */}
       <div>
-        <label className="label">Notes <span className="text-slate-600 normal-case tracking-normal font-normal">(optional)</span></label>
+        <label className="label">Notes <span className="text-slate-500 normal-case tracking-normal font-normal">(optional)</span></label>
         <textarea
           name="notes"
           value={form.notes}
@@ -132,7 +132,7 @@ export default function AppointmentForm({ onSubmit, isLoading }) {
       <div className="flex justify-end gap-3 pt-2">
         <button type="submit" className="btn-primary" disabled={isLoading}>
           {isLoading && <Spinner size={14} />}
-          {isLoading ? 'Scheduling…' : 'Book Appointment'}
+          {isLoading ? 'Booking…' : 'Book the appointment'}
         </button>
       </div>
     </form>

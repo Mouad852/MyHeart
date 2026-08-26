@@ -128,7 +128,7 @@ export default function DoctorForm({ initialData = null, onSubmit, isLoading }) 
           {isLoading && <Spinner size={14} />}
           {isLoading
             ? (initialData ? 'Saving…' : 'Creating…')
-            : (initialData ? 'Save Changes' : 'Add Doctor')}
+            : (initialData ? 'Save changes' : 'Add the doctor')}
         </button>
       </div>
     </form>

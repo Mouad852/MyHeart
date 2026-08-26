@@ -1,46 +1,41 @@
 /**
- * ConfirmDialog.jsx — Reusable confirmation dialog for destructive actions.
+ * ConfirmDialog.jsx — asking before something cannot be undone.
+ *
+ * No large warning glyph. What makes somebody stop and read is a sentence
+ * naming the actual record and the actual consequence — "Yasmine Belkacem's
+ * appointment on Thursday 27 August at 09:00 will be cancelled" — not a
+ * triangle above the words "Are you sure?". The icon was doing the reassuring;
+ * the sentence does the work.
+ *
+ * The safe choice is on the left and holds focus when the dialog opens, so
+ * Escape, Enter and a stray click all resolve to the harmless outcome.
  */
 import Modal from './Modal'
-import { AlertTriangle } from 'lucide-react'
+import { Spinner } from './LoadingSpinner'
 
 export default function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
-  title = 'Confirm Action',
-  message = 'Are you sure you want to proceed? This action cannot be undone.',
+  title = 'Are you sure?',
+  message = 'This cannot be undone.',
   confirmLabel = 'Confirm',
+  cancelLabel = 'Keep it',
   isLoading = false,
+  busyLabel = 'Working…',
 }) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="sm">
-      <div className="flex flex-col items-center text-center gap-4 pb-2">
-        {/* Warning icon */}
-        <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-          <AlertTriangle size={26} className="text-red-400" />
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
+      <p className="text-sm leading-relaxed text-slate-400">{message}</p>
 
-        <div>
-          <h3 className="font-display text-lg font-semibold text-white mb-1">{title}</h3>
-          <p className="text-sm text-slate-400 leading-relaxed">{message}</p>
-        </div>
-
-        <div className="flex gap-3 w-full pt-2">
-          <button className="btn-secondary flex-1" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </button>
-          <button
-            className="inline-flex items-center justify-center gap-2 flex-1 px-5 py-2.5 rounded-xl
-                       bg-red-500 hover:bg-red-400 active:bg-red-600
-                       text-white font-semibold text-sm transition-all duration-200
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={onConfirm}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Deleting…' : confirmLabel}
-          </button>
-        </div>
+      <div className="mt-6 flex flex-wrap justify-end gap-2">
+        <button type="button" className="btn-secondary" onClick={onClose} disabled={isLoading}>
+          {cancelLabel}
+        </button>
+        <button type="button" className="btn-danger" onClick={onConfirm} disabled={isLoading}>
+          {isLoading && <Spinner size={12} />}
+          {isLoading ? busyLabel : confirmLabel}
+        </button>
       </div>
     </Modal>
   )

@@ -4,18 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MedCore — Medical Management System</title>
-    <meta name="description" content="Enterprise medical management platform for patients, doctors, and appointments." />
+    <title>MedCore — Clinic operations</title>
+    <meta name="description" content="MedCore — clinic operations: the day, the register, prescriptions, laboratory work and billing." />
 
-    <!-- Google Fonts: Syne (display) + DM Sans (body) -->
+    <!--
+      Syne carries the wordmark, page titles and large figures.
+      DM Sans carries every piece of operational text.
+      IBM Plex Mono carries anything a clinician reads as an identifier: clock
+      times, invoice and result numbers, amounts. Those want a fixed advance
+      width so a column of them lines up and a transposed digit is visible.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body>
+  <body style="background:#080B12">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

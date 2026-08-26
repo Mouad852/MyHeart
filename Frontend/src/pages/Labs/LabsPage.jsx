@@ -1,368 +1,488 @@
 /**
- * LabsPage.jsx
- * ─────────────────────────────────────────────────────────────────
- * Lab management page.
+ * LabsPage.jsx — laboratory work.
  *
- * Features:
- *  - Filter lab requests by patient
- *  - Create lab request (modal)
- *  - Expand request row to view results
- *  - Add result to a PENDING request (modal)
- *  - Status progression: PENDING → COMPLETED (after result added)
- * ─────────────────────────────────────────────────────────────────
+ * Laboratory information has a shape, and the screen is built around it:
+ *
+ *     request  →  result  →  report
+ *
+ * A doctor asks for a test. The laboratory writes a finding against it. A
+ * scanned or exported document may be attached to that finding. Each stage
+ * exists without the next, and the reader has to be able to see which stage a
+ * piece of work has reached — so the results hang off the request on the same
+ * rule the day and the patient timeline use, and the attached report hangs off
+ * the result.
+ *
+ * The upload constraints are printed next to the control, before anybody
+ * chooses a file. Discovering that a 14 MB TIFF is not acceptable *after*
+ * waiting for it to upload is a bad way to learn the rule.
+ *
+ * As on Billing and Prescriptions, this no longer demands a patient before it
+ * will show anything.
  */
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  FlaskConical, Plus, ChevronDown, ChevronUp,
-  FileText, User, Stethoscope, ClipboardCheck,
-  Paperclip,
+  ChevronDown,
+  ClipboardCheck,
   FileDown,
+  FlaskConical,
+  Paperclip,
+  Plus,
 } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorBanner from '../../components/ui/ErrorBanner'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { PageSpinner } from '../../components/ui/LoadingSpinner'
-import PatientSelector from '../../components/ui/PatientSelector'
+import Segmented from '../../components/ui/Segmented'
+import PageHeader from '../../components/ui/Page'
+import { Panel } from '../../components/ui/Panel'
+import { SkeletonRows, SkeletonText, Spinner } from '../../components/ui/LoadingSpinner'
 import LabRequestForm from './LabRequestForm'
 import LabResultForm from './LabResultForm'
-import { useAuth } from '../../auth/AuthProvider'
-import { ROLES } from '../../auth/roles'
 import {
-  useLabRequestsByPatient,
-  useLabResults,
+  useAllLabRequests,
   useCreateLabRequest,
   useCreateLabResult,
+  useLabResults,
   useUploadLabResultFile,
   useDownloadLabResultFile,
 } from '../../hooks/useLabs'
+import { usePatientOptions } from '../../hooks/usePatients'
+import { useAuth } from '../../auth/AuthProvider'
+import { ROLES } from '../../auth/roles'
 import { formatDate } from '../../utils'
 
-export default function LabsPage() {
-  const [patientId, setPatientId] = useState('')
-  const [requestOpen, setRequestOpen] = useState(false)
-  const [resultTarget, setResultTarget] = useState(null) // {id, testName}
-  const [expandedId, setExpandedId] = useState(null)
+/** What the server will accept, said in the reader's words. */
+const ACCEPTED = 'application/pdf,image/png,image/jpeg'
+const ACCEPTED_LABEL = 'PDF, PNG or JPEG · up to 10 MB'
 
-  const {
-    data: requests = [],
-    isLoading,
-    error,
-    refetch,
-  } = useLabRequestsByPatient(patientId)
-
-  const createRequestMutation = useCreateLabRequest({ onSuccess: () => setRequestOpen(false) })
-  const createResultMutation = useCreateLabResult({ onSuccess: () => setResultTarget(null) })
-
-  const toggleExpand = (id) =>
-    setExpandedId((prev) => (prev === id ? null : id))
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-
-      {/* ── Header ───────────────────────────────────── */}
-      <div className="page-header">
-        <div>
-          <h2 className="section-title">Labs</h2>
-          <p className="text-muted mt-1">Manage lab requests and test results</p>
-        </div>
-        <button className="btn-primary" onClick={() => setRequestOpen(true)}>
-          <Plus size={16} />
-          New Lab Request
-        </button>
-      </div>
-
-      {error && <ErrorBanner message={error.message} onRetry={refetch} />}
-
-      {/* ── Patient filter ────────────────────────────── */}
-      <div className="card p-5">
-        <div className="max-w-sm">
-          <PatientSelector
-            value={patientId}
-            onChange={setPatientId}
-            label="Filter by Patient"
-            placeholder="Choose a patient to view lab requests…"
-          />
-        </div>
-      </div>
-
-      {/* ── Lab requests list ─────────────────────────── */}
-      <div className="card overflow-hidden">
-
-        {!patientId && (
-          <EmptyState
-            icon={FlaskConical}
-            title="Select a patient"
-            description="Choose a patient above to view their lab requests and results."
-          />
-        )}
-
-        {patientId && isLoading && <PageSpinner />}
-
-        {patientId && !isLoading && requests.length === 0 && !error && (
-          <EmptyState
-            icon={FlaskConical}
-            title="No lab requests found"
-            description="No lab requests have been created for this patient."
-            action={
-              <button className="btn-primary" onClick={() => setRequestOpen(true)}>
-                <Plus size={15} /> Create Lab Request
-              </button>
-            }
-          />
-        )}
-
-        {patientId && !isLoading && requests.length > 0 && (
-          <div className="divide-y divide-white/5">
-            {requests.map((req, i) => {
-              const isExpanded = expandedId === req.id
-              const isPending = req.status === 'PENDING'
-
-              return (
-                <div key={req.id} className="animate-slide-up"
-                  style={{ animationDelay: `${i * 30}ms`, animationFillMode: 'both' }}>
-
-                  {/* ── Request row ── */}
-                  <div
-                    className="flex items-center gap-4 px-6 py-4
-                               hover:bg-white/[0.02] transition-colors duration-150 cursor-pointer"
-                    onClick={() => toggleExpand(req.id)}
-                  >
-                    {/* Icon */}
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
-                      ${isPending
-                        ? 'bg-amber-500/10 border border-amber-500/20'
-                        : 'bg-teal-500/10 border border-teal-500/20'}`}
-                    >
-                      <FlaskConical
-                        size={16}
-                        className={isPending ? 'text-amber-400' : 'text-teal-400'}
-                      />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">
-                        {req.testName}
-                      </p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
-                          <User size={11} /> Patient #{req.patientId}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
-                          <Stethoscope size={11} /> Dr. #{req.doctorId}
-                        </span>
-                        <span className="text-xs text-slate-600">
-                          {formatDate(req.createdAt, 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Status + expand */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <StatusBadge status={req.status || 'PENDING'} />
-
-                      {/* Add result button (only for PENDING) */}
-                      {isPending && (
-                        <button
-                          className="btn-secondary text-xs py-1.5 px-3"
-                          title="Add result"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setResultTarget({ id: req.id, testName: req.testName })
-                          }}
-                        >
-                          <ClipboardCheck size={13} />
-                          Add Result
-                        </button>
-                      )}
-
-                      {isExpanded
-                        ? <ChevronUp size={15} className="text-slate-500" />
-                        : <ChevronDown size={15} className="text-slate-500" />
-                      }
-                    </div>
-                  </div>
-
-                  {/* ── Expanded results panel ── */}
-                  {isExpanded && (
-                    <LabResultsPanel requestId={req.id} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Create Lab Request Modal ─────────────────── */}
-      <Modal
-        isOpen={requestOpen}
-        onClose={() => setRequestOpen(false)}
-        title="New Lab Request"
-      >
-        <LabRequestForm
-          onSubmit={(data) => createRequestMutation.mutate(data)}
-          isLoading={createRequestMutation.isPending}
-        />
-      </Modal>
-
-      {/* ── Add Result Modal ──────────────────────────── */}
-      <Modal
-        isOpen={!!resultTarget}
-        onClose={() => setResultTarget(null)}
-        title="Submit Lab Result"
-      >
-        <LabResultForm
-          requestId={resultTarget?.id}
-          requestName={resultTarget?.testName}
-          onSubmit={(data) => createResultMutation.mutate(data)}
-          isLoading={createResultMutation.isPending}
-        />
-      </Modal>
-    </div>
-  )
+/** A file size a person reads, not a byte count. */
+function fileSize(bytes) {
+  if (bytes == null) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-/**
- * One result, with whatever report is attached to it.
- *
- * The upload control is shown only to roles the gateway will actually accept an
- * upload from. A receptionist can read a result all day and will never be
- * allowed to file one, so offering them a button that can only produce a 403 is
- * worse than offering nothing.
- */
-function LabResultRow({ result, requestId, canUpload }) {
+/* ─────────────────────────────────────────────────────────────────────────
+   A result, and whatever report is attached to it
+   ───────────────────────────────────────────────────────────────────────── */
+
+function Result({ result, requestId, canUpload }) {
   const upload = useUploadLabResultFile(requestId)
   const download = useDownloadLabResultFile()
   const inputId = `lab-result-file-${result.id}`
 
   const onPick = (event) => {
     const file = event.target.files?.[0]
-    // Reset the input so choosing the same file twice still fires a change.
+    // Reset first, so choosing the same file twice still fires a change.
     event.target.value = ''
     if (file) upload.mutate({ resultId: result.id, file })
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2">
-          <ClipboardCheck size={14} className="text-teal-400 flex-shrink-0 mt-0.5" />
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-            Result #{result.id}
-          </span>
-        </div>
-        <span className="text-xs text-slate-600">
-          {formatDate(result.resultedAt, 'MMM d, yyyy')}
-        </span>
+    <li className="spine relative py-3">
+      <span
+        aria-hidden="true"
+        className="absolute -left-[8px] top-[1.05rem] flex h-4 w-4 items-center justify-center
+                   bg-navy-900 text-slate-500"
+      >
+        <ClipboardCheck size={12} strokeWidth={1.75} />
+      </span>
+
+      <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
+        <p className="section-label">Result {String(result.id).padStart(4, '0')}</p>
+        <p className="ident text-meta text-slate-500">
+          {formatDate(result.resultedAt, 'd MMM yyyy')}
+        </p>
       </div>
 
-      <p className="text-sm text-white leading-relaxed ml-5">{result.resultText}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-slate-100">{result.resultText}</p>
       {result.observations && (
-        <p className="text-xs text-slate-500 italic ml-5 mt-1">{result.observations}</p>
+        <p className="mt-1 text-sm text-slate-500">{result.observations}</p>
       )}
 
-      <div className="ml-5 mt-3 flex flex-wrap items-center gap-2">
-        {result.hasFile && (
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        {result.hasFile ? (
           <button
             type="button"
             disabled={download.isPending}
             onClick={() => download.mutate(result)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10
-                       px-2.5 py-1.5 text-xs font-medium text-slate-300
-                       transition-all duration-150
-                       hover:border-teal-500/40 hover:text-teal-400
-                       focus:outline-none focus:ring-2 focus:ring-teal-400
-                       focus:ring-offset-2 focus:ring-offset-navy-900
-                       active:translate-y-px
-                       disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-row"
           >
-            <FileDown size={13} strokeWidth={2} aria-hidden="true" />
+            {download.isPending && download.variables?.id === result.id ? (
+              <Spinner size={12} />
+            ) : (
+              <FileDown size={12} strokeWidth={2} aria-hidden="true" />
+            )}
             {result.fileName}
-            <span className="text-slate-600">{formatFileSize(result.fileSize)}</span>
+            <span className="ident text-slate-500">{fileSize(result.fileSize)}</span>
           </button>
+        ) : (
+          !canUpload && (
+            <span className="text-meta text-slate-500">No report attached.</span>
+          )
         )}
 
+        {/* Offered only to the roles the gateway will accept an upload from. A
+            receptionist can read a result all day and will never be allowed to
+            file one; a button that can only produce a 403 is worse than none. */}
         {canUpload && (
           <>
             <input
               id={inputId}
               type="file"
               className="sr-only"
-              accept="application/pdf,image/png,image/jpeg"
+              accept={ACCEPTED}
               onChange={onPick}
+              disabled={upload.isPending}
             />
             <label
               htmlFor={inputId}
-              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border
-                          border-dashed border-white/15 px-2.5 py-1.5 text-xs font-medium
-                          text-slate-400 transition-all duration-150
-                          hover:border-teal-500/40 hover:text-teal-400
-                          focus-within:ring-2 focus-within:ring-teal-400
-                          focus-within:ring-offset-2 focus-within:ring-offset-navy-900
-                          ${upload.isPending ? 'pointer-events-none opacity-40' : ''}`}
+              className={`btn btn-sm cursor-pointer border-dashed border-rule text-slate-300
+                          hover:border-teal-400/60 hover:text-teal-300
+                          focus-within:border-teal-400/60
+                          ${upload.isPending ? 'pointer-events-none opacity-50' : ''}`}
             >
-              <Paperclip size={13} strokeWidth={2} aria-hidden="true" />
+              {upload.isPending ? (
+                <Spinner size={12} />
+              ) : (
+                <Paperclip size={12} strokeWidth={2} aria-hidden="true" />
+              )}
               {upload.isPending
                 ? 'Uploading'
                 : result.hasFile
                   ? 'Replace report'
                   : 'Attach report'}
             </label>
-            {/* Said plainly rather than discovered by having a file refused. */}
-            <span className="text-[11px] text-slate-600">PDF, PNG or JPEG, up to 10 MB</span>
+
+            {/* Said before a file is chosen, not after one is refused. */}
+            <span className="text-meta text-slate-500">{ACCEPTED_LABEL}</span>
           </>
         )}
       </div>
-    </div>
+    </li>
   )
 }
 
-/** Bytes as something a human reads. */
-function formatFileSize(bytes) {
-  if (!bytes && bytes !== 0) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+/* ─────────────────────────────────────────────────────────────────────────
+   Results under one request
+   ───────────────────────────────────────────────────────────────────────── */
 
-/** Inline component that fetches and renders results for a single request */
-function LabResultsPanel({ requestId }) {
-  const { data: results = [], isLoading } = useLabResults(requestId)
-  const { hasAnyRole } = useAuth()
-  const canUpload = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN, ROLES.LAB_TECHNICIAN])
+function Results({ requestId, canUpload, canRecord, onRecord }) {
+  const { data: results = [], isLoading, isError, refetch } = useLabResults(requestId)
 
   return (
-    <div className="px-6 pb-5">
-      <div className="ml-13 bg-navy-900/50 rounded-2xl border border-white/5 overflow-hidden">
-        {isLoading && (
-          <div className="p-4 flex items-center gap-2 text-sm text-slate-500">
-            <div className="w-4 h-4 border-2 border-t-teal-400 rounded-full animate-spin" />
-            Loading results…
-          </div>
-        )}
+    <div className="border-t border-hairline bg-white/[0.015] px-5 py-4">
+      {isLoading && (
+        <div className="space-y-2" aria-busy="true">
+          <SkeletonText chars={30} />
+          <SkeletonText chars={20} className="opacity-60" />
+        </div>
+      )}
 
-        {!isLoading && results.length === 0 && (
-          <div className="p-4 flex items-center gap-2 text-sm text-slate-500">
-            <FileText size={14} className="text-slate-600" />
-            No results submitted yet.
-          </div>
-        )}
+      {isError && (
+        <ErrorBanner
+          variant="degraded"
+          title="Results unavailable"
+          message="The finding for this request could not be read. The request itself is unaffected."
+          onRetry={refetch}
+        />
+      )}
 
-        {!isLoading && results.length > 0 && (
-          <div className="divide-y divide-white/5">
-            {results.map((res) => (
-              <LabResultRow
-                key={res.id}
-                result={res}
+      {!isLoading && !isError && results.length === 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-slate-500">
+            The laboratory has not returned a finding for this request yet.
+          </p>
+          {canRecord && (
+            <button type="button" className="btn-row" onClick={onRecord}>
+              <Plus size={12} strokeWidth={2} aria-hidden="true" />
+              Record the result
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isLoading && results.length > 0 && (
+        <>
+          <ol>
+            {results.map((result) => (
+              <Result
+                key={result.id}
+                result={result}
                 requestId={requestId}
                 canUpload={canUpload}
               />
             ))}
-          </div>
-        )}
-      </div>
+          </ol>
+          {canRecord && (
+            <button type="button" className="btn-row mt-3" onClick={onRecord}>
+              <Plus size={12} strokeWidth={2} aria-hidden="true" />
+              Add another result
+            </button>
+          )}
+        </>
+      )}
     </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   The page
+   ───────────────────────────────────────────────────────────────────────── */
+
+export default function LabsPage() {
+  const { hasAnyRole } = useAuth()
+  const requests = useAllLabRequests()
+  const patients = usePatientOptions()
+
+  const canUpload = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN, ROLES.LAB_TECHNICIAN])
+  const canRecord = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN, ROLES.LAB_TECHNICIAN])
+
+  const [scope, setScope] = useState('open')
+  const [patientFilter, setPatientFilter] = useState('')
+  const [openId, setOpenId] = useState(null)
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [resultFor, setResultFor] = useState(null)
+
+  const createRequest = useCreateLabRequest({ onSuccess: () => setRequestOpen(false) })
+  const createResult = useCreateLabResult({ onSuccess: () => setResultFor(null) })
+
+  const patientNames = useMemo(() => {
+    const map = new Map()
+    for (const patient of patients.data ?? []) map.set(patient.id, patient.name)
+    return map
+  }, [patients.data])
+
+  const all = useMemo(() => requests.data ?? [], [requests.data])
+
+  const scopes = useMemo(() => {
+    const test = {
+      open: (row) => ['PENDING', 'IN_PROGRESS'].includes(row.status),
+      completed: (row) => row.status === 'COMPLETED',
+      cancelled: (row) => row.status === 'CANCELLED',
+      all: () => true,
+    }
+    return {
+      test,
+      counts: Object.fromEntries(
+        Object.entries(test).map(([key, fn]) => [key, all.filter(fn).length])
+      ),
+    }
+  }, [all])
+
+  /**
+   * "Open" is the right thing to be asked about first, but landing on an empty
+   * tab while five completed tests sit one click away is worse than being
+   * shown the whole list. If there is nothing open the first time the data
+   * arrives, fall through to everything — once, so that a reader who then
+   * chooses "Open" deliberately is left there.
+   */
+  const settled = useRef(false)
+  useEffect(() => {
+    if (settled.current || requests.isLoading || all.length === 0) return
+    settled.current = true
+    if (scopes.counts.open === 0) setScope('all')
+  }, [requests.isLoading, all.length, scopes.counts.open])
+
+  const rows = useMemo(() => {
+    let list = all.filter(scopes.test[scope])
+    if (patientFilter) {
+      list = list.filter((row) => String(row.patientId) === String(patientFilter))
+    }
+    return list.sort(
+      (a, b) => (Date.parse(b.requestedAt) || 0) - (Date.parse(a.requestedAt) || 0)
+    )
+  }, [all, scope, patientFilter, scopes])
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Records"
+        title="Laboratory"
+        description="Tests the clinic has ordered, the findings returned against them, and the reports attached to those findings."
+        actions={
+          <button type="button" className="btn-primary" onClick={() => setRequestOpen(true)}>
+            <Plus size={14} strokeWidth={2} aria-hidden="true" />
+            Order a test
+          </button>
+        }
+      />
+
+      {requests.isError && (
+        <ErrorBanner
+          className="mb-6"
+          title="Laboratory work could not be loaded"
+          message={requests.error?.message}
+          onRetry={requests.refetch}
+        />
+      )}
+
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-3">
+          <Segmented
+            label="Which laboratory work to show"
+            value={scope}
+            onChange={(value) => {
+              setScope(value)
+              setOpenId(null)
+            }}
+            options={[
+              { value: 'open', label: 'Open', count: scopes.counts.open },
+              { value: 'completed', label: 'Completed', count: scopes.counts.completed },
+              { value: 'cancelled', label: 'Cancelled', count: scopes.counts.cancelled },
+              { value: 'all', label: 'All', count: scopes.counts.all },
+            ]}
+          />
+
+          <div className="mb-2 w-full max-w-[15rem] sm:mb-0">
+            <label className="sr-only" htmlFor="lab-patient-filter">
+              Filter by patient
+            </label>
+            <select
+              id="lab-patient-filter"
+              className="select h-8 py-0 text-meta"
+              value={patientFilter}
+              onChange={(event) => {
+                setPatientFilter(event.target.value)
+                setOpenId(null)
+              }}
+            >
+              <option value="">Every patient</option>
+              {(patients.data ?? []).map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {requests.isLoading && <SkeletonRows rows={4} label="Loading laboratory work" />}
+
+        {!requests.isLoading && rows.length === 0 && (
+          <EmptyState
+            icon={FlaskConical}
+            title={
+              patientFilter
+                ? 'No laboratory work for this patient'
+                : scope === 'open'
+                  ? 'Nothing is waiting on the laboratory'
+                  : 'Nothing here'
+            }
+            description={
+              scope === 'open'
+                ? 'Every test the clinic has ordered has come back or been cancelled.'
+                : 'Tests a doctor orders appear here, with their findings underneath.'
+            }
+            action={
+              !patientFilter && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setRequestOpen(true)}
+                >
+                  <Plus size={14} strokeWidth={2} aria-hidden="true" />
+                  Order a test
+                </button>
+              )
+            }
+          />
+        )}
+
+        {!requests.isLoading && rows.length > 0 && (
+          <ul className="divide-y divide-hairline">
+            {rows.map((request) => {
+              const isOpen = openId === request.id
+              const panelId = `lab-request-${request.id}`
+              return (
+                <li key={request.id}>
+                  <div className="row-hover flex flex-wrap items-start gap-x-5 gap-y-2 px-5 py-3">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      onClick={() => setOpenId(isOpen ? null : request.id)}
+                      className="flex min-w-0 flex-1 items-start gap-4 rounded text-left"
+                    >
+                      <ChevronDown
+                        size={14}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                        className={`mt-1 flex-shrink-0 text-slate-500 transition-transform
+                                    duration-fast ${isOpen ? 'rotate-0' : '-rotate-90'}`}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                          <span className="text-sm font-medium text-white">
+                            {request.testName}
+                          </span>
+                          <StatusBadge status={request.status} size="sm" />
+                        </span>
+                        <span className="mt-1 block truncate text-meta text-slate-500">
+                          {patientNames.get(request.patientId) || `Patient ${request.patientId}`}
+                          {` · ordered ${formatDate(request.requestedAt, 'd MMM yyyy')}`}
+                        </span>
+                        {request.testDescription && (
+                          <span className="mt-1 block max-w-[70ch] text-sm text-slate-500">
+                            {request.testDescription}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+
+                    {/* "Record" alone would sit next to "Record the result"
+                        one level down and mean something else entirely. */}
+                    <Link
+                      to={`/patients/${request.patientId}`}
+                      className="btn-row flex-shrink-0"
+                    >
+                      Open patient
+                    </Link>
+                  </div>
+
+                  {isOpen && (
+                    <div id={panelId}>
+                      <Results
+                        requestId={request.id}
+                        canUpload={canUpload}
+                        canRecord={canRecord}
+                        onRecord={() => setResultFor(request)}
+                      />
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Panel>
+
+      <Modal
+        isOpen={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        title="Order a laboratory test"
+      >
+        <LabRequestForm
+          onSubmit={(data) => createRequest.mutate(data)}
+          isLoading={createRequest.isPending}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(resultFor)}
+        onClose={() => setResultFor(null)}
+        title="Record a result"
+        description={resultFor ? resultFor.testName : undefined}
+      >
+        <LabResultForm
+          requestId={resultFor?.id}
+          requestName={resultFor?.testName}
+          onSubmit={(data) => createResult.mutate(data)}
+          isLoading={createResult.isPending}
+        />
+      </Modal>
+    </>
   )
 }
