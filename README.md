@@ -133,12 +133,17 @@ on a screen nobody opens in order to delete anybody.
 
 One patient and everything that has happened to them, so a clinician stops
 opening four tabs. Appointments, prescriptions, laboratory work and billing are
-merged into a single thread in time order, grouped by month and filterable by
-kind, with identity as a band across the top.
+merged into a single thread in time order, grouped by month.
 
-The thread gets the width. It used to sit in two thirds of a split grid beside
-a narrow card holding an email address and a phone number, so the most valuable
-content on the most important screen was the part that had been squeezed.
+Identity sits in a **Storyboard rail** that never leaves the screen. That is
+Epic's pattern, adopted for Epic's stated reason rather than for the look of it:
+it removes scrolling and page jumps and keeps the clinician oriented while they
+work inside a sub-view. This record runs to forty-five events, and the band the
+rail replaces was gone by the second screenful — a clinician reading an invoice
+from March had no way to check whose invoice it was without scrolling back.
+
+The rail's counts are also the filter, so the tabs that used to duplicate them
+are gone.
 
 Colour is not how you tell an appointment from a lab test: each kind carries a
 small glyph on the rule and its name in words, and the colour on a row belongs
@@ -166,9 +171,15 @@ Creating, editing and removing a doctor is admin-only at the gateway.
 
 ### Appointments — `/appointments` · admin, doctor, receptionist
 
-The diary. Grouped by day, sorted within the day, and opening on what is ahead
-— a receptionist arriving here is almost never asking about a consultation from
-four months ago. The lifecycle is a row of tabs carrying live counts, so
+The diary, in two views. The **list** is grouped by day, sorted within the day,
+and opens on what is ahead — a receptionist arriving here is almost never asking
+about a consultation from four months ago.
+
+The **day** draws one clinic day to scale, with each booked slot at its real
+height and the clock marked across it. A list cannot answer "where is the gap",
+because a list has no idea how long anything takes: five appointments look
+identical whether they fill the morning or overlap each other. Both views exist
+because neither can do the other's job. The lifecycle is a row of tabs carrying live counts, so
 "Requested · 3" says there is work waiting before anything has been clicked.
 
 Actions come from `allowedTransitions`, which the server returns on every
@@ -274,93 +285,129 @@ left a patient looking at a refusal with no navigation and no way to sign out.
 
 ## Design system
 
-A dark, dense working interface rather than a marketing page. Clinic staff sit
-in front of this all day, so the palette is built to stay quiet and almost
-everything on screen is one of five near-neutral surfaces and three text
-weights. The whole language lives in `tailwind.config.js` and `src/index.css`;
-every screen is composed from it rather than styled on its own terms.
+Named **Ledger**, and arrived at by research rather than by taste. Twelve
+references were studied before anything was drawn — shipping clinical software
+(Epic, Oracle Health), published healthcare design systems (the NHS digital
+service manual, Cerner's Terra), peer-reviewed guidance on clinical interface
+design, and the non-healthcare products that solve one of MedCore's problems
+better than healthcare does (Stripe on dense financial tables, Linear on
+theming and restraint).
 
-### Type
+Three findings did most of the work.
+
+### Light by default, dark as a real option
+
+The positive-polarity advantage is well established: text on a light ground is
+read faster and with **more errors caught**, and the advantage grows as type
+gets smaller. MedCore is made of 14px names, doses, dates and amounts, which is
+exactly where it bites hardest.
+
+The counter-argument is genuine and is not cosmetic — a clinician spends tens of
+thousands of hours in front of this, and for anyone with early lens clouding
+less display light means less scatter. So dark is offered properly. Both themes
+are generated from the same tokens, `system` is a first-class third state, and
+no colour in the product is defined in only one of them.
+
+### Four colours, four meanings
+
+The peer-reviewed guidance on clinical interface colour coding caps it at four
+with fixed meanings, and requires colour to be paired with a word or symbol,
+because a hue on its own is nothing to a colour-blind reader.
+
+| Meaning | Light | Dark | Used for |
+|---|---|---|---|
+| **Attention** | `#9A5B00` | `#E0A34A` | a decision is owed, or money is |
+| **Critical** | `#C4342B` | `#F08379` | late, failed, destructive |
+| **Settled** | `#1F7A47` | `#5EC48A` | paid, confirmed, complete |
+| **Closed** | `#616977` | `#828A96` | correctly finished; nothing expected |
+
+Laboratory lost its blue — a lab request is a kind of record, not a state, and
+the glyph and the word already say so. A patient who did not attend lost its
+orange and became attention, because somebody has to deal with it. States that
+are genuinely in flight get a hollow dot and no colour at all, so the palette
+holds at four while the state machine has more states than that.
+
+### The rest of the palette
+
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| Ground | `#F0EFEC` | `#131417` | the page and the chrome |
+| Surface | `#FFFFFF` | `#1A1C20` | panels, rows, inputs |
+| Raised | `#F7F6F3` | `#212429` | a hovered row, a menu |
+| Ink | `#16181D` | `#ECEEF1` | the subject of a row |
+| Ink secondary | `#5A6270` | `#A3ABB7` | supporting detail |
+| Ink muted | `#616977` | `#828A96` | metadata, timestamps |
+| Rule | `#E2E1DC` | `#2A2D33` | hairlines and gridlines |
+| Primary | `#12518A` | `#78B4EE` | interaction, links, focus |
+
+The ground is a hair warm rather than clinical white. It is the thing on screen
+a reader looks at constantly, and it is the cheapest way to stop the product
+reading as a hospital login. The primary is a deep institutional blue rather
+than the default SaaS blue: dark enough that it never fluoresces against white,
+and it is the only colour on the page that *does* something.
+
+**Every text colour clears WCAG AA against both the ground and a panel, and the
+ratios were measured in the browser rather than worked out on paper.** That
+distinction earned its place: the muted token was first set to `#767E8B`,
+calculated as 4.6:1 and actually reading 3.6:1, while carrying every timestamp
+and section label in the product.
+
+### Typography
+
+One family, two cuts.
 
 | Face | Where |
 |---|---|
-| **Syne** | the wordmark, page titles, and large figures — nowhere else |
-| **DM Sans** | every piece of operational text |
-| **IBM Plex Mono** | anything read as an identifier: clock times, invoice and result numbers, amounts |
+| **IBM Plex Sans** | everything that is read |
+| **IBM Plex Mono** | everything that is identified — clock times, invoice and result numbers, amounts, phone numbers |
 
-Syne is deliberately not applied to `h1..h6` globally, as it was before. A
-section label set in a display face at 12px is just a display face rendered too
-small to show any of its character.
+Plex was drawn for technical and enterprise data, and it does the thing the
+medical-typography literature actually asks for: `0` is distinguishable from
+`O`, and `1` from `l` from `I`. In a product where a dose and a reference number
+are read at speed, that is a safety property rather than a preference.
 
-The mono face is not decoration. A column of amounts or a schedule of clock
-times is scanned vertically, and a fixed advance width is what makes a
-transposed digit visible. A date read inside a sentence is *not* an identifier
-and is set in the body face; a date read down a table column keeps the mono.
+Staff screens sit at **14px**, the size the clinical guidance names as optimal.
+The patient portal steps to **16px** — the same system, read by somebody who is
+not paid to be fluent in it. Syne is gone: it was a display face doing work at
+12px, where none of its character survives.
 
-### Colour
+**Everything is sentence case.** Both the NHS manual and the peer-reviewed alert
+guidance name all-caps as measurably harming comprehension, and it was doing
+most of the labelling in this product. No italics, no underline outside links,
+bold used sparingly.
 
-| Token | Value | Means |
-|---|---|---|
-| Surfaces | `navy-950 #080B12` · `navy-900 #0C1019` · `navy-850 #111623` · `navy-800 #161C2B` · `navy-700 #1D2537` | page, panel, raised row, input, pressed |
-| Text | `slate-200 #E2E8F0` · `slate-400 #94A3B8` · `slate-500 #737F92` | subject, supporting detail, metadata |
-| Accent | `teal-400 #2DD4BF` | interaction, focus, and "now" |
-| Amber | `#F5B932` | money owed |
-| Rose | `#F87089` | late, failed, destructive |
-| Orange | `#F59E4B` | a patient who did not attend |
-| Blue | `#63A0F5` | laboratory context |
+### Shape, surface and density
 
-Colour is assigned by what a state asks of the reader, not by which service the
-record came from. Two consequences that were previously the other way round:
-
-- A cancelled appointment and a voided invoice are **grey**. They are closed,
-  correctly, and nothing further is expected. Painting them red pulled the eye
-  to the one row on the page that needed no attention.
-- Only two things are ever warm: a state waiting on a human decision (amber)
-  and a payment that is genuinely late (rose). If a screen looks warm, work is
-  piling up on it — and that is information.
-
-All three text levels clear **WCAG AA at 4.5:1** against both the page and a
-panel. Tailwind's own `slate-500` measured 3.97:1 on these surfaces and
-`slate-600` measured 2.2:1, and both were carrying text people are expected to
-read; `slate-600` is now for marks rather than words — rules, a closed status
-dot, a disabled glyph.
-
-### Shape and surface
-
-The radius scale tops out at **4px**, and the only round things in the product
-are status dots and avatars. A clinical record is a ruled sheet, and the
-squared geometry carries more of this product's character than any decoration
-would. There is one shadow token and it is used only by things that genuinely
-float: a menu, a dialog, the mobile navigation drawer.
+The radius scale tops out at **4px** and the only round things are status dots
+and avatars. A clinical record is a ruled sheet. There is one shadow token and
+it is used only by things that genuinely float: a menu, a dialog, the mobile
+drawer.
 
 The signature motif is **the spine** — a left rule with content hanging off it,
-markers sitting on the line. The doctor's day, the patient's timeline and the
+markers sitting on the line. The doctor's day, the patient's history and the
 laboratory's request → result → report chain all use it, so a clinician moving
 between them reads the same shape each time.
 
-### Conventions the screens follow
+**Row height is a setting**, comfortable or compact, because a receptionist
+working a register and a doctor glancing between patients want different ones
+and choosing for both is choosing wrong for one. It sits in the account menu
+beside the theme.
 
-- **Hairlines over cards.** A panel is one hairline and a slightly lifted
-  ground. It never contains another panel; a region inside one gets a rule.
-- **One primary action per region.** A filled teal button is right when there
-  is one of it on screen. Repeated down a column of twenty-seven invoices it
-  becomes a stripe of paint, so row-level actions share one quiet style that
-  takes the accent on hover and on focus.
-- **Destructive actions are not the default.** They live in the row menu, are
-  marked, sit last under a rule, and confirm by naming the record and the
-  consequence rather than asking "Are you sure?".
-- **Loading states are skeletons shaped like the content**, not spinners, so
-  the layout does not jump when data lands.
-- **Empty states say what will appear here**, and an empty work queue reads as
-  reassurance rather than as missing data.
-- **Partial failure is designed.** One service being unavailable names itself
-  in place and leaves the rest of the screen usable.
-- **Focus is always visible**: one teal ring, defined once, offset from its own
-  surface. Dialogs trap focus, close on Escape, and return it to whatever
-  opened them.
-- **No decoration.** No dot grids, no blurred accent orbs, no glow behind a
-  button, no icon beside every heading, and no colour that is not carrying
-  meaning.
+### Ten rules every screen follows
+
+1. **The subject is the largest thing.** A row is about a person or a record.
+2. **Four colours, four meanings.** Everything else is ink on a neutral.
+3. **Colour never travels alone.** Every coloured state carries a word.
+4. **Sentence case everywhere.** Bold sparingly; no italics or underline.
+5. **Numbers are mono, tabular, right-aligned in columns.** Money in full.
+6. **One primary action per region.** A control repeated down every row is quiet.
+7. **Destructive actions are never the default.** Behind a menu, marked, and
+   confirmed by naming the record.
+8. **Layer by priority, not category.** Critical first, detail one step deeper.
+9. **Never offer what the server will refuse.** Roles and `allowedTransitions`
+   decide what renders.
+10. **Partial failure is a designed state.** One service down names itself; the
+    rest of the screen keeps working.
 
 ---
 
@@ -680,10 +727,13 @@ Stated plainly, because a README that only lists strengths is not much use.
   on a refusal. There is no demo user for it, which is why this is latent rather
   than visible.
 - **The interface is verified by screenshot, not by test.** Every screen has
-  been rendered in Chrome against the running stack at 375, 768, 1280 and 1440
-  for the admin, doctor, receptionist and patient accounts, and checked for
-  horizontal overflow, focus visibility and dialog behaviour. None of that is
-  automated, so nothing stops it regressing.
+  been rendered in Chrome against the running stack at 375, 768, 1024 and 1440,
+  in both themes, for the admin, doctor, receptionist and patient accounts, and
+  checked for horizontal overflow, focus behaviour and text contrast. None of
+  that is automated, so nothing stops it regressing.
+- **The dark theme is generated, not separately designed.** It is derived from
+  the same tokens and measured for contrast, but it has had less time in front
+  of a human eye than the light one.
 - **Two roles have no seeded data to render.** `NURSE` and `BILLING` have route
   rules and a navigation order but no demo account, so their screens have been
   reasoned about rather than looked at.
