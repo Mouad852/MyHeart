@@ -54,6 +54,22 @@ const prescriptionApi = {
     axiosInstance.get(`${BASE}/doctor/${doctorId}`).then((r) => r.data),
 
   /**
+   * GET /prescriptions/{id}/document
+   * The printable prescription, as a PDF blob.
+   *
+   * The endpoint needs the bearer token, so this cannot be a plain link: the
+   * browser would follow it without an Authorization header and be refused.
+   * It is fetched here and handed to the page as a blob instead.
+   */
+  getDocument: (id) =>
+    axiosInstance
+      .get(`${BASE}/${id}/document`, {
+        responseType: 'blob',
+        headers: { Accept: 'application/pdf' },
+      })
+      .then((r) => r.data),
+
+  /**
    * GET /prescriptions
    * Fetch all prescriptions (used by dashboard for total count).
    */

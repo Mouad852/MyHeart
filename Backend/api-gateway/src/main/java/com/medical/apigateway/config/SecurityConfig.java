@@ -76,7 +76,11 @@ public class SecurityConfig {
                         .pathMatchers("/billing/**").hasAnyRole("BILLING", "ADMIN")
 
                         // Prescriptions
-                        .pathMatchers(HttpMethod.GET, "/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        // PATIENT is allowed through; prescription-service
+                        // checks ownership against the token and refuses any
+                        // prescription that is not the caller's own.
+                        .pathMatchers(HttpMethod.GET, "/prescriptions/**")
+                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST", "PATIENT")
                         .pathMatchers(HttpMethod.POST, "/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
                         .pathMatchers("/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
 

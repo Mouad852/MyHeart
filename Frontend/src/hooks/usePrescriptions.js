@@ -51,6 +51,33 @@ export function useAllPrescriptions() {
 }
 
 /** Create a new prescription */
+/**
+ * Download a prescription as a PDF.
+ *
+ * A saved file rather than a new tab: opening one from an async continuation is
+ * what popup blockers exist to stop, and a doctor who wants to print this needs
+ * it on disk anyway. The object URL is revoked straight after, so a session
+ * spent printing does not accumulate blobs in memory.
+ */
+export function usePrescriptionDocument() {
+  return useMutation({
+    mutationFn: (id) => prescriptionApi.getDocument(id),
+    onSuccess: (blob, id) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `prescription-${String(id).padStart(5, '0')}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Could not produce the prescription document')
+    },
+  })
+}
+
 export function useCreatePrescription(options = {}) {
   const qc = useQueryClient()
   return useMutation({

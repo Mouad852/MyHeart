@@ -38,8 +38,12 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info")
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                        // PATIENT is allowed through here on purpose. The rule
+                        // cannot tell whose prescription is being asked for, so
+                        // the controller checks ownership against the token and
+                        // returns 403 for anything that is not the caller's own.
                         .requestMatchers(HttpMethod.GET, "/prescriptions/**")
-                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST", "PATIENT")
                         // Only a doctor prescribes. Every write, whatever the verb.
                         .requestMatchers("/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
                         .anyRequest().authenticated())

@@ -12,7 +12,7 @@
  */
 import { useState } from 'react'
 import {
-  Pill, Plus, ChevronDown, ChevronUp, User, Stethoscope,
+  Pill, Plus, ChevronDown, ChevronUp, User, Stethoscope, FileDown,
 } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import EmptyState from '../../components/ui/EmptyState'
@@ -23,6 +23,7 @@ import PrescriptionForm from './PrescriptionForm'
 import {
   usePrescriptionsByPatient,
   useCreatePrescription,
+  usePrescriptionDocument,
 } from '../../hooks/usePrescriptions'
 import { formatDate } from '../../utils'
 
@@ -39,6 +40,7 @@ export default function PrescriptionsPage() {
   } = usePrescriptionsByPatient(patientId)
 
   const createMutation = useCreatePrescription({ onSuccess: () => setCreateOpen(false) })
+  const document_ = usePrescriptionDocument()
 
   const toggleExpand = (id) =>
     setExpandedId((prev) => (prev === id ? null : id))
@@ -145,11 +147,36 @@ export default function PrescriptionsPage() {
                       </div>
                     </div>
 
-                    {/* Medicine count + expand */}
+                    {/* Medicine count + print + expand */}
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span className="badge bg-violet-500/10 text-violet-400">
                         {rx.items?.length ?? 0} medicine{rx.items?.length !== 1 ? 's' : ''}
                       </span>
+
+                      {/* stopPropagation: the whole row toggles the medicine
+                          table, and printing should not also expand it. */}
+                      <button
+                        type="button"
+                        title="Download the printable prescription"
+                        disabled={document_.isPending}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          document_.mutate(rx.id)
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/10
+                                   px-2.5 py-1.5 text-xs font-medium text-slate-300
+                                   transition-all duration-150
+                                   hover:border-teal-500/40 hover:text-teal-400
+                                   focus:outline-none focus:ring-2 focus:ring-teal-400
+                                   focus:ring-offset-2 focus:ring-offset-navy-900
+                                   active:translate-y-px
+                                   disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <FileDown size={13} strokeWidth={2} aria-hidden="true" />
+                        {document_.isPending && document_.variables === rx.id
+                          ? 'Preparing'
+                          : 'Print'}
+                      </button>
                       {isExpanded
                         ? <ChevronUp size={15} className="text-slate-500" />
                         : <ChevronDown size={15} className="text-slate-500" />
