@@ -136,7 +136,7 @@ export default function PatientSearch() {
           }}
           aria-label="Clear search"
           className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center
- justify-center rounded text-ink-3 hover:text-ink"
+                     justify-center rounded text-ink-3 hover:text-ink"
         >
           <X size={13} strokeWidth={2} aria-hidden="true" />
         </button>
@@ -144,7 +144,7 @@ export default function PatientSearch() {
         <kbd
           aria-hidden="true"
           className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2
- rounded-sm border border-rule px-1.5 py-0.5 font-mono text-[10px]
+                     rounded-sm border border-rule px-1.5 py-0.5 font-mono text-[10px]
                      leading-none text-ink-3"
         >
           /
@@ -156,7 +156,7 @@ export default function PatientSearch() {
           id="patient-search-results"
           role="listbox"
           className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 animate-fade-in
- overflow-hidden rounded border border-rule bg-raised shadow-overlay"
+                     overflow-hidden rounded border border-rule bg-raised shadow-overlay"
         >
           {isFetching && results.length === 0 && (
             <p className="flex items-center gap-2.5 px-4 py-3.5 text-meta text-ink-3">

@@ -204,7 +204,7 @@ function Event({ event }) {
       <span
         aria-hidden="true"
         className="absolute -left-[9px] top-[1.15rem] flex h-[18px] w-[18px] items-center
- justify-center bg-surface text-ink-3"
+                   justify-center bg-surface text-ink-3"
       >
         <Icon size={13} strokeWidth={1.75} />
       </span>
@@ -273,7 +273,7 @@ export default function PatientDetail() {
       <Link
         to="/patients"
         className="mb-5 inline-flex items-center gap-1.5 rounded text-meta text-ink-3
- transition-colors duration-fast hover:text-primary"
+                   transition-colors duration-fast hover:text-primary"
       >
         <ChevronLeft size={13} strokeWidth={2} aria-hidden="true" />
         All patients

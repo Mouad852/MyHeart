@@ -136,7 +136,7 @@ export default function PatientsPage() {
                 onClick={() => setSearch('')}
                 aria-label="Clear the search"
                 className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2
- items-center justify-center rounded text-ink-3 hover:text-ink"
+                           items-center justify-center rounded text-ink-3 hover:text-ink"
               >
                 <X size={13} strokeWidth={2} aria-hidden="true" />
               </button>

@@ -85,7 +85,7 @@ function Result({ result, requestId, canUpload }) {
       <span
         aria-hidden="true"
         className="absolute -left-[8px] top-[1.05rem] flex h-4 w-4 items-center justify-center
- bg-surface text-ink-3"
+                   bg-surface text-ink-3"
       >
         <ClipboardCheck size={12} strokeWidth={1.75} />
       </span>

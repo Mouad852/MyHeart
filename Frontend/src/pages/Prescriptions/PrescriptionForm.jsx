@@ -114,7 +114,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
             onClick={addMedicine}
             disabled={isLoading}
             className="inline-flex items-center gap-1.5 text-xs text-primary
- hover:text-primary font-semibold transition-colors"
+                       hover:text-primary font-semibold transition-colors"
           >
             <Plus size={13} /> Add a medicine
           </button>
@@ -125,7 +125,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
             <div
               key={i}
               className="p-4 rounded-xl bg-surface border border-rule space-y-3
- animate-slide-up"
+                         animate-slide-up"
               style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
             >
               {/* Header row */}
@@ -138,7 +138,7 @@ export default function PrescriptionForm({ onSubmit, isLoading }) {
                     type="button"
                     onClick={() => removeMedicine(i)}
                     className="p-1 rounded-lg text-ink-3 hover:text-red-400
- hover:bg-red-500/10 transition-all duration-150"
+                               hover:bg-red-500/10 transition-all duration-150"
                     title="Remove medicine"
                   >
                     <Trash2 size={13} />

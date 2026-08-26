@@ -28,7 +28,7 @@ export default function EmptyState({
       <div className={`flex items-center gap-3 px-5 py-6 ${className}`}>
         <span
           className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full
- bg-settled-soft text-settled"
+                     bg-settled-soft text-settled"
           aria-hidden="true"
         >
           <Check size={12} strokeWidth={2.5} />

@@ -361,7 +361,7 @@ export default function AppointmentsPage() {
                 onClick={() => setSearch('')}
                 aria-label="Clear the filter"
                 className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2
- items-center justify-center rounded text-ink-3 hover:text-ink"
+                           items-center justify-center rounded text-ink-3 hover:text-ink"
               >
                 <X size={12} strokeWidth={2} aria-hidden="true" />
               </button>
