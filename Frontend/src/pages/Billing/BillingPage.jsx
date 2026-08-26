@@ -301,7 +301,7 @@ export default function BillingPage() {
                 <tr>
                   <th className="th pl-5">Invoice</th>
                   <th className="th hidden sm:table-cell">Patient</th>
-                  <th className="th hidden md:table-cell">Due</th>
+                  <th className="th hidden whitespace-nowrap lg:table-cell">Due</th>
                   <th className="th">Status</th>
                   <th className="th hidden text-right sm:table-cell">Amount</th>
                   <th className="th pr-5 text-right">
@@ -335,7 +335,7 @@ export default function BillingPage() {
                         </button>
                       </td>
 
-                      <td className="td hidden sm:table-cell">
+                      <td className="td hidden whitespace-nowrap sm:table-cell">
                         {canReadPatients ? (
                           <Link
                             to={`/patients/${invoice.patientId}`}
@@ -350,7 +350,7 @@ export default function BillingPage() {
                         )}
                       </td>
 
-                      <td className="td hidden md:table-cell">
+                      <td className="td hidden whitespace-nowrap lg:table-cell">
                         {invoice.dueDate ? (
                           <span
                             className={`ident text-meta ${
@@ -390,7 +390,7 @@ export default function BillingPage() {
                               onClick={() =>
                                 transition.mutate({ id: invoice.id, action: 'pay' })
                               }
-                              className="btn-row hidden sm:inline-flex"
+                              className="btn-row hidden whitespace-nowrap lg:inline-flex"
                             >
                               <Banknote size={12} strokeWidth={2} aria-hidden="true" />
                               Mark paid
