@@ -1,6 +1,9 @@
 package com.medical.appointmentservice.service;
 
 import com.medical.appointmentservice.dto.AppointmentDTO;
+import com.medical.appointmentservice.dto.AppointmentFilter;
+import com.medical.appointmentservice.dto.PageResponse;
+import org.springframework.data.domain.Pageable;
 import com.medical.appointmentservice.entity.AppointmentStatus;
 
 import java.util.List;
@@ -13,6 +16,9 @@ public interface AppointmentService {
     AppointmentDTO.Response createAppointment(AppointmentDTO.Request request);
 
     List<AppointmentDTO.Response> getAllAppointments();
+
+    /** A page of appointments narrowed by whichever filters were supplied. */
+    PageResponse<AppointmentDTO.Response> getAppointments(AppointmentFilter filter, Pageable pageable);
 
     /** Appointments belonging to one patient, used to scope a patient's own view. */
     List<AppointmentDTO.Response> getAppointmentsForPatient(Long patientId);

@@ -10,7 +10,8 @@
  *   /billing           → BillingPage        │ in auth/roles.js
  *   /prescriptions     → PrescriptionsPage  │
  *   /labs              → LabsPage           │
- *   /my-health         → MyHealth (patient) ┘
+ *   /my-health         → MyHealth (patient) │
+ *   /today             → TodayWorkspace     ┘
  *   *                  → NotFoundPage
  *
  * Authenticated pages render inside <Layout>, which provides the Sidebar,
@@ -28,6 +29,7 @@ import BillingPage from './pages/Billing/BillingPage'
 import PrescriptionsPage from './pages/Prescriptions/PrescriptionsPage'
 import LabsPage from './pages/Labs/LabsPage'
 import MyHealth from './pages/Portal/MyHealth'
+import TodayWorkspace from './pages/Doctor/TodayWorkspace'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -53,7 +55,8 @@ export default function App() {
             <Route path="prescriptions" element={<PrescriptionsPage />} />
             <Route path="labs" element={<LabsPage />} />
 
-            {/* ── Patient portal ────────────────────── */}
+            {/* ── Role workspaces ───────────────────── */}
+            <Route path="today" element={<TodayWorkspace />} />
             <Route path="my-health" element={<MyHealth />} />
           </Route>
 

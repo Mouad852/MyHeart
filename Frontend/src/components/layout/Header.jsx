@@ -9,6 +9,8 @@ import { roleLabel } from '../../auth/roles'
 
 const PAGE_TITLES = {
   '/':             { title: 'Dashboard',     subtitle: 'Overview of your medical system'       },
+  '/today':        { title: 'Today',         subtitle: 'Your appointments for the day'         },
+  '/my-health':    { title: 'My health',     subtitle: 'Your appointments and personal details'},
   '/patients':     { title: 'Patients',      subtitle: 'Manage patient records'                },
   '/doctors':      { title: 'Doctors',       subtitle: 'Manage medical staff'                  },
   '/appointments': { title: 'Appointments',  subtitle: 'Schedule and track appointments'       },

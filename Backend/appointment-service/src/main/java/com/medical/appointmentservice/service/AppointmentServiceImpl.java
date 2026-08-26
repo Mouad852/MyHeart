@@ -4,6 +4,8 @@ import com.medical.appointmentservice.client.BillingClient;
 import com.medical.appointmentservice.client.DoctorClient;
 import com.medical.appointmentservice.client.PatientClient;
 import com.medical.appointmentservice.dto.AppointmentDTO;
+import com.medical.appointmentservice.dto.AppointmentFilter;
+import com.medical.appointmentservice.dto.PageResponse;
 import com.medical.appointmentservice.dto.AppointmentDTO.DoctorInfo;
 import com.medical.appointmentservice.dto.AppointmentDTO.PatientInfo;
 import com.medical.appointmentservice.dto.BillingRequest;
@@ -15,6 +17,8 @@ import com.medical.appointmentservice.exception.ResourceNotFoundException;
 import com.medical.appointmentservice.repository.AppointmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,6 +118,32 @@ public class AppointmentServiceImpl implements AppointmentService {
     public List<AppointmentDTO.Response> getAllAppointments() {
         log.info("Fetching all appointments");
         return enrich(appointmentRepository.findAll());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AppointmentDTO.Response> getAppointments(AppointmentFilter filter, Pageable pageable) {
+        AppointmentFilter safe = filter != null ? filter : AppointmentFilter.builder().build();
+        log.info("Fetching appointments page {} doctorId={} patientId={} status={} from={} to={}",
+                pageable.getPageNumber(), safe.getDoctorId(), safe.getPatientId(),
+                safe.getStatus(), safe.getFrom(), safe.getTo());
+
+        Page<Appointment> page = appointmentRepository.findFiltered(
+                safe.getDoctorId(), safe.getPatientId(), safe.getStatus(),
+                safe.getFrom(), safe.getTo(), pageable);
+
+        // Enrich the page in two calls rather than two per row.
+        List<AppointmentDTO.Response> enriched = enrich(page.getContent());
+
+        return PageResponse.<AppointmentDTO.Response>builder()
+                .content(enriched)
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
     }
 
     @Override

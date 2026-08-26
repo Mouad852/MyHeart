@@ -23,6 +23,7 @@ export const ROLES = {
  */
 export const ROLE_HOME = {
   [ROLES.PATIENT]: '/my-health',
+  [ROLES.DOCTOR]: '/today',
 }
 
 /** The home route for a set of roles, defaulting to the staff dashboard. */
@@ -44,6 +45,7 @@ export const ROUTE_ROLES = {
   '/prescriptions': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/labs': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/my-health': [ROLES.PATIENT],
+  '/today': [ROLES.DOCTOR, ROLES.ADMIN],
 }
 
 /** Human-readable label for a role, for headers and badges. */

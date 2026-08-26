@@ -1,6 +1,8 @@
 package com.medical.appointmentservice.controller;
 
 import com.medical.appointmentservice.dto.AppointmentDTO;
+import com.medical.appointmentservice.dto.AppointmentFilter;
+import com.medical.appointmentservice.dto.PageResponse;
 import com.medical.appointmentservice.entity.AppointmentStatus;
 import com.medical.appointmentservice.security.CallerIdentity;
 import com.medical.appointmentservice.service.AppointmentService;
@@ -8,11 +10,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -63,6 +70,72 @@ public class AppointmentController {
         }
         log.info("REST GET /appointments");
         return ResponseEntity.ok(appointmentService.getAllAppointments());
+    }
+
+    /**
+     * GET /appointments/search
+     * A page of appointments narrowed by any combination of doctor, patient,
+     * status and date window.
+     *
+     * A patient may only ever search their own appointments; the filter is
+     * overwritten with their own id rather than trusted from the query string.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<PageResponse<AppointmentDTO.Response>> searchAppointments(
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) AppointmentStatus status,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @PageableDefault(size = 20, sort = "appointmentDate") Pageable pageable,
+            Authentication authentication) {
+
+        Long effectivePatientId = patientId;
+        if (callerIdentity.isPatientOnly(authentication)) {
+            effectivePatientId = callerIdentity.patientId(authentication);
+            if (effectivePatientId == null) {
+                throw new AccessDeniedException("No patient identity in token");
+            }
+        }
+
+        AppointmentFilter filter = AppointmentFilter.builder()
+                .doctorId(doctorId)
+                .patientId(effectivePatientId)
+                .status(status)
+                .from(from)
+                .to(to)
+                .build();
+
+        return ResponseEntity.ok(appointmentService.getAppointments(filter, pageable));
+    }
+
+    /**
+     * GET /appointments/my-day
+     * The signed-in doctor's own calendar for a given day, defaulting to today.
+     *
+     * The doctor comes from the token's doctorId claim, not from a parameter,
+     * so this cannot be pointed at a colleague's day.
+     */
+    @GetMapping("/my-day")
+    public ResponseEntity<PageResponse<AppointmentDTO.Response>> myDay(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate day,
+            @PageableDefault(size = 50, sort = "appointmentDate") Pageable pageable,
+            Authentication authentication) {
+
+        Long doctorId = callerIdentity.doctorId(authentication);
+        if (doctorId == null) {
+            throw new AccessDeniedException(
+                    "This account is not linked to a doctor record, so it has no calendar.");
+        }
+
+        LocalDate target = day != null ? day : LocalDate.now();
+        log.info("REST GET /appointments/my-day doctorId={} day={}", doctorId, target);
+
+        return ResponseEntity.ok(appointmentService.getAppointments(
+                AppointmentFilter.forDay(doctorId, target), pageable));
     }
 
     /**

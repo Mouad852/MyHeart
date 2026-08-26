@@ -2,6 +2,8 @@ package com.medical.appointmentservice.repository;
 
 import com.medical.appointmentservice.entity.Appointment;
 import com.medical.appointmentservice.entity.AppointmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -83,5 +85,29 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("endExclusive") LocalDateTime endExclusive,
             @Param("activeStatuses") Collection<String> activeStatuses,
             @Param("excludedId") Long excludedId
+    );
+
+    /**
+     * Appointments matching whichever filters the caller supplied.
+     *
+     * Every filter is optional: a null means "do not narrow by this". One query
+     * covers the whole calendar, a doctor's day, a patient's history and a
+     * status board, instead of a method per combination.
+     */
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE (:doctorId IS NULL OR a.doctorId = :doctorId)
+              AND (:patientId IS NULL OR a.patientId = :patientId)
+              AND (:status IS NULL OR a.status = :status)
+              AND (CAST(:from AS timestamp) IS NULL OR a.appointmentDate >= :from)
+              AND (CAST(:to AS timestamp) IS NULL OR a.appointmentDate < :to)
+            """)
+    Page<Appointment> findFiltered(
+            @Param("doctorId") Long doctorId,
+            @Param("patientId") Long patientId,
+            @Param("status") AppointmentStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable
     );
 }

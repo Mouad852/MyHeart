@@ -10,7 +10,7 @@ import { ROLES } from '../../auth/roles'
 import {
   Users, Stethoscope, CalendarDays,
   Activity, LayoutDashboard, ChevronRight,
-  ReceiptText, Pill, FlaskConical, HeartPulse,
+  ReceiptText, Pill, FlaskConical, HeartPulse, Sun,
 } from 'lucide-react'
 
 /**
@@ -18,6 +18,11 @@ import {
  * not a security control: the gateway rejects the request regardless.
  */
 const NAV_ITEMS = [
+  // ── Doctor workspace ──────────────────────────────
+  {
+    to: '/today', icon: Sun, label: 'Today', end: true,
+    roles: [ROLES.DOCTOR, ROLES.ADMIN],
+  },
   // ── Patient portal ────────────────────────────────
   {
     to: '/my-health', icon: HeartPulse, label: 'My health', end: true,

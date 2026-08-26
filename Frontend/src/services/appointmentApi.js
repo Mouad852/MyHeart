@@ -13,6 +13,24 @@ const appointmentApi = {
   /** GET /appointments — returns appointments with embedded patient + doctor */
   getAll: () => axiosInstance.get(BASE).then((r) => r.data),
 
+  /**
+   * GET /appointments/search — a filtered page.
+   * @param {{doctorId?: number, patientId?: number, status?: string,
+   *          from?: string, to?: string, page?: number, size?: number}} params
+   */
+  search: (params = {}) =>
+    axiosInstance.get(`${BASE}/search`, { params }).then((r) => r.data),
+
+  /**
+   * GET /appointments/my-day — the signed-in doctor's own calendar.
+   * The doctor comes from the token, not from a parameter.
+   * @param {string} [day] ISO date, defaulting to today on the server
+   */
+  myDay: (day) =>
+    axiosInstance
+      .get(`${BASE}/my-day`, { params: day ? { day } : {} })
+      .then((r) => r.data),
+
   /** GET /appointments/:id */
   getById: (id) => axiosInstance.get(`${BASE}/${id}`).then((r) => r.data),
 
