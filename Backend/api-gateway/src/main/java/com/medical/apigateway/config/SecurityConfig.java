@@ -33,12 +33,16 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/patients/**").hasAnyRole("RECEPTIONIST", "ADMIN")
                         .pathMatchers(HttpMethod.PUT, "/patients/**").hasAnyRole("RECEPTIONIST", "ADMIN")
                         .pathMatchers(HttpMethod.DELETE, "/patients/**").hasRole("ADMIN")
+                        // Any other method on a patient record.
+                        .pathMatchers("/patients/**").hasAnyRole("ADMIN", "RECEPTIONIST")
 
                         // Doctors
                         .pathMatchers(HttpMethod.GET, "/doctors/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.POST, "/doctors/**").hasRole("ADMIN")
                         .pathMatchers(HttpMethod.PUT, "/doctors/**").hasRole("ADMIN")
                         .pathMatchers(HttpMethod.DELETE, "/doctors/**").hasRole("ADMIN")
+                        // Any other method on the medical register.
+                        .pathMatchers("/doctors/**").hasRole("ADMIN")
 
                         // Appointments
                         // PATIENT is allowed through; appointment-service narrows
@@ -54,19 +58,32 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
                         .pathMatchers(HttpMethod.PUT, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
                         .pathMatchers(HttpMethod.DELETE, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+                        // The lifecycle transitions are PATCH, which matched
+                        // none of the rules above and fell through to "any
+                        // authenticated user". appointment-service refused
+                        // them on its own, which is the only reason that was
+                        // not exploitable.
+                        .pathMatchers("/appointments/**")
+                        .hasAnyRole("RECEPTIONIST", "ADMIN", "DOCTOR")
 
                         // Billing
                         .pathMatchers(HttpMethod.GET, "/billing/**").hasAnyRole("BILLING", "ADMIN", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.POST, "/billing/**").hasAnyRole("BILLING", "ADMIN")
                         .pathMatchers("/billing/pay/**").hasAnyRole("BILLING", "ADMIN", "RECEPTIONIST")
+                        // void, cancel and refund are PUT and matched nothing,
+                        // so a patient token could refund an invoice it was
+                        // not even allowed to read.
+                        .pathMatchers("/billing/**").hasAnyRole("BILLING", "ADMIN")
 
                         // Prescriptions
                         .pathMatchers(HttpMethod.GET, "/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.POST, "/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
+                        .pathMatchers("/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
 
                         // Labs
                         .pathMatchers(HttpMethod.GET, "/labs/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
                         .pathMatchers(HttpMethod.POST, "/labs/**").hasAnyRole("DOCTOR", "ADMIN")
+                        .pathMatchers("/labs/**").hasAnyRole("DOCTOR", "ADMIN")
 
                         .anyExchange().authenticated())
                 // Without this converter Keycloak's realm_access.roles claim is
