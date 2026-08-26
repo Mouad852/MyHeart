@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Fallback factory for patient-service.
  *
@@ -21,14 +24,28 @@ public class PatientClientFallbackFactory implements FallbackFactory<PatientClie
 
     @Override
     public PatientClient create(Throwable cause) {
-        return patientId -> {
-            if (cause instanceof FeignException.NotFound) {
-                log.warn("Patient not found with ID: {}", patientId);
-                throw new ResourceNotFoundException("Patient not found with ID: " + patientId);
+        return new PatientClient() {
+
+            @Override
+            public PatientInfo getPatientById(Long patientId) {
+                if (cause instanceof FeignException.NotFound) {
+                    log.warn("Patient not found with ID: {}", patientId);
+                    throw new ResourceNotFoundException("Patient not found with ID: " + patientId);
+                }
+                log.error("patient-service unavailable while validating patient id={}: {}",
+                        patientId, cause.toString());
+                throw new ExternalServiceException(
+                        "Patient service is currently unavailable. Cannot validate patient id=" + patientId);
             }
-            log.error("patient-service unavailable while validating patient id={}: {}", patientId, cause.toString());
-            throw new ExternalServiceException(
-                    "Patient service is currently unavailable. Cannot validate patient id=" + patientId);
+
+            @Override
+            public List<PatientInfo> getPatientsByIds(Collection<Long> ids) {
+                // Enrichment is decorative: a list of appointments is still
+                // useful with names missing, so degrade instead of failing.
+                log.warn("patient-service unavailable while enriching {} appointments: {}",
+                        ids.size(), cause.toString());
+                return List.of();
+            }
         };
     }
 }

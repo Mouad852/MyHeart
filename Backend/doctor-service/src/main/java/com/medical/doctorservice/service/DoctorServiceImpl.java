@@ -1,15 +1,19 @@
 package com.medical.doctorservice.service;
 
 import com.medical.doctorservice.dto.DoctorDTO;
+import com.medical.doctorservice.dto.PageResponse;
 import com.medical.doctorservice.entity.Doctor;
 import com.medical.doctorservice.exception.DuplicateResourceException;
 import com.medical.doctorservice.exception.ResourceNotFoundException;
 import com.medical.doctorservice.repository.DoctorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,12 +52,29 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DoctorDTO.Response> getAllDoctors() {
-        log.info("Fetching all doctors");
-        return doctorRepository.findAll()
-                .stream()
+    public PageResponse<DoctorDTO.Response> getDoctors(String term, Pageable pageable) {
+        boolean searching = term != null && !term.isBlank();
+        log.info("Fetching doctors page {} size {}{}",
+                pageable.getPageNumber(), pageable.getPageSize(),
+                searching ? " matching '" + term + "'" : "");
+
+        Page<Doctor> page = searching
+                ? doctorRepository.search(term.trim(), pageable)
+                : doctorRepository.findAll(pageable);
+
+        return PageResponse.from(page, this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoctorDTO.Response> getDoctorsByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        log.info("Batch fetching {} doctors", ids.size());
+        return doctorRepository.findByIdIn(ids).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

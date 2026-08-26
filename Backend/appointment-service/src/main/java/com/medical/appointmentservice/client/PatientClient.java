@@ -4,6 +4,10 @@ import com.medical.appointmentservice.dto.AppointmentDTO.PatientInfo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Feign Client for the Patient Service.
@@ -25,4 +29,12 @@ public interface PatientClient {
      */
     @GetMapping("/patients/{id}")
     PatientInfo getPatientById(@PathVariable("id") Long id);
+
+    /**
+     * Calls GET http://patient-service/patients/batch?ids=1,2,3
+     *
+     * One request for a whole page of appointments, instead of one per row.
+     */
+    @GetMapping("/patients/batch")
+    List<PatientInfo> getPatientsByIds(@RequestParam("ids") Collection<Long> ids);
 }

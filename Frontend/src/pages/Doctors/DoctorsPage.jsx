@@ -1,12 +1,14 @@
 /**
  * DoctorsPage.jsx — Full CRUD interface for Doctor management.
  */
-import { useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { UserPlus, Search, Pencil, Trash2, Stethoscope } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import ErrorBanner from '../../components/ui/ErrorBanner'
+import Pagination from '../../components/ui/Pagination'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import Avatar from '../../components/ui/Avatar'
 import { PageSpinner } from '../../components/ui/LoadingSpinner'
 import DoctorForm from './DoctorForm'
@@ -32,27 +34,27 @@ function specialtyColor(specialty = '') {
 }
 
 export default function DoctorsPage() {
-  const { data: doctors = [], isLoading, error, refetch } = useDoctors()
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+  const debouncedSearch = useDebouncedValue(search)
+
+  const { data, isLoading, error, refetch } = useDoctors({ page, q: debouncedSearch })
+  const doctors = data?.content ?? []
+
+  useEffect(() => {
+    setPage(0)
+  }, [debouncedSearch])
 
   const [createOpen,  setCreateOpen]  = useState(false)
   const [editDoctor,  setEditDoctor]  = useState(null)
   const [deleteDoctor, setDeleteDoctor] = useState(null)
-  const [search,      setSearch]      = useState('')
 
   const createMutation = useCreateDoctor({ onSuccess: () => setCreateOpen(false) })
   const updateMutation = useUpdateDoctor({ onSuccess: () => setEditDoctor(null) })
   const deleteMutation = useDeleteDoctor({ onSuccess: () => setDeleteDoctor(null) })
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
-    if (!q) return doctors
-    return doctors.filter(
-      (d) =>
-        d.name?.toLowerCase().includes(q) ||
-        d.specialty?.toLowerCase().includes(q) ||
-        d.email?.toLowerCase().includes(q)
-    )
-  }, [doctors, search])
+  // Searching happens in the database now.
+  const filtered = doctors
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -88,7 +90,7 @@ export default function DoctorsPage() {
           </div>
           {search && (
             <span className="text-xs text-slate-500">
-              {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+              {data?.totalElements ?? 0} result{(data?.totalElements ?? 0) !== 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -175,6 +177,18 @@ export default function DoctorsPage() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {!isLoading && data && (
+          <Pagination
+            page={data.page}
+            size={data.size}
+            totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            first={data.first}
+            last={data.last}
+            onChange={setPage}
+          />
         )}
       </div>
 

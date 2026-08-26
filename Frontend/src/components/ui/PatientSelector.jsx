@@ -5,7 +5,7 @@
  * and Labs pages to filter or associate records with a patient.
  * ─────────────────────────────────────────────────────────────────
  */
-import { usePatients } from '../../hooks/usePatients'
+import { usePatientOptions } from '../../hooks/usePatients'
 
 export default function PatientSelector({
   value,
@@ -16,7 +16,7 @@ export default function PatientSelector({
   disabled = false,
   required = false,
 }) {
-  const { data: patients = [], isLoading } = usePatients()
+  const { data: patients = [], isLoading } = usePatientOptions()
 
   return (
     <div>

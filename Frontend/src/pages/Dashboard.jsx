@@ -20,8 +20,9 @@ import { useAllLabRequests } from '../hooks/useLabs'
 import { formatDate, getStatusBadge } from '../utils'
 
 export default function Dashboard() {
-  const patients = usePatients()
-  const doctors = useDoctors()
+  // size 1: the dashboard needs the totals, not the rows.
+  const patients = usePatients({ size: 1 })
+  const doctors = useDoctors({ size: 1 })
   const appointments = useAppointments()
   const invoices = useAllInvoices()
   const prescriptions = useAllPrescriptions()
@@ -65,14 +66,14 @@ export default function Dashboard() {
         <StatsCard
           icon={Users}
           label="Total Patients"
-          value={patients.data?.length}
+          value={patients.data?.totalElements}
           color="teal"
           isLoading={patients.isLoading}
         />
         <StatsCard
           icon={Stethoscope}
           label="Total Doctors"
-          value={doctors.data?.length}
+          value={doctors.data?.totalElements}
           color="blue"
           isLoading={doctors.isLoading}
         />

@@ -21,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -108,16 +111,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional(readOnly = true)
     public List<AppointmentDTO.Response> getAllAppointments() {
         log.info("Fetching all appointments");
-
-        return appointmentRepository.findAll()
-                .stream()
-                .map(appointment -> {
-                    // Enrich each appointment with patient/doctor info
-                    PatientInfo patient = safeGetPatient(appointment.getPatientId());
-                    DoctorInfo doctor = safeGetDoctor(appointment.getDoctorId());
-                    return mapToResponse(appointment, patient, doctor);
-                })
-                .collect(Collectors.toList());
+        return enrich(appointmentRepository.findAll());
     }
 
     @Override
@@ -125,14 +119,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public List<AppointmentDTO.Response> getAppointmentsForPatient(Long patientId) {
         log.info("Fetching appointments for patientId={}", patientId);
 
-        return appointmentRepository.findByPatientId(patientId)
-                .stream()
-                .map(appointment -> {
-                    PatientInfo patient = safeGetPatient(appointment.getPatientId());
-                    DoctorInfo doctor = safeGetDoctor(appointment.getDoctorId());
-                    return mapToResponse(appointment, patient, doctor);
-                })
-                .collect(Collectors.toList());
+        return enrich(appointmentRepository.findByPatientId(patientId));
     }
 
     @Override
@@ -219,6 +206,74 @@ public class AppointmentServiceImpl implements AppointmentService {
         PatientInfo patient = safeGetPatient(updated.getPatientId());
         DoctorInfo doctor = safeGetDoctor(updated.getDoctorId());
         return mapToResponse(updated, patient, doctor);
+    }
+
+    /**
+     * Attach patient and doctor details to a list of appointments.
+     *
+     * This used to call patient-service and doctor-service once per row, so a
+     * page of twenty appointments meant forty remote calls. Now it collects the
+     * distinct ids and asks each service once, which is two calls regardless of
+     * page size.
+     *
+     * Anyone missing from the batch response is shown as "Unavailable" rather
+     * than failing the whole list: the appointments themselves are still useful.
+     */
+    private List<AppointmentDTO.Response> enrich(List<Appointment> appointments) {
+        if (appointments.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> patientIds = appointments.stream()
+                .map(Appointment::getPatientId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<Long> doctorIds = appointments.stream()
+                .map(Appointment::getDoctorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, PatientInfo> patients = safeGetPatients(patientIds);
+        Map<Long, DoctorInfo> doctors = safeGetDoctors(doctorIds);
+
+        return appointments.stream()
+                .map(appointment -> mapToResponse(
+                        appointment,
+                        patients.getOrDefault(appointment.getPatientId(),
+                                unavailablePatient(appointment.getPatientId())),
+                        doctors.getOrDefault(appointment.getDoctorId(),
+                                unavailableDoctor(appointment.getDoctorId()))))
+                .collect(Collectors.toList());
+    }
+
+    private Map<Long, PatientInfo> safeGetPatients(Set<Long> ids) {
+        try {
+            return patientClient.getPatientsByIds(ids).stream()
+                    .filter(p -> p.getId() != null)
+                    .collect(Collectors.toMap(PatientInfo::getId, p -> p, (a, b) -> a));
+        } catch (ExternalServiceException | ResourceNotFoundException e) {
+            log.warn("Could not batch fetch {} patients: {}", ids.size(), e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private Map<Long, DoctorInfo> safeGetDoctors(Set<Long> ids) {
+        try {
+            return doctorClient.getDoctorsByIds(ids).stream()
+                    .filter(d -> d.getId() != null)
+                    .collect(Collectors.toMap(DoctorInfo::getId, d -> d, (a, b) -> a));
+        } catch (ExternalServiceException | ResourceNotFoundException e) {
+            log.warn("Could not batch fetch {} doctors: {}", ids.size(), e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private PatientInfo unavailablePatient(Long id) {
+        return PatientInfo.builder().id(id).name("Unavailable").build();
+    }
+
+    private DoctorInfo unavailableDoctor(Long id) {
+        return DoctorInfo.builder().id(id).name("Unavailable").build();
     }
 
     // ──────────────────────────────────────────────────────────────────────────

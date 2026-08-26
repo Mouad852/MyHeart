@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Fallback factory for doctor-service.
  *
@@ -24,14 +27,27 @@ public class DoctorClientFallbackFactory implements FallbackFactory<DoctorClient
 
     @Override
     public DoctorClient create(Throwable cause) {
-        return doctorId -> {
-            if (cause instanceof FeignException.NotFound) {
-                log.warn("Doctor not found with ID: {}", doctorId);
-                throw new ResourceNotFoundException("Doctor not found with ID: " + doctorId);
+        return new DoctorClient() {
+
+            @Override
+            public DoctorInfo getDoctorById(Long doctorId) {
+                if (cause instanceof FeignException.NotFound) {
+                    log.warn("Doctor not found with ID: {}", doctorId);
+                    throw new ResourceNotFoundException("Doctor not found with ID: " + doctorId);
+                }
+                log.error("doctor-service unavailable while validating doctor id={}: {}",
+                        doctorId, cause.toString());
+                throw new ExternalServiceException(
+                        "Doctor service is currently unavailable. Cannot validate doctor id=" + doctorId);
             }
-            log.error("doctor-service unavailable while validating doctor id={}: {}", doctorId, cause.toString());
-            throw new ExternalServiceException(
-                    "Doctor service is currently unavailable. Cannot validate doctor id=" + doctorId);
+
+            @Override
+            public List<DoctorInfo> getDoctorsByIds(Collection<Long> ids) {
+                // Same reasoning as the patient batch: degrade, do not fail.
+                log.warn("doctor-service unavailable while enriching {} appointments: {}",
+                        ids.size(), cause.toString());
+                return List.of();
+            }
         };
     }
 }

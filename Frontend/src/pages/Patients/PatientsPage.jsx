@@ -8,7 +8,7 @@
  *  - Delete patient (confirm dialog)
  *  - Loading / error / empty states
  */
-import { useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { UserPlus, Search, Pencil, Trash2, Users } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -24,32 +24,39 @@ import {
   useDeletePatient,
 } from '../../hooks/usePatients'
 import { formatDate } from '../../utils'
+import Pagination from '../../components/ui/Pagination'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 
 export default function PatientsPage() {
-  const { data: patients = [], isLoading, error, refetch } = usePatients()
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+  // Searching without debouncing would fire a request per keystroke.
+  const debouncedSearch = useDebouncedValue(search)
+
+  const { data, isLoading, error, refetch } = usePatients({
+    page,
+    q: debouncedSearch,
+  })
+
+  const patients = data?.content ?? []
+
+  // A narrower search can leave you past the last page.
+  useEffect(() => {
+    setPage(0)
+  }, [debouncedSearch])
 
   // Modal states
   const [createOpen,    setCreateOpen]    = useState(false)
   const [editPatient,   setEditPatient]   = useState(null) // patient object or null
   const [deletePatient, setDeletePatient] = useState(null) // patient object or null
-  const [search,        setSearch]        = useState('')
 
   // Mutations
   const createMutation = useCreatePatient({ onSuccess: () => setCreateOpen(false) })
   const updateMutation = useUpdatePatient({ onSuccess: () => setEditPatient(null) })
   const deleteMutation = useDeletePatient({ onSuccess: () => setDeletePatient(null) })
 
-  // Client-side search filter
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
-    if (!q) return patients
-    return patients.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(q) ||
-        p.email?.toLowerCase().includes(q) ||
-        p.phone?.includes(q)
-    )
-  }, [patients, search])
+  // Filtering happens in the database now, so the page shows what came back.
+  const filtered = patients
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -88,7 +95,7 @@ export default function PatientsPage() {
           </div>
           {search && (
             <span className="text-xs text-slate-500">
-              {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+              {data?.totalElements ?? 0} result{(data?.totalElements ?? 0) !== 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -185,6 +192,18 @@ export default function PatientsPage() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {!isLoading && data && (
+          <Pagination
+            page={data.page}
+            size={data.size}
+            totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            first={data.first}
+            last={data.last}
+            onChange={setPage}
+          />
         )}
       </div>
 

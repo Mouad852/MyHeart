@@ -4,10 +4,21 @@ import doctorApi from '../services/doctorApi'
 
 const QUERY_KEY = ['doctors']
 
-export function useDoctors() {
+export function useDoctors(params = {}) {
+  const { page = 0, size = 20, q = '' } = params
   return useQuery({
-    queryKey: QUERY_KEY,
-    queryFn: doctorApi.getAll,
+    queryKey: [...QUERY_KEY, 'page', page, size, q],
+    queryFn: () => doctorApi.getPage({ page, size, q }),
+    placeholderData: (previous) => previous,
+  })
+}
+
+/** Every doctor, for select boxes. */
+export function useDoctorOptions() {
+  return useQuery({
+    queryKey: [...QUERY_KEY, 'options'],
+    queryFn: doctorApi.getOptions,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

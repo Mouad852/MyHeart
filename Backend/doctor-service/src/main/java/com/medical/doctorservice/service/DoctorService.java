@@ -1,6 +1,10 @@
 package com.medical.doctorservice.service;
 
 import com.medical.doctorservice.dto.DoctorDTO;
+import com.medical.doctorservice.dto.PageResponse;
+import org.springframework.data.domain.Pageable;
+
+import java.util.Collection;
 
 import java.util.List;
 
@@ -11,7 +15,15 @@ public interface DoctorService {
 
     DoctorDTO.Response createDoctor(DoctorDTO.Request request);
 
-    List<DoctorDTO.Response> getAllDoctors();
+    /**
+     * A page of doctors, optionally narrowed by a search term.
+     *
+     * @param term free text matched against name, specialty and email
+     */
+    PageResponse<DoctorDTO.Response> getDoctors(String term, Pageable pageable);
+
+    /** Several doctors by id, for callers enriching a list in one request. */
+    List<DoctorDTO.Response> getDoctorsByIds(Collection<Long> ids);
 
     DoctorDTO.Response getDoctorById(Long id);
 

@@ -1,6 +1,7 @@
 package com.medical.patientservice.service;
 
 import com.medical.patientservice.dto.PatientDTO;
+import com.medical.patientservice.dto.PageResponse;
 import com.medical.patientservice.entity.Patient;
 import com.medical.patientservice.exception.DuplicateResourceException;
 import com.medical.patientservice.exception.ResourceNotFoundException;
@@ -8,9 +9,12 @@ import com.medical.patientservice.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
@@ -53,12 +57,29 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PatientDTO.Response> getAllPatients() {
-        log.info("Fetching all patients");
-        return patientRepository.findAll()
-                .stream()
+    public PageResponse<PatientDTO.Response> getPatients(String term, Pageable pageable) {
+        boolean searching = term != null && !term.isBlank();
+        log.info("Fetching patients page {} size {}{}",
+                pageable.getPageNumber(), pageable.getPageSize(),
+                searching ? " matching '" + term + "'" : "");
+
+        Page<Patient> page = searching
+                ? patientRepository.search(term.trim(), pageable)
+                : patientRepository.findAll(pageable);
+
+        return PageResponse.from(page, this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientDTO.Response> getPatientsByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        log.info("Batch fetching {} patients", ids.size());
+        return patientRepository.findByIdIn(ids).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

@@ -4,7 +4,7 @@
  * Reusable doctor picker dropdown used in Prescriptions and Labs.
  * ─────────────────────────────────────────────────────────────────
  */
-import { useDoctors } from '../../hooks/useDoctors'
+import { useDoctorOptions } from '../../hooks/useDoctors'
 
 export default function DoctorSelector({
   value,
@@ -15,7 +15,7 @@ export default function DoctorSelector({
   disabled = false,
   required = false,
 }) {
-  const { data: doctors = [], isLoading } = useDoctors()
+  const { data: doctors = [], isLoading } = useDoctorOptions()
 
   return (
     <div>

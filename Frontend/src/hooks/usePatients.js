@@ -13,11 +13,28 @@ import patientApi from '../services/patientApi'
 // Cache key — all patient queries share this namespace
 const QUERY_KEY = ['patients']
 
-/** Fetch all patients */
-export function usePatients() {
+/**
+ * One page of patients, filtered server-side.
+ *
+ * @param {{ page?: number, size?: number, q?: string }} params
+ */
+export function usePatients(params = {}) {
+  const { page = 0, size = 20, q = '' } = params
   return useQuery({
-    queryKey: QUERY_KEY,
-    queryFn: patientApi.getAll,
+    queryKey: [...QUERY_KEY, 'page', page, size, q],
+    queryFn: () => patientApi.getPage({ page, size, q }),
+    // Keeps the previous page visible while the next one loads, so the table
+    // does not collapse to a spinner on every page change.
+    placeholderData: (previous) => previous,
+  })
+}
+
+/** Every patient, for select boxes. */
+export function usePatientOptions() {
+  return useQuery({
+    queryKey: [...QUERY_KEY, 'options'],
+    queryFn: patientApi.getOptions,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

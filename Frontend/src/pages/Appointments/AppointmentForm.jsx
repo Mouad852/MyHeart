@@ -5,8 +5,8 @@
  */
 import { useState } from 'react'
 import { Spinner } from '../../components/ui/LoadingSpinner'
-import { usePatients } from '../../hooks/usePatients'
-import { useDoctors } from '../../hooks/useDoctors'
+import { usePatientOptions } from '../../hooks/usePatients'
+import { useDoctorOptions } from '../../hooks/useDoctors'
 import { getMinAppointmentDate } from '../../utils'
 
 const EMPTY = { patientId: '', doctorId: '', appointmentDate: '', notes: '' }
@@ -15,8 +15,8 @@ export default function AppointmentForm({ onSubmit, isLoading }) {
   const [form, setForm]     = useState(EMPTY)
   const [errors, setErrors] = useState({})
 
-  const { data: patients = [], isLoading: pLoading } = usePatients()
-  const { data: doctors  = [], isLoading: dLoading } = useDoctors()
+  const { data: patients = [], isLoading: pLoading } = usePatientOptions()
+  const { data: doctors  = [], isLoading: dLoading } = useDoctorOptions()
 
   const handleChange = (e) => {
     const { name, value } = e.target

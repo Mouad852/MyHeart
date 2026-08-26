@@ -10,7 +10,22 @@ const BASE = '/doctors'
 
 const doctorApi = {
   /** GET /doctors */
-  getAll: () => axiosInstance.get(BASE).then((r) => r.data),
+  getPage: ({ page = 0, size = 20, q = '' } = {}) =>
+    axiosInstance
+      .get(BASE, { params: { page, size, ...(q ? { q } : {}) } })
+      .then((r) => r.data),
+
+  /** Every doctor, for dropdowns that need the whole list. */
+  getOptions: () =>
+    axiosInstance
+      .get(BASE, { params: { page: 0, size: 200, sort: 'name' } })
+      .then((r) => r.data.content),
+
+  /** GET /doctors/batch?ids=1,2,3 — several doctors in one call */
+  getByIds: (ids) =>
+    axiosInstance
+      .get(`${BASE}/batch`, { params: { ids: ids.join(',') } })
+      .then((r) => r.data),
 
   /** GET /doctors/:id */
   getById: (id) => axiosInstance.get(`${BASE}/${id}`).then((r) => r.data),

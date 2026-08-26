@@ -1,10 +1,14 @@
 package com.medical.patientservice.controller;
 
+import com.medical.patientservice.dto.PageResponse;
 import com.medical.patientservice.dto.PatientDTO;
 import com.medical.patientservice.service.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -48,13 +52,37 @@ public class PatientController {
 
     /**
      * GET /patients
-     * Retrieve all patients.
+     * A page of patients, newest first, optionally narrowed by a search term.
+     *
+     * Paged rather than unbounded: a clinic with ten thousand patients should
+     * not send all of them to fill one screen.
+     *
+     * @param q free text matched against name, email and phone
      */
     @GetMapping
     @PreAuthorize("@patientAccess.canReadAll(authentication)")
-    public ResponseEntity<List<PatientDTO.Response>> getAllPatients() {
-        log.info("REST GET /patients - Fetching all patients");
-        return ResponseEntity.ok(patientService.getAllPatients());
+    public ResponseEntity<PageResponse<PatientDTO.Response>> getPatients(
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        log.info("REST GET /patients - page={} size={} q={}",
+                pageable.getPageNumber(), pageable.getPageSize(), q);
+        return ResponseEntity.ok(patientService.getPatients(q, pageable));
+    }
+
+    /**
+     * GET /patients/batch?ids=1,2,3
+     * Several patients in one call.
+     *
+     * Exists so that appointment-service can enrich a page of appointments with
+     * one request instead of one per row.
+     */
+    @GetMapping("/batch")
+    @PreAuthorize("@patientAccess.canReadAll(authentication)")
+    public ResponseEntity<List<PatientDTO.Response>> getPatientsByIds(
+            @RequestParam List<Long> ids) {
+        log.info("REST GET /patients/batch - {} ids", ids.size());
+        return ResponseEntity.ok(patientService.getPatientsByIds(ids));
     }
 
     /**
