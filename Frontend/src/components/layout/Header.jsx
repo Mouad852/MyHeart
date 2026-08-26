@@ -28,9 +28,18 @@ function initials(name, username) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
+/** Titles for paths that carry an id. */
+function titleForPath(pathname) {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
+  if (/^\/patients\/\d+$/.test(pathname)) {
+    return { title: 'Patient record', subtitle: 'History across the whole clinic' }
+  }
+  return PAGE_TITLES['/']
+}
+
 export default function Header() {
   const { pathname } = useLocation()
-  const page = PAGE_TITLES[pathname] || PAGE_TITLES['/']
+  const page = titleForPath(pathname)
   const { fullName, username, role, logout } = useAuth()
 
   const [menuOpen, setMenuOpen] = useState(false)

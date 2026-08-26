@@ -9,7 +9,7 @@ import React from 'react'
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { ShieldOff } from 'lucide-react'
 import { useAuth } from './AuthProvider'
-import { ROUTE_ROLES, homeRouteFor } from './roles'
+import { homeRouteFor, rolesForPath } from './roles'
 
 function AuthPending() {
   return (
@@ -87,7 +87,7 @@ export function RequireRole({ allowedRoles }) {
   const location = useLocation()
 
   const homeRoute = homeRouteFor(roles)
-  const required = allowedRoles ?? ROUTE_ROLES[location.pathname]
+  const required = allowedRoles ?? rolesForPath(location.pathname)
 
   if (required && !hasAnyRole(required)) {
     // Landing on the staff dashboard as a patient is a routing accident rather

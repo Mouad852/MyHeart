@@ -9,6 +9,7 @@
  *  - Loading / error / empty states
  */
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { UserPlus, Search, Pencil, Trash2, Users } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -148,13 +149,22 @@ export default function PatientsPage() {
                 >
                   {/* Name + avatar */}
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                    <Link
+                      to={`/patients/${patient.id}`}
+                      className="flex items-center gap-3 rounded-lg
+                                 transition-colors duration-150
+                                 focus:outline-none focus:ring-2 focus:ring-teal-400
+                                 focus:ring-offset-2 focus:ring-offset-navy-800
+                                 group/name"
+                    >
                       <Avatar name={patient.name} size="md" />
                       <div>
-                        <p className="font-medium text-white">{patient.name}</p>
+                        <p className="font-medium text-white group-hover/name:text-teal-400">
+                          {patient.name}
+                        </p>
                         <p className="text-xs text-slate-500 md:hidden">{patient.email}</p>
                       </div>
-                    </div>
+                    </Link>
                   </td>
 
                   <td className="px-6 py-4 text-slate-400 hidden md:table-cell">

@@ -39,6 +39,8 @@ export function homeRouteFor(roles = []) {
 export const ROUTE_ROLES = {
   '/': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.BILLING, ROLES.NURSE],
   '/patients': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.NURSE],
+  // Detail pages carry an id, so they are matched by prefix in RequireRole.
+  '/patients/:id': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.NURSE],
   '/doctors': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/appointments': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/billing': [ROLES.ADMIN, ROLES.BILLING, ROLES.RECEPTIONIST],
@@ -46,6 +48,35 @@ export const ROUTE_ROLES = {
   '/labs': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/my-health': [ROLES.PATIENT],
   '/today': [ROLES.DOCTOR, ROLES.ADMIN],
+}
+
+/**
+ * The roles allowed on a path, handling ids in the URL.
+ *
+ * ROUTE_ROLES is keyed by route pattern, but the browser gives us a concrete
+ * path such as /patients/5. Matching those by string alone silently returned
+ * "no rule", which RequireRole treats as authenticated-only, so a patient could
+ * open another patient's page. Concrete segments are matched back to their
+ * pattern here instead.
+ */
+export function rolesForPath(pathname) {
+  if (ROUTE_ROLES[pathname]) {
+    return ROUTE_ROLES[pathname]
+  }
+
+  const segments = pathname.split('/').filter(Boolean)
+
+  for (const [pattern, roles] of Object.entries(ROUTE_ROLES)) {
+    const patternSegments = pattern.split('/').filter(Boolean)
+    if (patternSegments.length !== segments.length) continue
+
+    const matches = patternSegments.every(
+      (segment, i) => segment.startsWith(':') || segment === segments[i]
+    )
+    if (matches) return roles
+  }
+
+  return undefined
 }
 
 /** Human-readable label for a role, for headers and badges. */

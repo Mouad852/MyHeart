@@ -23,6 +23,7 @@ import ProtectedRoute, { RequireRole } from './auth/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import PatientsPage from './pages/Patients/PatientsPage'
+import PatientDetail from './pages/Patients/PatientDetail'
 import DoctorsPage from './pages/Doctors/DoctorsPage'
 import AppointmentsPage from './pages/Appointments/AppointmentsPage'
 import BillingPage from './pages/Billing/BillingPage'
@@ -47,6 +48,7 @@ export default function App() {
             {/* ── Core routes ──────────────────────── */}
             <Route index element={<Dashboard />} />
             <Route path="patients" element={<PatientsPage />} />
+            <Route path="patients/:id" element={<PatientDetail />} />
             <Route path="doctors" element={<DoctorsPage />} />
             <Route path="appointments" element={<AppointmentsPage />} />
 
