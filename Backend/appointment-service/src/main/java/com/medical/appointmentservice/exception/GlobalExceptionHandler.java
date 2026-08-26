@@ -2,6 +2,7 @@ package com.medical.appointmentservice.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -32,16 +33,30 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    @ExceptionHandler(ExternalServiceException.class)
-    public ResponseEntity<ErrorResponse> handleExternalServiceException(ExternalServiceException ex) {
-        log.error("External service error: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
+    /**
+     * Authorization failures (403). Without this the catch-all below reports a
+     * permission problem as a server fault.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                 ErrorResponse.builder()
                         .timestamp(LocalDateTime.now().toString())
-                        .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
-                        .error("External Service Error")
-                        .message(ex.getMessage())
+                        .status(HttpStatus.FORBIDDEN.value())
+                        .error("Forbidden")
+                        .message("You do not have permission to access this record.")
                         .build());
+    }
+
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<Map<String, String>> handleExternalService(ExternalServiceException ex) {
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(Map.of(
+                "error", "Upstream service unavailable",
+                "message", ex.getMessage()
+            ));
     }
 
     @ExceptionHandler(IllegalStateException.class)

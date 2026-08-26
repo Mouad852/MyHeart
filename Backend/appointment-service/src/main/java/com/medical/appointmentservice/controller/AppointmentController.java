@@ -1,12 +1,15 @@
 package com.medical.appointmentservice.controller;
 
 import com.medical.appointmentservice.dto.AppointmentDTO;
+import com.medical.appointmentservice.security.CallerIdentity;
 import com.medical.appointmentservice.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +29,7 @@ import java.util.List;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final CallerIdentity callerIdentity;
 
     /**
      * POST /appointments
@@ -45,7 +49,17 @@ public class AppointmentController {
      * Returns all appointments enriched with patient and doctor details.
      */
     @GetMapping
-    public ResponseEntity<List<AppointmentDTO.Response>> getAllAppointments() {
+    public ResponseEntity<List<AppointmentDTO.Response>> getAllAppointments(
+            Authentication authentication) {
+        // A patient sees only their own appointments. The narrowing happens in
+        // the query, not in the response, so nothing extra is ever serialised.
+        if (callerIdentity.isPatientOnly(authentication)) {
+            Long patientId = callerIdentity.patientId(authentication);
+            if (patientId == null) {
+                throw new AccessDeniedException("No patient identity in token");
+            }
+            return ResponseEntity.ok(appointmentService.getAppointmentsForPatient(patientId));
+        }
         log.info("REST GET /appointments");
         return ResponseEntity.ok(appointmentService.getAllAppointments());
     }
@@ -55,9 +69,17 @@ public class AppointmentController {
      * Returns a single appointment by its ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<AppointmentDTO.Response> getAppointmentById(@PathVariable Long id) {
+    public ResponseEntity<AppointmentDTO.Response> getAppointmentById(
+            @PathVariable Long id, Authentication authentication) {
         log.info("REST GET /appointments/{}", id);
-        return ResponseEntity.ok(appointmentService.getAppointmentById(id));
+        AppointmentDTO.Response appointment = appointmentService.getAppointmentById(id);
+
+        // The row has to be fetched before ownership can be judged, so the
+        // check happens here rather than in a @PreAuthorize expression.
+        if (!callerIdentity.canReadAppointmentOf(appointment.getPatientId(), authentication)) {
+            throw new AccessDeniedException("Not permitted to read appointment " + id);
+        }
+        return ResponseEntity.ok(appointment);
     }
 
     /**

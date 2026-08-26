@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,10 @@ import java.util.List;
 /**
  * REST Controller for Patient operations.
  * Exposes endpoints under /patients.
+ *
+ * Read access is guarded by {@link com.medical.patientservice.security.PatientAccessGuard}:
+ * staff may read any record, a patient may read only their own. Write access is
+ * restricted by role in SecurityConfig.
  *
  * All input validation is triggered via @Valid annotation.
  * HTTP status codes follow REST conventions:
@@ -46,6 +51,7 @@ public class PatientController {
      * Retrieve all patients.
      */
     @GetMapping
+    @PreAuthorize("@patientAccess.canReadAll(authentication)")
     public ResponseEntity<List<PatientDTO.Response>> getAllPatients() {
         log.info("REST GET /patients - Fetching all patients");
         return ResponseEntity.ok(patientService.getAllPatients());
@@ -56,6 +62,7 @@ public class PatientController {
      * Retrieve a specific patient by their ID.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("@patientAccess.canRead(#id, authentication)")
     public ResponseEntity<PatientDTO.Response> getPatientById(@PathVariable Long id) {
         log.info("REST GET /patients/{} - Fetching patient", id);
         return ResponseEntity.ok(patientService.getPatientById(id));

@@ -2,6 +2,7 @@ package com.medical.patientservice.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -78,6 +79,24 @@ public class GlobalExceptionHandler {
         response.put("fieldErrors", fieldErrors);
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * Authorization failures from @PreAuthorize (403).
+     *
+     * Without this handler the catch-all below turns every denial into a 500,
+     * which hides a permission problem behind an apparent server fault.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error("Forbidden")
+                .message("You do not have permission to access this record.")
+                .build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
     /**
