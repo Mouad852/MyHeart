@@ -14,4 +14,6 @@ public interface PrescriptionService {
     List<PrescriptionDTO> getPrescriptionsByPatient(Long patientId);
 
     List<PrescriptionDTO> getPrescriptionsByDoctor(Long doctorId);
+
+    List<PrescriptionDTO> getAllPrescriptions();
 }

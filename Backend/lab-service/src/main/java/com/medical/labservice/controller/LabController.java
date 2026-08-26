@@ -17,7 +17,7 @@ public class LabController {
 
     private final LabService labService;
 
-    @PostMapping("/request")
+    @PostMapping("/requests")
     public ResponseEntity<LabRequestDTO> createLabRequest(@Valid @RequestBody CreateLabRequestDTO request) {
         return new ResponseEntity<>(labService.createLabRequest(request), HttpStatus.CREATED);
     }
@@ -40,5 +40,10 @@ public class LabController {
     @GetMapping("/{id}/results")
     public ResponseEntity<List<LabResultDTO>> getResultsByRequest(@PathVariable Long id) {
         return ResponseEntity.ok(labService.getResultsByRequest(id));
+    }
+
+    @GetMapping("/requests")
+    public ResponseEntity<List<LabRequestDTO>> getAllRequests() {
+        return ResponseEntity.ok(labService.getAllRequests());
     }
 }

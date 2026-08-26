@@ -33,4 +33,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(500, "Internal error: " + ex.getMessage(), LocalDateTime.now()));
     }
+
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<Map<String, String>> handleExternalService(ExternalServiceException ex) {
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(Map.of(
+                "error", "Upstream service unavailable",
+                "message", ex.getMessage()
+            ));
+    }
 }

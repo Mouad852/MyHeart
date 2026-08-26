@@ -90,4 +90,13 @@ public class BillingServiceImpl implements BillingService {
                 .paidAt(invoice.getPaidAt())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InvoiceDTO> getAllInvoices() {
+        return invoiceRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
 }

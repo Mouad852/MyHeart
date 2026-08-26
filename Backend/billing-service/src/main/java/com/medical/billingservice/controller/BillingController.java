@@ -42,4 +42,9 @@ public class BillingController {
     public ResponseEntity<InvoiceDTO> cancelInvoice(@PathVariable Long id) {
         return ResponseEntity.ok(billingService.cancelInvoice(id));
     }
+
+    @GetMapping
+    public ResponseEntity<List<InvoiceDTO>> getAllInvoices() {
+        return ResponseEntity.ok(billingService.getAllInvoices());
+    }
 }

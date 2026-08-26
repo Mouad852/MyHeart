@@ -42,7 +42,8 @@ public class LabServiceImpl implements LabService {
     public LabResultDTO submitLabResult(CreateLabResultDTO resultDTO) {
         log.info("Submitting lab result for requestId={}", resultDTO.getLabRequestId());
         LabRequest labRequest = labRequestRepository.findById(resultDTO.getLabRequestId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lab request not found with id: " + resultDTO.getLabRequestId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Lab request not found with id: " + resultDTO.getLabRequestId()));
 
         LabResult result = LabResult.builder()
                 .labRequestId(labRequest.getId())
@@ -100,5 +101,13 @@ public class LabServiceImpl implements LabService {
                 .observations(r.getObservations())
                 .resultedAt(r.getResultedAt())
                 .build();
+    }
+
+    @Override
+    public List<LabRequestDTO> getAllRequests() {
+        return labRequestRepository.findAll()
+                .stream()
+                .map(this::toRequestDTO)
+                .collect(Collectors.toList());
     }
 }
