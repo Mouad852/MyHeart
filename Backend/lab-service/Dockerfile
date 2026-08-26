@@ -11,4 +11,6 @@ RUN addgroup -S medical && adduser -S medical -G medical
 COPY --from=build /app/target/*.jar app.jar
 USER medical
 EXPOSE 8005
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:8005/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]

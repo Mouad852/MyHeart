@@ -16,12 +16,13 @@ The backend uses a true microservices approach where each functional domain mana
 |---|---|---|---|
 | **API Gateway** | `8080` | None | Unified entry point for all client requests; handles routing to corresponding microservices. |
 | **Eureka Server** | `8761` | None | Service Discovery registry; keeps track of all active microservice instances. |
-| **Patient Service** | `8081` | `patientdb` | Manages patient profiles, medical histories, and personal details. |
-| **Doctor Service** | `8082` | `doctordb` | Handles doctor profiles, specializations, and availability. |
-| **Appointment Service**| `8083` | `appointmentdb`| Core orchestrator managing the lifecycle of appointments. Communicates with Client, Doctor, and Billing services. |
-| **Billing Service** | `8084` | `billingdb` | Manages patient invoices, payments, and financial processing. |
-| **Prescription Service**| `8085` | `prescriptiondb`| Manages medication records and digital prescriptions. |
-| **Lab Service** | `8086` | `labdb` | Handles the recording and tracking of laboratory tests and results. |
+| **Patient Service** | `8001` | `patientdb` | Manages patient profiles, medical histories, and personal details. |
+| **Doctor Service** | `8003` | `doctordb` | Handles doctor profiles, specializations, and availability. |
+| **Appointment Service**| `8006` | `appointmentdb`| Core orchestrator managing the lifecycle of appointments. Communicates with Client, Doctor, and Billing services. |
+| **Billing Service** | `8002` | `billingdb` | Manages patient invoices, payments, and financial processing. |
+| **Prescription Service**| `8004` | `prescriptiondb`| Manages medication records and digital prescriptions. |
+| **Lab Service** | `8005` | `labdb` | Handles the recording and tracking of laboratory tests and results. |
+| **Keycloak** | `8480` (host) → `8080` (internal) | `keycloakdb` | Identity provider issuing the JWTs the gateway validates. |
 
 *All databases utilize **PostgreSQL** under the hood.*
 
@@ -41,17 +42,24 @@ Follow the instructions below to spin up both the backend and frontend environme
 
 ### 1. Starting the Backend (Docker)
 
-The easiest way to run the entire backend infrastructure (All 8 services + 6 PostgreSQL databases) is via Docker Compose.
+The easiest way to run the entire backend infrastructure (8 Spring Boot services, 7 PostgreSQL databases and Keycloak) is via Docker Compose.
 
 ```bash
 # Navigate to the Backend directory
 cd Backend
 
+# Create your local environment file and fill in the credentials
+cp .env.example .env
+
 # Build and start all containers in detached mode
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
-> **Note**: Because the project spins up 14 containers (6 databases + 8 Spring Boot apps), it might take a minute or two for all services (especially the `api-gateway` and `appointment-service`) to become fully healthy. You can check the Eureka dashboard at `http://localhost:8761`.
+> Docker Compose reads `.env` for all database and Keycloak credentials.
+> Compose fails fast with a clear message if a required variable is missing.
+> `.env` is gitignored — never commit it.
+
+> **Note**: Because the project spins up 16 containers (7 databases + 8 Spring Boot apps + Keycloak), it might take a minute or two for all services (especially the `api-gateway` and `appointment-service`) to become fully healthy. You can check the Eureka dashboard at `http://localhost:8761`.
 
 ### 2. Starting the Frontend
 
@@ -69,6 +77,42 @@ npm run dev
 ```
 
 The frontend application should now be accessible at the local URL provided by Vite (often `http://localhost:5173`).
+
+## 🔐 Authentication
+
+All API traffic is authenticated with Keycloak using OpenID Connect
+(Authorization Code Flow with PKCE). The React app never handles a password:
+credentials are entered on Keycloak's own login screen.
+
+The realm, its roles and the demo users are imported from
+`Backend/keycloak/realm-export.json` when Keycloak first starts, so a fresh
+clone gets an identical working setup with no manual console steps.
+
+| Demo account | Role | Sees |
+|---|---|---|
+| `admin.demo` | Administrator | Everything |
+| `doctor.demo` | Doctor | Patients, appointments, prescriptions, labs |
+| `reception.demo` | Receptionist | Registration, scheduling, invoices |
+| `patient.demo` | Patient | Only their own records |
+
+All demo accounts use the password `DemoPass123!`.
+
+> Every record in this deployment is fictional. This is a portfolio project and
+> is not certified for real medical data.
+
+**How authorization is layered**
+
+1. The **API gateway** validates the token and applies coarse path plus role
+   rules, mapping Keycloak's `realm_access.roles` claim onto Spring
+   authorities.
+2. **patient-service** validates the token again for itself, because any
+   container on the Docker network could otherwise call it directly.
+3. **Record ownership** is enforced per method: staff may read any patient, a
+   patient may read only the record matching the `patientId` claim in their
+   token. Changing the id in the URL returns 403, not another patient's data.
+
+Keycloak is reachable at `http://localhost:8480` (admin console credentials
+come from `.env`).
 
 ## 📁 Repository Structure
 

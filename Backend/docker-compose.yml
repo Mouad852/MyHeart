@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # ──────────────────────────────────────────────────────────
@@ -11,8 +9,8 @@ services:
     container_name: patient-db
     environment:
       POSTGRES_DB: patientdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${PATIENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${PATIENT_DB_PASSWORD:?PATIENT_DB_PASSWORD is required}
     ports:
       - "5433:5432"
     volumes:
@@ -20,7 +18,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d patientdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${PATIENT_DB_USER:-postgres} -d patientdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,8 +28,8 @@ services:
     container_name: doctor-db
     environment:
       POSTGRES_DB: doctordb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${DOCTOR_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DOCTOR_DB_PASSWORD:?DOCTOR_DB_PASSWORD is required}
     ports:
       - "5434:5432"
     volumes:
@@ -39,7 +37,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d doctordb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DOCTOR_DB_USER:-postgres} -d doctordb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -49,8 +47,8 @@ services:
     container_name: appointment-db
     environment:
       POSTGRES_DB: appointmentdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${APPOINTMENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${APPOINTMENT_DB_PASSWORD:?APPOINTMENT_DB_PASSWORD is required}
     ports:
       - "5435:5432"
     volumes:
@@ -58,7 +56,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d appointmentdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${APPOINTMENT_DB_USER:-postgres} -d appointmentdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -68,8 +66,8 @@ services:
     container_name: billing-db
     environment:
       POSTGRES_DB: billingdb
-      POSTGRES_USER: billing_user
-      POSTGRES_PASSWORD: billing_pass
+      POSTGRES_USER: ${BILLING_DB_USER:-billing_user}
+      POSTGRES_PASSWORD: ${BILLING_DB_PASSWORD:?BILLING_DB_PASSWORD is required}
     ports:
       - "5436:5432"
     volumes:
@@ -77,7 +75,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U billing_user -d billingdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${BILLING_DB_USER:-billing_user} -d billingdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -87,8 +85,8 @@ services:
     container_name: prescription-db
     environment:
       POSTGRES_DB: prescriptiondb
-      POSTGRES_USER: prescription_user
-      POSTGRES_PASSWORD: prescription_pass
+      POSTGRES_USER: ${PRESCRIPTION_DB_USER:-prescription_user}
+      POSTGRES_PASSWORD: ${PRESCRIPTION_DB_PASSWORD:?PRESCRIPTION_DB_PASSWORD is required}
     ports:
       - "5437:5432"
     volumes:
@@ -96,7 +94,7 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U prescription_user -d prescriptiondb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${PRESCRIPTION_DB_USER:-prescription_user} -d prescriptiondb" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -106,8 +104,8 @@ services:
     container_name: lab-db
     environment:
       POSTGRES_DB: labdb
-      POSTGRES_USER: lab_user
-      POSTGRES_PASSWORD: lab_pass
+      POSTGRES_USER: ${LAB_DB_USER:-lab_user}
+      POSTGRES_PASSWORD: ${LAB_DB_PASSWORD:?LAB_DB_PASSWORD is required}
     ports:
       - "5438:5432"
     volumes:
@@ -115,10 +113,27 @@ services:
     networks:
       - medical-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U lab_user -d labdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${LAB_DB_USER:-lab_user} -d labdb" ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: keycloak-db
+    environment:
+      POSTGRES_DB: keycloakdb
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak} -d keycloakdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medical-network
 
   # ──────────────────────────────────────────────────────────
   # SERVICE DISCOVERY
@@ -130,7 +145,7 @@ services:
       dockerfile: Dockerfile
     container_name: eureka-server
     ports:
-      - "8761:8761" # ✅ unchanged
+      - "8761:8761"
     networks:
       - medical-network
     environment:
@@ -153,15 +168,15 @@ services:
       dockerfile: Dockerfile
     container_name: patient-service
     ports:
-      - "8001:8001" # ✅ unchanged
+      - "8001:8001"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=patient-service
-      - SERVER_PORT=8001 # 🔧 fixed: was 8081 (excluded)
+      - SERVER_PORT=8001
       - SPRING_DATASOURCE_URL=jdbc:postgresql://patient-db:5432/patientdb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_DATASOURCE_USERNAME=${PATIENT_DB_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${PATIENT_DB_PASSWORD:?PATIENT_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -182,15 +197,15 @@ services:
       dockerfile: Dockerfile
     container_name: doctor-service
     ports:
-      - "8003:8003" # 🔧 fixed host: was 8080 (conflicts with gateway)
+      - "8003:8003"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=doctor-service
-      - SERVER_PORT=8003 # 🔧 fixed: was 8082 (excluded)
+      - SERVER_PORT=8003
       - SPRING_DATASOURCE_URL=jdbc:postgresql://doctor-db:5432/doctordb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_DATASOURCE_USERNAME=${DOCTOR_DB_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${DOCTOR_DB_PASSWORD:?DOCTOR_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -211,15 +226,15 @@ services:
       dockerfile: Dockerfile
     container_name: billing-service
     ports:
-      - "8002:8002" # ✅ unchanged
+      - "8002:8002"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=billing-service
       - SERVER_PORT=8002
       - SPRING_DATASOURCE_URL=jdbc:postgresql://billing-db:5432/billingdb
-      - SPRING_DATASOURCE_USERNAME=billing_user
-      - SPRING_DATASOURCE_PASSWORD=billing_pass
+      - SPRING_DATASOURCE_USERNAME=${BILLING_DB_USER:-billing_user}
+      - SPRING_DATASOURCE_PASSWORD=${BILLING_DB_PASSWORD:?BILLING_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -240,15 +255,15 @@ services:
       dockerfile: Dockerfile
     container_name: prescription-service
     ports:
-      - "8004:8004" # 🔧 fixed: was 8085:8085 (excluded)
+      - "8004:8004"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=prescription-service
-      - SERVER_PORT=8004 # 🔧 fixed: was 8085 (excluded)
+      - SERVER_PORT=8004
       - SPRING_DATASOURCE_URL=jdbc:postgresql://prescription-db:5432/prescriptiondb
-      - SPRING_DATASOURCE_USERNAME=prescription_user
-      - SPRING_DATASOURCE_PASSWORD=prescription_pass
+      - SPRING_DATASOURCE_USERNAME=${PRESCRIPTION_DB_USER:-prescription_user}
+      - SPRING_DATASOURCE_PASSWORD=${PRESCRIPTION_DB_PASSWORD:?PRESCRIPTION_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -273,15 +288,15 @@ services:
       dockerfile: Dockerfile
     container_name: lab-service
     ports:
-      - "8005:8005" # 🔧 fixed: was 8086:8086 (excluded)
+      - "8005:8005"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=lab-service
-      - SERVER_PORT=8005 # 🔧 fixed: was 8086 (excluded)
+      - SERVER_PORT=8005
       - SPRING_DATASOURCE_URL=jdbc:postgresql://lab-db:5432/labdb
-      - SPRING_DATASOURCE_USERNAME=lab_user
-      - SPRING_DATASOURCE_PASSWORD=lab_pass
+      - SPRING_DATASOURCE_USERNAME=${LAB_DB_USER:-lab_user}
+      - SPRING_DATASOURCE_PASSWORD=${LAB_DB_PASSWORD:?LAB_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -306,15 +321,15 @@ services:
       dockerfile: Dockerfile
     container_name: appointment-service
     ports:
-      - "8006:8006" # 🔧 fixed: was 8083:8083 (excluded)
+      - "8006:8006"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=appointment-service
-      - SERVER_PORT=8006 # 🔧 fixed: was 8083 (excluded)
+      - SERVER_PORT=8006
       - SPRING_DATASOURCE_URL=jdbc:postgresql://appointment-db:5432/appointmentdb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_DATASOURCE_USERNAME=${APPOINTMENT_DB_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${APPOINTMENT_DB_PASSWORD:?APPOINTMENT_DB_PASSWORD is required}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -345,12 +360,16 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8080:8080" # 🔧 fixed host: was 8088 (excluded)
+      - "8080:8080"
     networks:
       - medical-network
     environment:
       - SPRING_APPLICATION_NAME=api-gateway
       - SERVER_PORT=8080
+      - KEYCLOAK_INTERNAL_URL=${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI:-http://localhost:8480/realms/myheart}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-myheart}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
     depends_on:
@@ -369,6 +388,32 @@ services:
       lab-service:
         condition: service_healthy
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloakdb
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
+      KC_HOSTNAME_URL: http://localhost:8480
+      KC_HOSTNAME_ADMIN_URL: http://localhost:8480
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    ports:
+      - "8480:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - medical-network
+
 # ──────────────────────────────────────────────────────────
 # VOLUMES
 # ──────────────────────────────────────────────────────────
@@ -384,6 +429,8 @@ volumes:
   prescription-db-data:
     driver: local
   lab-db-data:
+    driver: local
+  keycloak-db-data:
     driver: local
 
 # ──────────────────────────────────────────────────────────

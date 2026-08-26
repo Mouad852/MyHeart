@@ -12,5 +12,7 @@ WORKDIR /app
 RUN addgroup -S medical && adduser -S medical -G medical
 COPY --from=build /app/target/*.jar app.jar
 USER medical
-EXPOSE 8084
+EXPOSE 8002
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:8002/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
