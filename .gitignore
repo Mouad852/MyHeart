@@ -22,3 +22,6 @@ build/
 *-data/
 *db-data/
 data/
+
+# Local Keycloak realm backups taken before a destructive change
+Backend/keycloak/realm-backup-*.json
