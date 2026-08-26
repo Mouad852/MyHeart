@@ -1,0 +1,73 @@
+package com.medical.apigateway.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+
+@Configuration
+@EnableWebFluxSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        return http
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .authorizeExchange(ex -> ex
+
+                        // CORS preflight carries no credentials and must never be blocked.
+                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
+
+                        // Public endpoints
+                        .pathMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+
+                        // Patients
+                        // PATIENT is allowed through here on purpose. The gateway
+                        // cannot tell whose record is being requested, so
+                        // patient-service makes the ownership decision and returns
+                        // 403 when a patient asks for a record that is not theirs.
+                        .pathMatchers(HttpMethod.GET, "/patients/**")
+                        .hasAnyRole("DOCTOR", "NURSE", "ADMIN", "RECEPTIONIST", "PATIENT")
+                        .pathMatchers(HttpMethod.POST, "/patients/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+                        .pathMatchers(HttpMethod.PUT, "/patients/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+                        .pathMatchers(HttpMethod.DELETE, "/patients/**").hasRole("ADMIN")
+
+                        // Doctors
+                        .pathMatchers(HttpMethod.GET, "/doctors/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        .pathMatchers(HttpMethod.POST, "/doctors/**").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.PUT, "/doctors/**").hasRole("ADMIN")
+                        .pathMatchers(HttpMethod.DELETE, "/doctors/**").hasRole("ADMIN")
+
+                        // Appointments
+                        // PATIENT is allowed through; appointment-service narrows
+                        // the result to appointments that belong to them.
+                        .pathMatchers(HttpMethod.GET, "/appointments/**")
+                        .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST", "PATIENT")
+                        .pathMatchers(HttpMethod.POST, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+                        .pathMatchers(HttpMethod.PUT, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+                        .pathMatchers(HttpMethod.DELETE, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
+
+                        // Billing
+                        .pathMatchers(HttpMethod.GET, "/billing/**").hasAnyRole("BILLING", "ADMIN", "RECEPTIONIST")
+                        .pathMatchers(HttpMethod.POST, "/billing/**").hasAnyRole("BILLING", "ADMIN")
+                        .pathMatchers("/billing/pay/**").hasAnyRole("BILLING", "ADMIN", "RECEPTIONIST")
+
+                        // Prescriptions
+                        .pathMatchers(HttpMethod.GET, "/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        .pathMatchers(HttpMethod.POST, "/prescriptions/**").hasAnyRole("DOCTOR", "ADMIN")
+
+                        // Labs
+                        .pathMatchers(HttpMethod.GET, "/labs/**").hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST")
+                        .pathMatchers(HttpMethod.POST, "/labs/**").hasAnyRole("DOCTOR", "ADMIN")
+
+                        .anyExchange().authenticated())
+                // Without this converter Keycloak's realm_access.roles claim is
+                // never translated into ROLE_* authorities, and every hasRole
+                // rule above would reject otherwise valid tokens.
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter())))
+                .build();
+    }
+}
