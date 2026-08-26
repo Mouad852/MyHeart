@@ -15,6 +15,15 @@ public interface AppointmentService {
 
     AppointmentDTO.Response createAppointment(AppointmentDTO.Request request);
 
+    /**
+     * Create an appointment in a given starting state.
+     *
+     * The desk books slots directly, so its bookings start CONFIRMED. A patient
+     * can only ask, so theirs start REQUESTED and wait for somebody to agree.
+     */
+    AppointmentDTO.Response createAppointment(
+            AppointmentDTO.Request request, AppointmentStatus initialStatus);
+
     List<AppointmentDTO.Response> getAllAppointments();
 
     /** A page of appointments narrowed by whichever filters were supplied. */

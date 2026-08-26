@@ -45,6 +45,12 @@ public class SecurityConfig {
                         // the result to appointments that belong to them.
                         .pathMatchers(HttpMethod.GET, "/appointments/**")
                         .hasAnyRole("DOCTOR", "ADMIN", "RECEPTIONIST", "PATIENT")
+                        // A patient may ask for a slot on the one collection
+                        // endpoint. appointment-service replaces the patientId
+                        // with their own and records it as REQUESTED, so a
+                        // request still has to be agreed by the desk.
+                        .pathMatchers(HttpMethod.POST, "/appointments")
+                        .hasAnyRole("RECEPTIONIST", "ADMIN", "PATIENT")
                         .pathMatchers(HttpMethod.POST, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
                         .pathMatchers(HttpMethod.PUT, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")
                         .pathMatchers(HttpMethod.DELETE, "/appointments/**").hasAnyRole("RECEPTIONIST", "ADMIN")

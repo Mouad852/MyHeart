@@ -45,10 +45,27 @@ public class AppointmentController {
      */
     @PostMapping
     public ResponseEntity<AppointmentDTO.Response> createAppointment(
-            @Valid @RequestBody AppointmentDTO.Request request) {
-        log.info("REST POST /appointments - patientId={}, doctorId={}",
-                request.getPatientId(), request.getDoctorId());
-        AppointmentDTO.Response response = appointmentService.createAppointment(request);
+            @Valid @RequestBody AppointmentDTO.Request request,
+            Authentication authentication) {
+
+        // Who is asking decides what is created. The desk books a slot; a
+        // patient can only request one, and the patientId on the request is
+        // replaced with their own rather than trusted from the body, so nobody
+        // can book time in somebody else's name.
+        AppointmentStatus initialStatus = AppointmentStatus.CONFIRMED;
+        if (callerIdentity.isPatientOnly(authentication)) {
+            Long own = callerIdentity.patientId(authentication);
+            if (own == null) {
+                throw new AccessDeniedException("No patient identity in token");
+            }
+            request.setPatientId(own);
+            initialStatus = AppointmentStatus.REQUESTED;
+        }
+
+        log.info("REST POST /appointments - patientId={}, doctorId={}, initialStatus={}",
+                request.getPatientId(), request.getDoctorId(), initialStatus);
+        AppointmentDTO.Response response =
+                appointmentService.createAppointment(request, initialStatus);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

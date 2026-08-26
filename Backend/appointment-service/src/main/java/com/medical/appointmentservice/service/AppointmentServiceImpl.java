@@ -60,8 +60,19 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public AppointmentDTO.Response createAppointment(AppointmentDTO.Request request) {
-        log.info("Creating appointment: patientId={}, doctorId={}",
-                request.getPatientId(), request.getDoctorId());
+        return createAppointment(request, AppointmentStatus.CONFIRMED);
+    }
+
+    /**
+     * @param initialStatus CONFIRMED when the desk books the slot itself,
+     *        REQUESTED when a patient is asking for one. A request is not a
+     *        booking: it holds no slot until somebody agrees to it.
+     */
+    @Override
+    public AppointmentDTO.Response createAppointment(
+            AppointmentDTO.Request request, AppointmentStatus initialStatus) {
+        log.info("Creating appointment: patientId={}, doctorId={}, initialStatus={}",
+                request.getPatientId(), request.getDoctorId(), initialStatus);
 
         // ─── Step 1: Verify patient exists via Patient Service ───────────────
         PatientInfo patient = verifyPatient(request.getPatientId());
@@ -84,7 +95,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .appointmentDate(request.getAppointmentDate())
                 .durationMinutes(duration)
                 .notes(request.getNotes())
-                .status(AppointmentStatus.CONFIRMED)
+                .status(initialStatus)
                 .statusChangedAt(LocalDateTime.now())
                 .build();
 
@@ -92,25 +103,43 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Appointment created with ID: {}", saved.getId());
 
         // ─── Step 5: Trigger invoice creation in billing-service ─────────────
+        // A patient asking for a time has not incurred a charge. Invoicing on
+        // REQUESTED would bill people for appointments the clinic may never
+        // agree to, and leave a void invoice behind for every one it declines.
+        if (initialStatus == AppointmentStatus.CONFIRMED) {
+            raiseInvoice(saved, request.getServiceCode());
+        }
+
+        // ─── Step 6: Return enriched response ────────────────────────────────
+        return mapToResponse(saved, patient, doctor);
+    }
+
+    /**
+     * Ask billing for an invoice.
+     *
+     * Billing is idempotent by appointment, so calling this from both the
+     * booking path and the confirmation path cannot charge a patient twice.
+     * Failure is logged and swallowed on purpose: an unbilled appointment is a
+     * problem for the accounts, a lost appointment is a problem for a patient
+     * standing at the desk.
+     */
+    private void raiseInvoice(Appointment appointment, String serviceCode) {
         try {
             // No amount is sent. What a consultation costs is billing's business,
             // and it reads the price from the clinic's service catalogue, so a
             // price change is an administrative act rather than a redeploy here.
             BillingRequest billingRequest = BillingRequest.builder()
-                    .appointmentId(saved.getId())
-                    .patientId(saved.getPatientId())
-                    .serviceCode(request.getServiceCode())
-                    .description("Consultation invoice for appointment #" + saved.getId())
+                    .appointmentId(appointment.getId())
+                    .patientId(appointment.getPatientId())
+                    .serviceCode(serviceCode)
+                    .description("Consultation invoice for appointment #" + appointment.getId())
                     .build();
             billingClient.createInvoice(billingRequest);
-            log.info("Invoice creation triggered for appointmentId={}", saved.getId());
+            log.info("Invoice creation triggered for appointmentId={}", appointment.getId());
         } catch (Exception e) {
-            // Billing failure must NOT roll back the appointment
-            log.warn("Could not create invoice for appointmentId={}: {}", saved.getId(), e.getMessage());
+            log.warn("Could not create invoice for appointmentId={}: {}",
+                    appointment.getId(), e.getMessage());
         }
-
-        // ─── Step 6: Return enriched response ────────────────────────────────
-        return mapToResponse(saved, patient, doctor);
     }
 
     @Override
@@ -234,6 +263,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment updated = appointmentRepository.save(appointment);
         log.info("Appointment {} moved from {} to {}", id, current, target);
+
+        // Agreeing to a requested slot is the point at which the clinic has
+        // committed to the work, so that is where the invoice belongs.
+        if (current == AppointmentStatus.REQUESTED && target == AppointmentStatus.CONFIRMED) {
+            raiseInvoice(updated, null);
+        }
 
         PatientInfo patient = safeGetPatient(updated.getPatientId());
         DoctorInfo doctor = safeGetDoctor(updated.getDoctorId());

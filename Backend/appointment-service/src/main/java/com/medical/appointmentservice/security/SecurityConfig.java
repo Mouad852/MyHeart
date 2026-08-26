@@ -31,6 +31,12 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         // Booking and rescheduling stay with front-desk staff.
+                        // A patient may ask for a slot on the collection
+                        // endpoint only. The controller replaces the patientId
+                        // with their own and records the appointment as
+                        // REQUESTED, so asking is not the same as booking.
+                        .requestMatchers(HttpMethod.POST, "/appointments")
+                        .hasAnyRole("ADMIN", "RECEPTIONIST", "PATIENT")
                         .requestMatchers(HttpMethod.POST, "/appointments/**")
                         .hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/appointments/**")
