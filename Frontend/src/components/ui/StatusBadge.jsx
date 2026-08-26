@@ -8,6 +8,7 @@
  *   Payment:  PENDING · PAID · CANCELLED · OVERDUE
  *   Lab:      PENDING · IN_PROGRESS · COMPLETED · CANCELLED
  *   General:  ACTIVE · INACTIVE
+ *   Appointment: REQUESTED · CONFIRMED · COMPLETED · CANCELLED · NO_SHOW
  * ─────────────────────────────────────────────────────────────────
  */
 
@@ -23,7 +24,10 @@ const STATUS_MAP = {
   // ── Generic ───────────────────────────────────
   ACTIVE:      { label: 'Active',      className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
   INACTIVE:    { label: 'Inactive',    className: 'bg-slate-500/15  text-slate-400  border-slate-500/20'  },
-  SCHEDULED:   { label: 'Scheduled',   className: 'bg-teal-500/15   text-teal-400   border-teal-500/20'   },
+  // ── Appointment lifecycle ─────────────────────
+  REQUESTED:   { label: 'Requested',   className: 'bg-amber-500/15  text-amber-400  border-amber-500/20'  },
+  CONFIRMED:   { label: 'Confirmed',   className: 'bg-teal-500/15   text-teal-400   border-teal-500/20'   },
+  NO_SHOW:     { label: 'No show',     className: 'bg-orange-500/15 text-orange-400 border-orange-500/20' },
 }
 
 /**

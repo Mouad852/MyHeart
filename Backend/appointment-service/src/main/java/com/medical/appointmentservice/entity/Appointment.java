@@ -2,6 +2,8 @@ package com.medical.appointmentservice.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -48,7 +50,23 @@ public class Appointment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private AppointmentStatus status = AppointmentStatus.SCHEDULED;
+    private AppointmentStatus status = AppointmentStatus.CONFIRMED;
+
+    /**
+     * How long this appointment occupies the calendar. Stored per row so that
+     * changing the clinic default later cannot reshape bookings already made.
+     */
+    @Min(value = 5, message = "An appointment must last at least 5 minutes")
+    @Max(value = 480, message = "An appointment cannot last longer than 8 hours")
+    @Column(name = "duration_minutes", nullable = false)
+    @Builder.Default
+    private Integer durationMinutes = 30;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "status_changed_at")
+    private LocalDateTime statusChangedAt;
 
     @Column(length = 500)
     private String notes;
@@ -61,12 +79,9 @@ public class Appointment {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /**
-     * Enum for appointment lifecycle states.
-     */
-    public enum AppointmentStatus {
-        SCHEDULED,
-        COMPLETED,
-        CANCELLED
+    /** End of the slot. The interval is treated as half-open: [start, end). */
+    public LocalDateTime getEndTime() {
+        int minutes = durationMinutes != null ? durationMinutes : 30;
+        return appointmentDate != null ? appointmentDate.plusMinutes(minutes) : null;
     }
 }

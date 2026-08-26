@@ -1,7 +1,9 @@
 package com.medical.appointmentservice.dto;
 
-import com.medical.appointmentservice.entity.Appointment.AppointmentStatus;
+import com.medical.appointmentservice.entity.AppointmentStatus;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -33,6 +35,14 @@ public class AppointmentDTO {
         private LocalDateTime appointmentDate;
 
         private String notes;
+
+        /**
+         * How long the slot should last. Optional: the clinic default applies
+         * when it is absent.
+         */
+        @Min(value = 5, message = "An appointment must last at least 5 minutes")
+        @Max(value = 480, message = "An appointment cannot last longer than 8 hours")
+        private Integer durationMinutes;
     }
 
     /**
@@ -52,6 +62,10 @@ public class AppointmentDTO {
         private Long doctorId;
         private LocalDateTime appointmentDate;
         private AppointmentStatus status;
+        private Integer durationMinutes;
+        private String cancellationReason;
+        /** Which states this appointment may move to next, for the UI to offer. */
+        private java.util.Set<AppointmentStatus> allowedTransitions;
         private String notes;
         private String createdAt;
 

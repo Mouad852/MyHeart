@@ -8,8 +8,9 @@ import com.medical.appointmentservice.dto.AppointmentDTO.DoctorInfo;
 import com.medical.appointmentservice.dto.AppointmentDTO.PatientInfo;
 import com.medical.appointmentservice.dto.BillingRequest;
 import com.medical.appointmentservice.entity.Appointment;
-import com.medical.appointmentservice.entity.Appointment.AppointmentStatus;
+import com.medical.appointmentservice.entity.AppointmentStatus;
 import com.medical.appointmentservice.exception.ExternalServiceException;
+import com.medical.appointmentservice.exception.InvalidStatusTransitionException;
 import com.medical.appointmentservice.exception.ResourceNotFoundException;
 import com.medical.appointmentservice.repository.AppointmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +43,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class AppointmentServiceImpl implements AppointmentService {
 
+    /** Clinic default when a caller does not ask for a specific length. */
+    private static final int DEFAULT_DURATION_MINUTES = 30;
+
     private final AppointmentRepository appointmentRepository;
+    private final BookingRules bookingRules;
     private final PatientClient patientClient;
     private final DoctorClient doctorClient;
     private final BillingClient billingClient;
@@ -57,19 +63,29 @@ public class AppointmentServiceImpl implements AppointmentService {
         // ─── Step 2: Verify doctor exists via Doctor Service ─────────────────
         DoctorInfo doctor = verifyDoctor(request.getDoctorId());
 
-        // ─── Step 3: Persist the appointment ─────────────────────────────────
+        // ─── Step 3: Apply the booking rules ─────────────────────────────────
+        int duration = request.getDurationMinutes() != null
+                ? request.getDurationMinutes()
+                : DEFAULT_DURATION_MINUTES;
+        bookingRules.assertNotInThePast(request.getAppointmentDate());
+        bookingRules.assertNoConflict(request.getPatientId(), request.getDoctorId(),
+                request.getAppointmentDate(), duration, null);
+
+        // ─── Step 4: Persist the appointment ─────────────────────────────────
         Appointment appointment = Appointment.builder()
                 .patientId(request.getPatientId())
                 .doctorId(request.getDoctorId())
                 .appointmentDate(request.getAppointmentDate())
+                .durationMinutes(duration)
                 .notes(request.getNotes())
-                .status(AppointmentStatus.SCHEDULED)
+                .status(AppointmentStatus.CONFIRMED)
+                .statusChangedAt(LocalDateTime.now())
                 .build();
 
         Appointment saved = appointmentRepository.save(appointment);
         log.info("Appointment created with ID: {}", saved.getId());
 
-        // ─── Step 4: Trigger invoice creation in billing-service ─────────────
+        // ─── Step 5: Trigger invoice creation in billing-service ─────────────
         try {
             BillingRequest billingRequest = BillingRequest.builder()
                     .appointmentId(saved.getId())
@@ -84,7 +100,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.warn("Could not create invoice for appointmentId={}: {}", saved.getId(), e.getMessage());
         }
 
-        // ─── Step 5: Return enriched response ────────────────────────────────
+        // ─── Step 6: Return enriched response ────────────────────────────────
         return mapToResponse(saved, patient, doctor);
     }
 
@@ -151,7 +167,16 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         if (request.getAppointmentDate() != null) {
+            // Moving a booking re-runs the same rules, excluding this row so it
+            // cannot conflict with the slot it is leaving.
+            int duration = request.getDurationMinutes() != null
+                    ? request.getDurationMinutes()
+                    : appointment.getDurationMinutes();
+            bookingRules.assertNotInThePast(request.getAppointmentDate());
+            bookingRules.assertNoConflict(appointment.getPatientId(), appointment.getDoctorId(),
+                    request.getAppointmentDate(), duration, appointment.getId());
             appointment.setAppointmentDate(request.getAppointmentDate());
+            appointment.setDurationMinutes(duration);
         }
 
         if (request.getNotes() != null) {
@@ -167,23 +192,32 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public AppointmentDTO.Response cancelAppointment(Long id) {
-        log.info("Cancelling appointment with ID: {}", id);
+    public AppointmentDTO.Response cancelAppointment(Long id, String reason) {
+        return changeStatus(id, AppointmentStatus.CANCELLED, reason);
+    }
 
+    @Override
+    public AppointmentDTO.Response changeStatus(Long id, AppointmentStatus target, String reason) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with ID: " + id));
 
-        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
-            throw new IllegalStateException("Appointment is already cancelled");
+        AppointmentStatus current = appointment.getStatus();
+        if (!current.canTransitionTo(target)) {
+            log.warn("Rejected status change {} to {} on appointment {}", current, target, id);
+            throw new InvalidStatusTransitionException(current, target);
         }
 
-        appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointment.setStatus(target);
+        appointment.setStatusChangedAt(LocalDateTime.now());
+        if (target == AppointmentStatus.CANCELLED || target == AppointmentStatus.NO_SHOW) {
+            appointment.setCancellationReason(reason);
+        }
+
         Appointment updated = appointmentRepository.save(appointment);
+        log.info("Appointment {} moved from {} to {}", id, current, target);
 
         PatientInfo patient = safeGetPatient(updated.getPatientId());
         DoctorInfo doctor = safeGetDoctor(updated.getDoctorId());
-
-        log.info("Appointment cancelled with ID: {}", updated.getId());
         return mapToResponse(updated, patient, doctor);
     }
 
@@ -259,6 +293,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .doctorId(appointment.getDoctorId())
                 .appointmentDate(appointment.getAppointmentDate())
                 .status(appointment.getStatus())
+                .durationMinutes(appointment.getDurationMinutes())
+                .cancellationReason(appointment.getCancellationReason())
+                .allowedTransitions(appointment.getStatus().allowedTransitions())
                 .notes(appointment.getNotes())
                 .createdAt(appointment.getCreatedAt() != null
                         ? appointment.getCreatedAt().toString()

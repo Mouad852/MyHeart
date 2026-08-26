@@ -23,7 +23,22 @@ const appointmentApi = {
   create: (data) => axiosInstance.post(BASE, data).then((r) => r.data),
 
   /** PATCH /appointments/:id/cancel — cancel an appointment */
-  cancel: (id) => axiosInstance.patch(`${BASE}/${id}/cancel`).then((r) => r.data),
+  cancel: (id, reason) =>
+    axiosInstance
+      .patch(`${BASE}/${id}/cancel`, null, { params: reason ? { reason } : {} })
+      .then((r) => r.data),
+
+  /** PATCH /appointments/:id/confirm — the desk agrees a requested slot */
+  confirm: (id) => axiosInstance.patch(`${BASE}/${id}/confirm`).then((r) => r.data),
+
+  /** PATCH /appointments/:id/complete — the consultation happened */
+  complete: (id) => axiosInstance.patch(`${BASE}/${id}/complete`).then((r) => r.data),
+
+  /** PATCH /appointments/:id/no-show — the patient did not attend */
+  markNoShow: (id, reason) =>
+    axiosInstance
+      .patch(`${BASE}/${id}/no-show`, null, { params: reason ? { reason } : {} })
+      .then((r) => r.data),
 
   /** PATCH /appointments/:id - Update an appointment */
   update: (id, data) => axiosInstance.patch(`${BASE}/${id}`, data).then((r) => r.data),

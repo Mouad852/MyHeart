@@ -1,6 +1,7 @@
 package com.medical.appointmentservice.controller;
 
 import com.medical.appointmentservice.dto.AppointmentDTO;
+import com.medical.appointmentservice.entity.AppointmentStatus;
 import com.medical.appointmentservice.security.CallerIdentity;
 import com.medical.appointmentservice.service.AppointmentService;
 import jakarta.validation.Valid;
@@ -101,8 +102,46 @@ public class AppointmentController {
      * Cancels an existing appointment.
      */
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<AppointmentDTO.Response> cancelAppointment(@PathVariable Long id) {
+    public ResponseEntity<AppointmentDTO.Response> cancelAppointment(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
         log.info("REST PATCH /appointments/{}/cancel", id);
-        return ResponseEntity.ok(appointmentService.cancelAppointment(id));
+        return ResponseEntity.ok(appointmentService.cancelAppointment(id, reason));
     }
+
+    /**
+     * PATCH /appointments/{id}/confirm
+     * The front desk agrees to a slot a patient asked for.
+     */
+    @PatchMapping("/{id}/confirm")
+    public ResponseEntity<AppointmentDTO.Response> confirmAppointment(@PathVariable Long id) {
+        log.info("REST PATCH /appointments/{}/confirm", id);
+        return ResponseEntity.ok(
+                appointmentService.changeStatus(id, AppointmentStatus.CONFIRMED, null));
+    }
+
+    /**
+     * PATCH /appointments/{id}/complete
+     * The consultation happened.
+     */
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<AppointmentDTO.Response> completeAppointment(@PathVariable Long id) {
+        log.info("REST PATCH /appointments/{}/complete", id);
+        return ResponseEntity.ok(
+                appointmentService.changeStatus(id, AppointmentStatus.COMPLETED, null));
+    }
+
+    /**
+     * PATCH /appointments/{id}/no-show
+     * The slot was held and the patient did not attend.
+     */
+    @PatchMapping("/{id}/no-show")
+    public ResponseEntity<AppointmentDTO.Response> markNoShow(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        log.info("REST PATCH /appointments/{}/no-show", id);
+        return ResponseEntity.ok(
+                appointmentService.changeStatus(id, AppointmentStatus.NO_SHOW, reason));
+    }
+
 }

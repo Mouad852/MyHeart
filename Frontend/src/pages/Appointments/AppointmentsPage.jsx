@@ -4,7 +4,7 @@
  * Features:
  *  - Book new appointment (modal with patient + doctor pickers)
  *  - List all appointments with enriched patient/doctor info
- *  - Status badges (SCHEDULED / COMPLETED / CANCELLED)
+ *  - Status badges (REQUESTED / CONFIRMED / COMPLETED / CANCELLED / NO_SHOW)
  *  - Cancel appointment (confirm dialog)
  *  - Filter by status
  *  - Client-side search
@@ -25,7 +25,7 @@ import {
 } from '../../hooks/useAppointments'
 import { formatDate, getStatusBadge } from '../../utils'
 
-const STATUS_FILTERS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED']
+const STATUS_FILTERS = ['ALL', 'REQUESTED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
 
 export default function AppointmentsPage() {
   const { data: appointments = [], isLoading, error, refetch } = useAppointments()
@@ -60,7 +60,10 @@ export default function AppointmentsPage() {
     return list
   }, [appointments, statusFilter, search])
 
-  const scheduledCount = appointments.filter((a) => a.status === 'SCHEDULED').length
+  // Slots that still hold time in the calendar.
+  const scheduledCount = appointments.filter(
+    (a) => a.status === 'REQUESTED' || a.status === 'CONFIRMED'
+  ).length
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -154,7 +157,9 @@ export default function AppointmentsPage() {
           <div className="divide-y divide-white/5">
             {filtered.map((appt, i) => {
               const badge = getStatusBadge(appt.status)
-              const canCancel = appt.status === 'SCHEDULED'
+              // The server returns the transitions it will accept, so the UI
+              // never offers an action that would come back as 409.
+              const canCancel = (appt.allowedTransitions || []).includes('CANCELLED')
 
               return (
                 <div

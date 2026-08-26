@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   // Quick stats
   const scheduledCount = (appointments.data || []).filter(
-    (a) => a.status === 'SCHEDULED'
+    (a) => a.status === 'REQUESTED' || a.status === 'CONFIRMED'
   ).length
 
   return (

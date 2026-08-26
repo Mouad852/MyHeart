@@ -49,6 +49,23 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    /**
+     * A booking that clashes with an existing one, or a status change the
+     * lifecycle forbids. Both are conflicts with the current state of the
+     * world rather than malformed requests, so 409 rather than 400.
+     */
+    @ExceptionHandler({AppointmentConflictException.class, InvalidStatusTransitionException.class})
+    public ResponseEntity<ErrorResponse> handleConflict(RuntimeException ex) {
+        log.warn("Booking conflict: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now().toString())
+                        .status(HttpStatus.CONFLICT.value())
+                        .error("Conflict")
+                        .message(ex.getMessage())
+                        .build());
+    }
+
     @ExceptionHandler(ExternalServiceException.class)
     public ResponseEntity<Map<String, String>> handleExternalService(ExternalServiceException ex) {
         return ResponseEntity

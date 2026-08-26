@@ -1,6 +1,7 @@
 package com.medical.appointmentservice.service;
 
 import com.medical.appointmentservice.dto.AppointmentDTO;
+import com.medical.appointmentservice.entity.AppointmentStatus;
 
 import java.util.List;
 
@@ -20,5 +21,11 @@ public interface AppointmentService {
 
     AppointmentDTO.Response updateAppointment(Long id, AppointmentDTO.Request request);
 
-    AppointmentDTO.Response cancelAppointment(Long id);
+    AppointmentDTO.Response cancelAppointment(Long id, String reason);
+
+    /**
+     * Move an appointment to another lifecycle state, rejecting any transition
+     * the lifecycle does not allow.
+     */
+    AppointmentDTO.Response changeStatus(Long id, AppointmentStatus target, String reason);
 }

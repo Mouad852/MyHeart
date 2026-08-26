@@ -82,7 +82,7 @@ export function getAvatarColor(str = '') {
  */
 export function getStatusBadge(status) {
   switch (status) {
-    case 'SCHEDULED':
+    case 'CONFIRMED':
       return { className: 'bg-teal-500/15 text-teal-400', label: 'Scheduled' }
     case 'COMPLETED':
       return { className: 'bg-blue-500/15 text-blue-400', label: 'Completed' }
