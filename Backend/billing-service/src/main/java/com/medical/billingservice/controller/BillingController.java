@@ -1,5 +1,6 @@
 package com.medical.billingservice.controller;
 
+import com.medical.billingservice.dto.BillingSummaryDTO;
 import com.medical.billingservice.dto.CreateInvoiceRequest;
 import com.medical.billingservice.dto.InvoiceDTO;
 import com.medical.billingservice.service.BillingService;
@@ -21,6 +22,17 @@ public class BillingController {
     @PostMapping("/create")
     public ResponseEntity<InvoiceDTO> createInvoice(@Valid @RequestBody CreateInvoiceRequest request) {
         return new ResponseEntity<>(billingService.createInvoice(request), HttpStatus.CREATED);
+    }
+
+    /**
+     * GET /billing/summary
+     * Counts and totals for the overview screen. Declared before /{id} so the
+     * literal path wins, and cheap enough to poll: the work happens in three
+     * aggregate queries, not by loading invoices.
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<BillingSummaryDTO.Response> getSummary() {
+        return ResponseEntity.ok(billingService.getSummary());
     }
 
     @GetMapping("/{id}")

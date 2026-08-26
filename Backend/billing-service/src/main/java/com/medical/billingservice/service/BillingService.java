@@ -1,5 +1,6 @@
 package com.medical.billingservice.service;
 
+import com.medical.billingservice.dto.BillingSummaryDTO;
 import com.medical.billingservice.dto.CreateInvoiceRequest;
 import com.medical.billingservice.dto.InvoiceDTO;
 
@@ -24,4 +25,7 @@ public interface BillingService {
     InvoiceDTO refundInvoice(Long id, String reason);
 
     List<InvoiceDTO> getAllInvoices();
+
+    /** Counts and totals, computed by the database rather than by loading rows. */
+    BillingSummaryDTO.Response getSummary();
 }

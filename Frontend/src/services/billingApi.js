@@ -40,6 +40,14 @@ const billingApi = {
     axiosInstance.get(BASE).then((r) => r.data),
 
   /**
+   * GET /billing/summary
+   * Counts and totals, aggregated by the database. Cheap enough for the
+   * overview screen to poll, unlike fetching every invoice to count it.
+   */
+  getSummary: () =>
+    axiosInstance.get(`${BASE}/summary`).then((r) => r.data),
+
+  /**
    * PUT /billing/pay/{id}
    * Mark an invoice as PAID.
    */

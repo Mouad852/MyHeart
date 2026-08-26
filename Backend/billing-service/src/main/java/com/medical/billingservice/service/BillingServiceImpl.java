@@ -1,5 +1,6 @@
 package com.medical.billingservice.service;
 
+import com.medical.billingservice.dto.BillingSummaryDTO;
 import com.medical.billingservice.dto.CreateInvoiceRequest;
 import com.medical.billingservice.dto.InvoiceDTO;
 import com.medical.billingservice.entity.Invoice;
@@ -14,9 +15,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -166,5 +170,64 @@ public class BillingServiceImpl implements BillingService {
                 .stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * The clinic's money, without loading the clinic's invoices.
+     *
+     * Three aggregate queries replace what the overview screen used to do by
+     * downloading every row and counting in the browser.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BillingSummaryDTO.Response getSummary() {
+        Map<PaymentStatus, BillingSummaryDTO.StatusTotal> totals = new EnumMap<>(PaymentStatus.class);
+
+        // Every status appears, so a clinic with no refunds still reports
+        // REFUNDED as zero rather than omitting it and leaving the caller to
+        // guess whether the number is absent or missing.
+        for (PaymentStatus status : PaymentStatus.values()) {
+            totals.put(status, BillingSummaryDTO.StatusTotal.builder()
+                    .status(status)
+                    .count(0L)
+                    .amount(BigDecimal.ZERO)
+                    .build());
+        }
+        for (InvoiceRepository.StatusAggregate row : invoiceRepository.totalsByStatus()) {
+            totals.put(row.getStatus(), BillingSummaryDTO.StatusTotal.builder()
+                    .status(row.getStatus())
+                    .count(row.getCount())
+                    .amount(orZero(row.getAmount()))
+                    .build());
+        }
+
+        InvoiceRepository.Aggregate overdue = invoiceRepository.overdueTotals(LocalDate.now());
+
+        BillingSummaryDTO.StatusTotal issued = totals.get(PaymentStatus.ISSUED);
+        BillingSummaryDTO.StatusTotal paid = totals.get(PaymentStatus.PAID);
+
+        // Collected is the PAID total and nothing else. Refunding moves an
+        // invoice out of PAID into REFUNDED, so refunds have already left this
+        // number; subtracting them again drives it negative. Refunded money is
+        // reported on its own row in byStatus instead.
+        List<String> currencies = invoiceRepository.distinctCurrencies();
+
+        return BillingSummaryDTO.Response.builder()
+                .byStatus(List.copyOf(totals.values()))
+                .outstandingCount(issued.getCount())
+                .outstandingAmount(issued.getAmount())
+                .overdueCount(overdue == null ? 0L : overdue.getCount())
+                .overdueAmount(overdue == null ? BigDecimal.ZERO : orZero(overdue.getAmount()))
+                .collectedCount(paid.getCount())
+                .collectedAmount(paid.getAmount())
+                .invoiceCount(totals.values().stream()
+                        .mapToLong(BillingSummaryDTO.StatusTotal::getCount).sum())
+                .currency(currencies.size() == 1 ? currencies.get(0) : null)
+                .build();
+    }
+
+    /** SUM over no rows is null in SQL; a total of nothing is zero here. */
+    private static BigDecimal orZero(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

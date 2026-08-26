@@ -14,6 +14,7 @@ const KEYS = {
   all:     ['invoices'],
   patient: (patientId) => ['invoices', 'patient', patientId],
   detail:  (id)        => ['invoices', 'detail',  id],
+  summary: ['invoices', 'summary'],
 }
 
 /** Fetch a single invoice by ID */
@@ -39,6 +40,22 @@ export function useAllInvoices() {
   return useQuery({
     queryKey: KEYS.all,
     queryFn:  billingApi.getAllInvoices,
+  })
+}
+
+/**
+ * Clinic-wide invoice totals.
+ *
+ * @param {{ enabled?: boolean }} options pass enabled:false for roles the
+ *        gateway will refuse, so the screen does not fire a request it knows
+ *        will come back 403.
+ */
+export function useBillingSummary({ enabled = true } = {}) {
+  return useQuery({
+    queryKey: KEYS.summary,
+    queryFn: billingApi.getSummary,
+    enabled,
+    staleTime: 30 * 1000,
   })
 }
 
