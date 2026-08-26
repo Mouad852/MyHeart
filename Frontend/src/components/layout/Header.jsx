@@ -1,8 +1,11 @@
 /**
  * Header.jsx — Top bar showing current page title + global actions.
  */
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
+import { useAuth } from '../../auth/AuthProvider'
+import { roleLabel } from '../../auth/roles'
 
 const PAGE_TITLES = {
   '/':             { title: 'Dashboard',     subtitle: 'Overview of your medical system'       },
@@ -14,9 +17,43 @@ const PAGE_TITLES = {
   '/labs':         { title: 'Labs',          subtitle: 'Manage lab requests and test results'  },
 }
 
+/** Two-letter monogram from a display name, falling back to the username. */
+function initials(name, username) {
+  const source = (name || username || '').trim()
+  if (!source) return '??'
+  const parts = source.split(/[\s.]+/).filter(Boolean)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 export default function Header() {
   const { pathname } = useLocation()
   const page = PAGE_TITLES[pathname] || PAGE_TITLES['/']
+  const { fullName, username, role, logout } = useAuth()
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  // Close the menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    const onPointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false)
+      }
+    }
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
 
   return (
     <header className="h-16 bg-navy-900/60 border-b border-white/5
@@ -32,32 +69,74 @@ export default function Header() {
       </div>
 
       {/* Right actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* Search hint */}
         <button
           className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg
-                     bg-white/5 border border-white/10 text-slate-500 text-xs
-                     hover:text-slate-300 hover:border-white/20 transition-all duration-150"
-          title="Search (coming soon)"
+                     bg-white/5 border border-white/10 text-slate-400 text-xs
+                     hover:text-slate-200 hover:border-white/20 transition-all duration-150
+                     focus:outline-none focus:ring-2 focus:ring-teal-400
+                     focus:ring-offset-2 focus:ring-offset-navy-900"
+          title="Search is not available yet"
         >
-          <Search size={13} />
-          <span>Search…</span>
+          <Search size={13} aria-hidden="true" />
+          <span>Search</span>
         </button>
 
-        {/* Notification bell */}
-        <button className="btn-icon relative" title="Notifications">
-          <Bell size={16} />
-          {/* Unread dot */}
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-teal-400" />
-        </button>
+        {/* User menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-2.5
+                       transition-colors duration-150 hover:bg-white/5
+                       focus:outline-none focus:ring-2 focus:ring-teal-400
+                       focus:ring-offset-2 focus:ring-offset-navy-900"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full
+                             border border-teal-500/30 bg-teal-500/20
+                             font-display text-xs font-bold text-teal-400">
+              {initials(fullName, username)}
+            </span>
+            <span className="hidden text-left leading-tight md:block">
+              <span className="block text-xs font-semibold text-slate-200">
+                {fullName || username || 'Signed in'}
+              </span>
+              <span className="block text-[10px] text-slate-500">
+                {role ? roleLabel(role) : 'No role assigned'}
+              </span>
+            </span>
+          </button>
 
-        {/* User avatar */}
-        <div className="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/30
-                        flex items-center justify-center
-                        font-display font-bold text-teal-400 text-xs cursor-pointer
-                        hover:bg-teal-500/30 transition-colors duration-150"
-             title="Admin user">
-          AD
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl
+                         border border-white/10 bg-navy-800 shadow-card"
+            >
+              <div className="border-b border-white/5 px-4 py-3">
+                <p className="truncate text-sm font-semibold text-slate-100">
+                  {fullName || username}
+                </p>
+                <p className="mt-0.5 truncate font-mono text-xs text-slate-500">
+                  {username}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={logout}
+                className="flex w-full items-center gap-2.5 px-4 py-3 text-sm text-slate-300
+                           transition-colors duration-150 hover:bg-white/5 hover:text-white
+                           focus:outline-none focus:bg-white/5"
+              >
+                <LogOut size={15} strokeWidth={2} aria-hidden="true" />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -6,10 +6,12 @@
  * All API service files import from here, ensuring:
  *  - Consistent base URL across the app (reads from .env)
  *  - Unified error handling / response interception
- *  - Easy to swap base URL for prod vs dev
+ *  - Bearer token injection for the Keycloak-secured gateway
  * ─────────────────────────────────────────────────────────────────
  */
 import axios from 'axios'
+
+export const TOKEN_STORAGE_KEY = 'access_token'
 
 const axiosInstance = axios.create({
   // VITE_API_BASE_URL is defined in .env
@@ -17,24 +19,31 @@ const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
   timeout: 15_000, // 15 second timeout
 })
 
-// ── Request Interceptor ─────────────────────────────────────────
-// Useful place to inject auth tokens in the future
+// ── Request Interceptor (single) ────────────────────────────────
+// Attaches the Keycloak access token to every outgoing request.
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Example: const token = localStorage.getItem('token')
-    // if (token) config.headers.Authorization = `Bearer ${token}`
+    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// ── Response Interceptor ────────────────────────────────────────
-// Normalise error shapes from the Spring Boot GlobalExceptionHandler
+// ── Response Interceptor (single) ───────────────────────────────
+// Normalises error shapes AND handles auth failures.
+//
+// These must live in one handler. The previous version registered two response
+// interceptors: the first rejected with a reshaped `{ message, status, data }`
+// object, so the second one's `error.response.status` check never matched and
+// the 401 handling silently never ran.
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -46,14 +55,38 @@ axiosInstance.interceptors.response.use(
       })
     }
 
-    // Server returned an error response
     const { data, status } = error.response
+
+    // Session expired or not authenticated → clear the token and bounce to login.
+    // Guarded so we never redirect while already on /login.
+    if (status === 401) {
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      if (!window.location.pathname.startsWith('/login')) {
+        const returnTo = encodeURIComponent(
+          window.location.pathname + window.location.search
+        )
+        window.location.href = `/login?returnTo=${returnTo}`
+      }
+      return Promise.reject({
+        message: 'Your session has expired. Please sign in again.',
+        status,
+        data,
+      })
+    }
+
+    // Authenticated but not permitted. The gateway returns 403 for a valid user
+    // lacking the required role — signing them out here would be a bug.
+    if (status === 403) {
+      return Promise.reject({
+        message: 'You do not have permission to perform this action.',
+        status,
+        data,
+      })
+    }
 
     // Spring Boot GlobalExceptionHandler returns { message, error, status, ... }
     const message =
-      data?.message ||
-      data?.error ||
-      `Request failed with status ${status}`
+      data?.message || data?.error || `Request failed with status ${status}`
 
     return Promise.reject({ message, status, data })
   }

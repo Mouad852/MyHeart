@@ -4,25 +4,72 @@
  */
 import React from 'react'
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthProvider'
+import { useGatewayHealth } from '../../hooks/useGatewayHealth'
+import { ROLES } from '../../auth/roles'
 import {
   Users, Stethoscope, CalendarDays,
   Activity, LayoutDashboard, ChevronRight,
-  ReceiptText, Pill, FlaskConical,
+  ReceiptText, Pill, FlaskConical, HeartPulse,
 } from 'lucide-react'
 
+/**
+ * `roles` mirrors the gateway's SecurityConfig. Hiding a link is a courtesy,
+ * not a security control: the gateway rejects the request regardless.
+ */
 const NAV_ITEMS = [
+  // ── Patient portal ────────────────────────────────
+  {
+    to: '/my-health', icon: HeartPulse, label: 'My health', end: true,
+    roles: [ROLES.PATIENT],
+  },
   // ── Core ──────────────────────────────────────────
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/patients', icon: Users, label: 'Patients' },
-  { to: '/doctors', icon: Stethoscope, label: 'Doctors' },
-  { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
+  {
+    to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true,
+    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.BILLING, ROLES.NURSE],
+  },
+  {
+    to: '/patients', icon: Users, label: 'Patients',
+    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.NURSE],
+  },
+  {
+    to: '/doctors', icon: Stethoscope, label: 'Doctors',
+    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+  },
+  {
+    to: '/appointments', icon: CalendarDays, label: 'Appointments',
+    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+  },
   // ── Extended services ─────────────────────────────
-  { to: '/billing', icon: ReceiptText, label: 'Billing' },
-  { to: '/prescriptions', icon: Pill, label: 'Prescriptions' },
-  { to: '/labs', icon: FlaskConical, label: 'Labs' },
+  {
+    to: '/billing', icon: ReceiptText, label: 'Billing',
+    roles: [ROLES.ADMIN, ROLES.BILLING, ROLES.RECEPTIONIST],
+  },
+  {
+    to: '/prescriptions', icon: Pill, label: 'Prescriptions',
+    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+  },
+  {
+    to: '/labs', icon: FlaskConical, label: 'Labs',
+    roles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+  },
 ]
 
+/** Dot colour per gateway health state. */
+const STATUS_DOT = {
+  checking: 'bg-slate-500',
+  up: 'bg-teal-500',
+  degraded: 'bg-amber-500',
+  down: 'bg-red-500',
+}
+
+/** Links that sit below the divider, when the user can see any of them. */
+const EXTENDED_SERVICES = ['/billing', '/prescriptions', '/labs']
+
 export default function Sidebar() {
+  const { hasAnyRole } = useAuth()
+  const navItems = NAV_ITEMS.filter((item) => hasAnyRole(item.roles))
+  const health = useGatewayHealth()
 
   return (
     <aside className="w-64 min-h-screen bg-navy-900 border-r border-white/5
@@ -66,9 +113,10 @@ export default function Sidebar() {
 
         {/* Nav links */}
         <nav className="px-3 flex flex-col gap-0.5">
-          {NAV_ITEMS.map(({ to, icon: Icon, label, end }, idx) => (
+          {navItems.map(({ to, icon: Icon, label, end }, idx) => (
             <React.Fragment key={to}>
-              {idx === 4 && (
+              {idx > 0 && EXTENDED_SERVICES.includes(to)
+                && !EXTENDED_SERVICES.includes(navItems[idx - 1].to) && (
                 <div className="mx-3 my-2 border-t border-white/5" />
               )}
               <NavLink
@@ -104,19 +152,18 @@ export default function Sidebar() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* System status footer */}
+        {/* System status footer, driven by the gateway's health endpoint */}
         <div className="px-5 py-5 border-t border-white/5">
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/3">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full
-                               bg-teal-400 opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
+            <span className="relative flex h-2 w-2" aria-hidden="true">
+              {health.state === 'up' && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full
+                                 bg-teal-400 opacity-60" />
+              )}
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${STATUS_DOT[health.state]}`} />
             </span>
-            <span className="text-xs text-slate-400">All services operational</span>
+            <span className="text-xs text-slate-400">{health.label}</span>
           </div>
-          <p className="text-[10px] text-slate-600 text-center mt-3">
-            Gateway · localhost:8080
-          </p>
         </div>
 
       </div>
