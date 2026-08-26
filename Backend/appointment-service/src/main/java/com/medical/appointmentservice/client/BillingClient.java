@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "billing-service", fallback = BillingClientFallback.class)
+@FeignClient(name = "billing-service", fallbackFactory = BillingClientFallbackFactory.class)
 public interface BillingClient {
 
     @PostMapping("/billing/create")

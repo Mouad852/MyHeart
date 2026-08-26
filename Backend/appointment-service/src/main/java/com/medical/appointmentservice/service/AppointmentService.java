@@ -13,6 +13,9 @@ public interface AppointmentService {
 
     List<AppointmentDTO.Response> getAllAppointments();
 
+    /** Appointments belonging to one patient, used to scope a patient's own view. */
+    List<AppointmentDTO.Response> getAppointmentsForPatient(Long patientId);
+
     AppointmentDTO.Response getAppointmentById(Long id);
 
     AppointmentDTO.Response updateAppointment(Long id, AppointmentDTO.Request request);

@@ -12,7 +12,6 @@ import com.medical.appointmentservice.entity.Appointment.AppointmentStatus;
 import com.medical.appointmentservice.exception.ExternalServiceException;
 import com.medical.appointmentservice.exception.ResourceNotFoundException;
 import com.medical.appointmentservice.repository.AppointmentRepository;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -107,6 +106,21 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<AppointmentDTO.Response> getAppointmentsForPatient(Long patientId) {
+        log.info("Fetching appointments for patientId={}", patientId);
+
+        return appointmentRepository.findByPatientId(patientId)
+                .stream()
+                .map(appointment -> {
+                    PatientInfo patient = safeGetPatient(appointment.getPatientId());
+                    DoctorInfo doctor = safeGetDoctor(appointment.getDoctorId());
+                    return mapToResponse(appointment, patient, doctor);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AppointmentDTO.Response getAppointmentById(Long id) {
         log.info("Fetching appointment with ID: {}", id);
 
@@ -179,41 +193,30 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     /**
      * Call patient-service to verify a patient exists.
-     * Throws ExternalServiceException if not found (FeignException.NotFound = HTTP
-     * 404).
+     *
+     * Errors are classified by {@link com.medical.appointmentservice.client.PatientClientFallbackFactory}:
+     * a missing patient surfaces as ResourceNotFoundException (404) and an outage
+     * as ExternalServiceException (503). Both propagate to the caller unchanged.
      */
     private PatientInfo verifyPatient(Long patientId) {
-        try {
-            log.info("Verifying patient exists: ID={}", patientId);
-            PatientInfo patient = patientClient.getPatientById(patientId);
-            log.info("Patient verified: {}", patient.getName());
-            return patient;
-        } catch (FeignException.NotFound e) {
-            log.error("Patient not found with ID: {}", patientId);
-            throw new ExternalServiceException("Patient not found with ID: " + patientId);
-        } catch (FeignException e) {
-            log.error("Error calling patient-service: {}", e.getMessage());
-            throw new ExternalServiceException("Could not reach patient-service: " + e.getMessage());
-        }
+        log.info("Verifying patient exists: ID={}", patientId);
+        PatientInfo patient = patientClient.getPatientById(patientId);
+        log.info("Patient verified: {}", patient.getName());
+        return patient;
     }
 
     /**
      * Call doctor-service to verify a doctor exists.
-     * Throws ExternalServiceException if not found.
+     *
+     * Errors are classified by {@link com.medical.appointmentservice.client.DoctorClientFallbackFactory}:
+     * a missing doctor surfaces as ResourceNotFoundException (404) and an outage
+     * as ExternalServiceException (503). Both propagate to the caller unchanged.
      */
     private DoctorInfo verifyDoctor(Long doctorId) {
-        try {
-            log.info("Verifying doctor exists: ID={}", doctorId);
-            DoctorInfo doctor = doctorClient.getDoctorById(doctorId);
-            log.info("Doctor verified: {}", doctor.getName());
-            return doctor;
-        } catch (FeignException.NotFound e) {
-            log.error("Doctor not found with ID: {}", doctorId);
-            throw new ExternalServiceException("Doctor not found with ID: " + doctorId);
-        } catch (FeignException e) {
-            log.error("Error calling doctor-service: {}", e.getMessage());
-            throw new ExternalServiceException("Could not reach doctor-service: " + e.getMessage());
-        }
+        log.info("Verifying doctor exists: ID={}", doctorId);
+        DoctorInfo doctor = doctorClient.getDoctorById(doctorId);
+        log.info("Doctor verified: {}", doctor.getName());
+        return doctor;
     }
 
     /**
@@ -223,7 +226,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     private PatientInfo safeGetPatient(Long patientId) {
         try {
             return patientClient.getPatientById(patientId);
-        } catch (FeignException e) {
+        } catch (ExternalServiceException | ResourceNotFoundException e) {
+            // The circuit breaker converts remote failures into these two types;
+            // a raw FeignException never reaches this point.
             log.warn("Could not fetch patient info for ID: {} - {}", patientId, e.getMessage());
             return PatientInfo.builder().id(patientId).name("Unavailable").build();
         }
@@ -235,7 +240,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     private DoctorInfo safeGetDoctor(Long doctorId) {
         try {
             return doctorClient.getDoctorById(doctorId);
-        } catch (FeignException e) {
+        } catch (ExternalServiceException | ResourceNotFoundException e) {
+            // The circuit breaker converts remote failures into these two types;
+            // a raw FeignException never reaches this point.
             log.warn("Could not fetch doctor info for ID: {} - {}", doctorId, e.getMessage());
             return DoctorInfo.builder().id(doctorId).name("Unavailable").build();
         }

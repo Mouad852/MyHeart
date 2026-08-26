@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
  *
  * No manual HTTP code needed — Spring generates the implementation automatically.
  */
-@FeignClient(name = "patient-service", fallback = PatientClientFallback.class)
+@FeignClient(name = "patient-service", fallbackFactory = PatientClientFallbackFactory.class)
 public interface PatientClient {
 
     /**

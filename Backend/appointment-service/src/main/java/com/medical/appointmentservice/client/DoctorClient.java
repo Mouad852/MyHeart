@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
  * Feign Client for the Doctor Service.
  * Resolves "doctor-service" via Eureka service registry.
  */
-@FeignClient(name = "doctor-service", fallback = DoctorClientFallback.class)
+@FeignClient(name = "doctor-service", fallbackFactory = DoctorClientFallbackFactory.class)
 public interface DoctorClient {
 
     /**
