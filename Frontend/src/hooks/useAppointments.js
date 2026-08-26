@@ -80,6 +80,10 @@ export function useAppointmentTransition() {
     },
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: QUERY_KEY })
+      // The overview keeps its own cache namespace, so confirming from there
+      // has to invalidate it too or the queue keeps showing the row just acted
+      // on.
+      qc.invalidateQueries({ queryKey: ['overview'] })
       const said = {
         complete: 'Marked as completed',
         confirm: 'Appointment confirmed',
