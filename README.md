@@ -42,6 +42,11 @@ with PKCE, so credentials are typed on Keycloak's own screen and this
 application never handles them. The page lists the four demo accounts with a
 copy button on each, and states plainly that the data is fictional.
 
+Two panels: a typographic statement on the left, the sign-in on the right.
+There are no figures on it. An earlier version reported "6 clinical services ·
+5 staff roles · 1 patient record", which described the architecture rather than
+anything a user of the clinic needed to know.
+
 ### Overview — `/` · admin, doctor, receptionist, billing, nurse
 
 The clinic's operations screen, ordered by the questions the person running a
@@ -55,11 +60,21 @@ clinic actually asks.
 - **Where is the money** — outstanding against collected, with overdue given
   its own block because it is the only figure on the panel anyone has to act on.
 
+The three are deliberately not equal. The queue is the widest block and the
+only one carrying a count at display size, because it is the only region where
+looking at the screen is supposed to end in a click; the money panel is a quiet
+ledger below it. A grid of equally sized statistic cards would say that nothing
+on the page is more urgent than anything else, which is never true of a clinic.
+
 Figures sit on hairlines rather than in cards: at this density a card around
 every number is chrome competing with the number inside it. Every panel is
 gated on the roles the gateway will actually serve, so a doctor never fires the
 billing request that would come back 403, and a nurse is not shown an empty
 money panel.
+
+The title carries the state of the day in one sentence — "Next at 14:00 —
+Yasmine Belkacem. 3 still to be seen." — in place of a greeting, which is the
+one line on an operations screen guaranteed to read the same every morning.
 
 Five bounded requests back the whole screen. Today arrives as one day-windowed
 page and the wide numbers come from page envelopes and a database-side billing
@@ -67,10 +82,17 @@ summary, rather than by downloading every row and counting in the browser.
 
 ### Today — `/today` · doctor, admin
 
-The doctor's working day rather than a report: the day's appointments in time
-order, with the actions taken during a clinic. Marking a patient seen or a
-no-show is offered only when the appointment's `allowedTransitions` permits it,
-so the UI never has to guess the rules.
+The doctor's working day rather than a report. The composition rests on one
+idea: the day is a line, and the doctor is somewhere along it.
+
+Appointments hang off a single vertical rule in time order, and where the clock
+has reached is drawn on that rule as a marked line — consultations above it
+dimmed, the rest still to come. The next patient's row is opened out, with a
+larger time, the reason for the visit and the actions, so the question a doctor
+has between patients is answered without reading anything else.
+
+Marking a patient seen or a no-show is offered only when the appointment's
+`allowedTransitions` permits it, so the UI never has to guess the rules.
 
 The day is scoped server-side from the `doctorId` claim in the token, so it
 cannot be pointed at a colleague's calendar. A day navigator steps forward and
@@ -78,39 +100,88 @@ back with a "Back to today" shortcut.
 
 ### My health — `/my-health` · patient
 
-The patient's own view: their details and their appointments, upcoming
-separated from past. Everything is narrowed server-side to the `patientId`
-claim; nothing is filtered in the browser.
+The one screen not built for staff, and built to a different brief. A
+receptionist wants density; a patient wants one answer, and nine times out of
+ten the answer is when their next appointment is — so that is the largest thing
+on the page, given as "In three days · Thursday 27 August · 09:00". Everything
+else follows beneath it, and past appointments are folded away behind a
+disclosure.
+
+The clinic's lifecycle is renamed on the way out: `REQUESTED` is how the state
+machine describes a slot nobody has answered, and "Awaiting confirmation" is
+what that means to the person who asked for it. Where the doctor's name cannot
+be read — the gateway does not serve the doctor register to a patient — the
+line is omitted rather than printing the circuit breaker's fallback string.
+
+Everything is narrowed server-side to the `patientId` claim; nothing is
+filtered in the browser.
 
 ### Patients — `/patients` · admin, doctor, receptionist, nurse
 
-The register, searched and paged server-side with a debounced query, so the
-list stays the same size whatever the clinic's does. Create, edit and delete
-run through modals with a confirmation step on delete.
+The register, built around search, scan, identify, open. The search field
+queries the database rather than the loaded page, debounced, so the list stays
+the same size whatever the clinic's does; rows are dense enough to scan a
+screenful; the patient's name is the link, so the thing you read is the thing
+you click. Columns fold into the name cell as the viewport narrows rather than
+disappearing.
+
+Editing and deleting live in the row menu. They previously sat in an actions
+column as a pencil and a red bin on every row — a column of destructive buttons
+on a screen nobody opens in order to delete anybody.
 
 ### Patient record — `/patients/:id` · admin, doctor, receptionist, nurse
 
 One patient and everything that has happened to them, so a clinician stops
 opening four tabs. Appointments, prescriptions, laboratory work and billing are
-merged into a single thread in time order, with identity and counts alongside.
+merged into a single thread in time order, grouped by month and filterable by
+kind, with identity as a band across the top.
+
+The thread gets the width. It used to sit in two thirds of a split grid beside
+a narrow card holding an email address and a phone number, so the most valuable
+content on the most important screen was the part that had been squeezed.
+
+Colour is not how you tell an appointment from a lab test: each kind carries a
+small glyph on the rule and its name in words, and the colour on a row belongs
+to the *status* — the part that might need something from the reader.
 
 The merge happens in the browser deliberately: a timeline endpoint would have
 to call all four services anyway, and putting it inside one of them would make
 that service depend on the other three for a screen only the front end uses.
-Each source is fetched independently, so one service being down names itself
-above the thread instead of blanking the page.
+Each source is fetched independently, so one service being down names itself —
+"Billing temporarily unavailable" — in place, with a retry, while the rest of
+the record stays usable. A failed source's count reads as unknown rather than
+as zero, which would be a lie about the patient.
 
 ### Doctors — `/doctors` · admin, doctor, receptionist
 
-The medical register, searched and paged the same way, with specialty badges.
+The medical register: the same table as the patient register, deliberately,
+because two lists of people in one product should not be two designs. What
+differs is what the list is for — a doctor is looked up by what they do, so
+specialty is a column and the list narrows to one specialty in a click.
+
+Specialties are not colour-coded. Assigning each one an accent produced a
+column of violet, amber, blue and rose saying nothing about urgency or state.
+
 Creating, editing and removing a doctor is admin-only at the gateway.
 
 ### Appointments — `/appointments` · admin, doctor, receptionist
 
-Booking and the full lifecycle. Slots are checked for conflicts server-side
-using half-open intervals, so a booking that merely touches the end of another
-is allowed and one that overlaps is refused. Status filtering and search sit
-above the list; cancelling asks for confirmation.
+The diary. Grouped by day, sorted within the day, and opening on what is ahead
+— a receptionist arriving here is almost never asking about a consultation from
+four months ago. The lifecycle is a row of tabs carrying live counts, so
+"Requested · 3" says there is work waiting before anything has been clicked.
+
+Actions come from `allowedTransitions`, which the server returns on every
+appointment: the move a row is actually waiting for is promoted inline, and the
+rest sit behind one quiet row menu with the destructive item marked and
+separated. Cancelling was previously a red button repeated down thirty rows,
+which made the most destructive action in the product the easiest to hit and
+taught people to stop seeing red. It now asks for confirmation by naming the
+patient, the day and the time.
+
+Slots are checked for conflicts server-side using half-open intervals, so a
+booking that merely touches the end of another is allowed and one that overlaps
+is refused.
 
 Appointments move through `REQUESTED → CONFIRMED → COMPLETED`, with `CANCELLED`
 and `NO_SHOW` as the other terminal states. Who books decides where it starts:
@@ -119,18 +190,41 @@ and theirs begins requested.
 
 ### Billing — `/billing` · admin, billing, receptionist
 
-Invoices per patient, priced from the clinic's service catalogue rather than
+The clinic's ledger — every invoice, oldest debt first, with the totals across
+the top and the patient filter demoted to one filter among several. It used to
+show nothing at all until a patient had been chosen from a dropdown, which is
+backwards: the question a billing clerk arrives with is *who owes us money*,
+and no single patient answers it.
+
+Money is set in the identifier face, aligned right, and never abbreviated.
+Amber marks what is owed and rose marks what is late; a paid invoice is plain
+grey, because a settled invoice needs nothing from anybody.
+
+Invoices are priced from the clinic's service catalogue rather than
 from a number typed into the code. An invoice runs `ISSUED → PAID → REFUNDED`
 or `ISSUED → VOID`. There is deliberately no overdue state: being overdue is
 what an unpaid invoice becomes once its due date passes, so it is derived on
 read rather than stored and kept honest by a scheduled job.
+
+Paying, refunding and voiding are all offered from the row, gated on
+`allowedTransitions`; the two that move money confirm by amount and patient
+name first. On a phone the amount folds into the reference cell and the columns
+that will not fit are dropped, rather than the table scrolling sideways under
+the reader's thumb.
 
 Invoice creation is idempotent by appointment, enforced by a unique constraint,
 so a retried billing call finds the existing invoice instead of charging twice.
 
 ### Prescriptions — `/prescriptions` · admin, doctor, receptionist
 
-Prescriptions per patient, expandable to the medicines on each. Every row has a
+Everything written, most recent first, expandable to the medicines on each, and
+filterable by patient — not gated behind choosing one, so "what did I write
+this week" is answerable.
+
+Prescriptions name people. The rows previously read "Patient #4 · Dr. #3",
+which is what the database stores rather than what anybody needs.
+
+Printing is treated as the workflow it is. Every row carries a labelled
 **Print** button that fetches a rendered A4 PDF: letterhead, who it is for, who
 wrote it, a medication table with the "how to take it" line running full width
 underneath each drug, and the line the prescriber signs.
@@ -140,10 +234,20 @@ by a portfolio project and is not a valid prescription.
 
 ### Labs — `/labs` · admin, doctor, receptionist
 
-Laboratory requests per patient, expanding to the results filed against each.
-A result carries a report file — a scan or an exported PDF — uploaded by
-doctors, admins and lab technicians. The control is hidden from roles the
-gateway would refuse, so nobody is offered a button that can only produce a 403.
+Laboratory information has a shape, and the screen is built around it:
+**request, then result, then report.**
+
+A doctor asks for a test; the laboratory writes a finding against it; a scan or
+an exported PDF may be attached to that finding. Each stage exists without the
+next, so results hang off the request on the same rule the day and the patient
+timeline use, and the attached report hangs off the result.
+
+Requests are filtered by state and by patient, and the screen falls through to
+everything when nothing is open, rather than landing on an empty tab.
+
+Uploading is offered to doctors, admins and lab technicians only — the roles
+the gateway will actually accept a file from — so nobody is given a button that
+can only produce a 403.
 
 Accepted formats and the size limit are stated next to the control rather than
 discovered by having a file rejected.
@@ -155,7 +259,10 @@ discovered by having a file rejected.
 
 ### Not found — `*`
 
-Renders inside the layout, so the sidebar and a way out are still there.
+Renders inside the layout, so the sidebar and a way out are still there. It
+names the address that failed and links to the signed-in role's own home, not
+to a dashboard a patient cannot open. There is no 96px "404": set at display
+size that is a decoration of a dead end.
 
 ### Access denied
 
@@ -167,30 +274,93 @@ left a patient looking at a refusal with no navigation and no way to sign out.
 
 ## Design system
 
-A dark, dense working interface rather than a marketing page. Clinic staff use
-this all day, so contrast and information density matter more than atmosphere.
+A dark, dense working interface rather than a marketing page. Clinic staff sit
+in front of this all day, so the palette is built to stay quiet and almost
+everything on screen is one of five near-neutral surfaces and three text
+weights. The whole language lives in `tailwind.config.js` and `src/index.css`;
+every screen is composed from it rather than styled on its own terms.
 
-| Token | Value |
+### Type
+
+| Face | Where |
 |---|---|
-| Display face | Syne |
-| Body face | DM Sans |
-| Surfaces | `navy-950 #070B14`, `navy-900 #0D1424`, `navy-800 #111D35`, `navy-700 #162340` |
-| Accent | `teal-400 #2DD4BF`, `teal-500 #14B8A6`, `teal-600 #0D9488` |
-| Semantic | amber for outstanding, rose for overdue, orange for no-shows, blue for laboratory |
-| Elevation | one `shadow-card` token, no nested cards |
+| **Syne** | the wordmark, page titles, and large figures — nowhere else |
+| **DM Sans** | every piece of operational text |
+| **IBM Plex Mono** | anything read as an identifier: clock times, invoice and result numbers, amounts |
 
-Conventions the screens follow:
+Syne is deliberately not applied to `h1..h6` globally, as it was before. A
+section label set in a display face at 12px is just a display face rendered too
+small to show any of its character.
 
-- **Numbers are tabular and monospaced** so columns line up down a page.
-- **One accent.** Other colours appear only for genuine semantic state, never
-  for decoration.
-- **Hairlines over cards** wherever a card would only be a box around a number.
+The mono face is not decoration. A column of amounts or a schedule of clock
+times is scanned vertically, and a fixed advance width is what makes a
+transposed digit visible. A date read inside a sentence is *not* an identifier
+and is set in the body face; a date read down a table column keeps the mono.
+
+### Colour
+
+| Token | Value | Means |
+|---|---|---|
+| Surfaces | `navy-950 #080B12` · `navy-900 #0C1019` · `navy-850 #111623` · `navy-800 #161C2B` · `navy-700 #1D2537` | page, panel, raised row, input, pressed |
+| Text | `slate-200 #E2E8F0` · `slate-400 #94A3B8` · `slate-500 #737F92` | subject, supporting detail, metadata |
+| Accent | `teal-400 #2DD4BF` | interaction, focus, and "now" |
+| Amber | `#F5B932` | money owed |
+| Rose | `#F87089` | late, failed, destructive |
+| Orange | `#F59E4B` | a patient who did not attend |
+| Blue | `#63A0F5` | laboratory context |
+
+Colour is assigned by what a state asks of the reader, not by which service the
+record came from. Two consequences that were previously the other way round:
+
+- A cancelled appointment and a voided invoice are **grey**. They are closed,
+  correctly, and nothing further is expected. Painting them red pulled the eye
+  to the one row on the page that needed no attention.
+- Only two things are ever warm: a state waiting on a human decision (amber)
+  and a payment that is genuinely late (rose). If a screen looks warm, work is
+  piling up on it — and that is information.
+
+All three text levels clear **WCAG AA at 4.5:1** against both the page and a
+panel. Tailwind's own `slate-500` measured 3.97:1 on these surfaces and
+`slate-600` measured 2.2:1, and both were carrying text people are expected to
+read; `slate-600` is now for marks rather than words — rules, a closed status
+dot, a disabled glyph.
+
+### Shape and surface
+
+The radius scale tops out at **4px**, and the only round things in the product
+are status dots and avatars. A clinical record is a ruled sheet, and the
+squared geometry carries more of this product's character than any decoration
+would. There is one shadow token and it is used only by things that genuinely
+float: a menu, a dialog, the mobile navigation drawer.
+
+The signature motif is **the spine** — a left rule with content hanging off it,
+markers sitting on the line. The doctor's day, the patient's timeline and the
+laboratory's request → result → report chain all use it, so a clinician moving
+between them reads the same shape each time.
+
+### Conventions the screens follow
+
+- **Hairlines over cards.** A panel is one hairline and a slightly lifted
+  ground. It never contains another panel; a region inside one gets a rule.
+- **One primary action per region.** A filled teal button is right when there
+  is one of it on screen. Repeated down a column of twenty-seven invoices it
+  becomes a stripe of paint, so row-level actions share one quiet style that
+  takes the accent on hover and on focus.
+- **Destructive actions are not the default.** They live in the row menu, are
+  marked, sit last under a rule, and confirm by naming the record and the
+  consequence rather than asking "Are you sure?".
 - **Loading states are skeletons shaped like the content**, not spinners, so
   the layout does not jump when data lands.
 - **Empty states say what will appear here**, and an empty work queue reads as
   reassurance rather than as missing data.
-- **Focus is always visible**: every interactive element carries a teal focus
-  ring offset against its own surface.
+- **Partial failure is designed.** One service being unavailable names itself
+  in place and leaves the rest of the screen usable.
+- **Focus is always visible**: one teal ring, defined once, offset from its own
+  surface. Dialogs trap focus, close on Escape, and return it to whatever
+  opened them.
+- **No decoration.** No dot grids, no blurred accent orbs, no glow behind a
+  button, no icon beside every heading, and no colour that is not carrying
+  meaning.
 
 ---
 
@@ -206,9 +376,11 @@ Frontend/src/
 │   ├── ProtectedRoute.jsx   # ProtectedRoute (session) + RequireRole (role)
 │   └── roles.js             # role names, per-route rules, landing pages
 ├── components/
-│   ├── layout/              # Layout, Sidebar, Header
-│   └── ui/                  # Avatar, Modal, ConfirmDialog, EmptyState,
-│                            # ErrorBanner, StatusBadge, Pagination, selectors
+│   ├── layout/              # Layout, Sidebar, Header, PatientSearch
+│   └── ui/                  # Page, Panel, Figures, Segmented, Menu, Modal,
+│                            # ConfirmDialog, StatusBadge, EmptyState,
+│                            # ErrorBanner, LoadingSpinner, Pagination,
+│                            # Avatar, selectors
 ├── hooks/                   # one module per domain, plus useClinicOverview
 │                            # and usePatientTimeline which compose several
 ├── pages/                   # one directory per area, forms beside their page
@@ -234,6 +406,22 @@ to "authenticated only".
 
 **The dev server proxies `/api` to the gateway**, so there is no CORS setup in
 development. Point `VITE_API_PROXY_TARGET` elsewhere if the gateway moves.
+
+**The shell is one component, and navigation is role-ordered.** The sidebar
+groups links by the kind of work rather than by which microservice serves them,
+and orders the groups by who is signed in: a doctor's day starts with clinical
+work, a billing clerk opens the product to do money. Everyone sees the links
+their role reaches, in the order that matches their job.
+
+The header carries only what belongs to the whole application — a search across
+the register, reachable from anywhere with `/`, and who is signed in. It used
+to carry a page title that every page then repeated in its own words, larger,
+twenty pixels below; the title now lives with the page that owns it. The search
+replaces a button whose tooltip read "Search is not available yet".
+
+**Below 1024px the sidebar is an off-canvas drawer.** Before, a 240px panel
+held its width at every viewport, so on a phone it took two thirds of the
+screen and clipped the work into what was left.
 
 ---
 
@@ -491,8 +679,14 @@ Stated plainly, because a README that only lists strengths is not much use.
   and no sidebar entry, so an account holding only that role signs in and lands
   on a refusal. There is no demo user for it, which is why this is latent rather
   than visible.
-- **Screens have been checked by build and by contract, not by eye.** Several
-  were written without a rendered screenshot to check them against.
+- **The interface is verified by screenshot, not by test.** Every screen has
+  been rendered in Chrome against the running stack at 375, 768, 1280 and 1440
+  for the admin, doctor, receptionist and patient accounts, and checked for
+  horizontal overflow, focus visibility and dialog behaviour. None of that is
+  automated, so nothing stops it regressing.
+- **Two roles have no seeded data to render.** `NURSE` and `BILLING` have route
+  rules and a navigation order but no demo account, so their screens have been
+  reasoned about rather than looked at.
 
 ---
 
