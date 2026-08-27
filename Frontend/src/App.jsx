@@ -26,6 +26,7 @@ import PatientsPage from './pages/Patients/PatientsPage'
 import PatientDetail from './pages/Patients/PatientDetail'
 import DoctorsPage from './pages/Doctors/DoctorsPage'
 import AppointmentsPage from './pages/Appointments/AppointmentsPage'
+import CalendarPage from './pages/Appointments/CalendarPage'
 import BillingPage from './pages/Billing/BillingPage'
 import PrescriptionsPage from './pages/Prescriptions/PrescriptionsPage'
 import LabsPage from './pages/Labs/LabsPage'
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="patients/:id" element={<PatientDetail />} />
             <Route path="doctors" element={<DoctorsPage />} />
             <Route path="appointments" element={<AppointmentsPage />} />
+            <Route path="appointments/calendar" element={<CalendarPage />} />
 
             {/* ── Extended service routes ──────────── */}
             <Route path="billing" element={<BillingPage />} />

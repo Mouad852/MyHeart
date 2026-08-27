@@ -26,22 +26,18 @@ import {
   Ban,
   CalendarDays,
   CalendarPlus,
+  CalendarRange,
   Check,
-  ChevronLeft,
-  ChevronRight,
   CircleCheck,
-  Columns2,
-  List,
   Search,
   UserX,
   X,
 } from 'lucide-react'
 import {
-  addDays,
   format,
-  isAfter,
   isSameDay,
   isToday,
+  isAfter,
   isTomorrow,
   isValid,
   parseISO,
@@ -58,7 +54,6 @@ import PageHeader from '../../components/ui/Page'
 import { Panel } from '../../components/ui/Panel'
 import { SkeletonRows } from '../../components/ui/LoadingSpinner'
 import AppointmentForm from './AppointmentForm'
-import DayGrid from './DayGrid'
 import {
   useAppointments,
   useCreateAppointment,
@@ -193,8 +188,6 @@ export default function AppointmentsPage() {
   const [scope, setScope] = useState('upcoming')
   // The list answers "what is next"; the day answers "where is the gap".
   // Both exist because neither can do the other's job.
-  const [view, setView] = useState('list')
-  const [gridDay, setGridDay] = useState(() => startOfDay(new Date()))
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [toCancel, setToCancel] = useState(null)
@@ -273,10 +266,19 @@ export default function AppointmentsPage() {
         title="Appointments"
         description={`${scopes.counts.upcoming} still to come, out of ${appointments.length} in the diary.`}
         actions={
-          <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
-            <CalendarPlus size={14} strokeWidth={2} aria-hidden="true" />
-            Book appointment
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* The same diary drawn to scale. It answers where the gaps are,
+                which a list cannot, and it has its own page because it needs
+                the width. */}
+            <Link to="/appointments/calendar" className="btn btn-secondary btn-sm">
+              <CalendarRange size={14} strokeWidth={2} aria-hidden="true" />
+              Calendar
+            </Link>
+            <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
+              <CalendarPlus size={14} strokeWidth={2} aria-hidden="true" />
+              Book appointment
+            </button>
+          </div>
         }
       />
 
@@ -305,42 +307,6 @@ export default function AppointmentsPage() {
           />
 
           <div className="mb-2 flex flex-wrap items-center gap-3 sm:mb-0">
-            {/* Two views of the same diary, switched in place. */}
-            {/* Below xl the two views are mutually exclusive, because there
-                is not room for both. From xl up the day is always beside the
-                list and this control is unnecessary. */}
-            <div
-              role="group"
-              aria-label="How to show the diary"
-              className="flex overflow-hidden rounded border border-rule-strong xl:hidden"
-            >
-              {[
-                { value: 'list', label: 'List', icon: List },
-                { value: 'day', label: 'Day', icon: Columns2 },
-              ].map((option) => {
-                const Icon = option.icon
-                const selected = view === option.value
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setView(option.value)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 text-meta
-                                transition-colors duration-fast
-                                ${
-                                  selected
-                                    ? 'bg-primary-soft font-medium text-primary'
-                                    : 'text-ink-2 hover:bg-raised hover:text-ink'
-                                }`}
-                  >
-                    <Icon size={13} strokeWidth={2} aria-hidden="true" />
-                    {option.label}
-                  </button>
-                )
-              })}
-            </div>
-
           <div className="relative w-full max-w-xs">
             <Search
               size={13}
@@ -375,10 +341,8 @@ export default function AppointmentsPage() {
         {isLoading && <SkeletonRows rows={5} label="Loading the diary" />}
 
         {!isLoading && (
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_23rem]">
-            {/* ── The list ─────────────────────────────────────────── */}
-            <div className={`min-w-0 ${view === 'day' ? 'hidden xl:block' : ''}`}>
-        {/* ── The list ────────────────────────────────────────────────── */}
+          <div className="min-w-0">
+            <div className="min-w-0">
               {shown === 0 && (
 
           <EmptyState
@@ -439,75 +403,12 @@ export default function AppointmentsPage() {
               ))}
             </div>
 
-            {/* ── The day ──────────────────────────────────────────── */}
-            <div
-              className={`min-w-0 border-rule xl:border-l
-                          ${view === 'day' ? '' : 'hidden xl:block'}`}
-            >
-        {/* ── The day ─────────────────────────────────────────────────── */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="btn-icon"
-                  aria-label="Previous day"
-                  onClick={() => setGridDay((d) => addDays(d, -1))}
-                >
-                  <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
-                </button>
-                <p className="min-w-[11rem] px-1 text-center text-sm font-medium text-ink">
-                  {isToday(gridDay) ? 'Today · ' : ''}
-                  {format(gridDay, 'EEE d MMM yyyy')}
-                </p>
-                <button
-                  type="button"
-                  className="btn-icon"
-                  aria-label="Next day"
-                  onClick={() => setGridDay((d) => addDays(d, 1))}
-                >
-                  <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
-                </button>
-                {!isToday(gridDay) && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm ml-2"
-                    onClick={() => setGridDay(startOfDay(new Date()))}
-                  >
-                    Today
-                  </button>
-                )}
-              </div>
-              <p className="text-meta text-ink-3">
-                Booked slots drawn to length. Empty space is bookable.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto px-5 pb-6 pr-6 pt-5">
-              <div className="min-w-[26rem]">
-                <DayGrid
-                  day={gridDay}
-                  appointments={appointments.filter((row) => {
-                    const date = when(row.appointmentDate)
-                    return date && isSameDay(date, gridDay)
-                  })}
-                  onSelect={(appointment) => {
-                    // Opening a slot from the grid drops you into the list at
-                    // that day, where the actions are.
-                    const date = when(appointment.appointmentDate)
-                    if (date) setGridDay(startOfDay(date))
-                    setView('list')
-                    setScope('all')
-                  }}
-                />
-              </div>
-            </div>
-            </div>
           </div>
         )}
 
       </Panel>
 
-      {!isLoading && view === 'list' && shown > 0 && (
+      {!isLoading && shown > 0 && (
         <p className="note mt-3 max-w-[78ch]">
           The move a row is waiting for sits inline; the rest are behind the row
           menu, with the destructive one marked and separated. Slots are checked

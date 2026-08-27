@@ -48,6 +48,9 @@ export const ROUTE_ROLES = {
   '/patients/:id': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.NURSE],
   '/doctors': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/appointments': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+  // The same diary drawn to scale, so the same roles. A patient has no
+  // business reading the whole clinic's day.
+  '/appointments/calendar': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/billing': [ROLES.ADMIN, ROLES.BILLING, ROLES.RECEPTIONIST],
   '/prescriptions': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/labs': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.LAB_TECHNICIAN],

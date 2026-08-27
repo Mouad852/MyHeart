@@ -29,6 +29,7 @@ import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   CalendarDays,
+  CalendarRange,
   FlaskConical,
   Gauge,
   HeartPulse,
@@ -77,6 +78,13 @@ const GROUPS = [
         to: '/appointments',
         icon: CalendarDays,
         label: 'Appointments',
+        end: true,
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
+      },
+      {
+        to: '/appointments/calendar',
+        icon: CalendarRange,
+        label: 'Calendar',
         roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
       },
       {
