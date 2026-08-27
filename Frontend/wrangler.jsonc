@@ -13,6 +13,11 @@
   "name": "myheart",
   "compatibility_date": "2026-08-26",
   "assets": {
+    // Where `npm run build` puts the site, relative to this file. Required:
+    // wrangler only infers it when the Cloudflare Vite plugin generates the
+    // config for you, and this one is written by hand so the deploy does not
+    // depend on that.
+    "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
   "observability": {
