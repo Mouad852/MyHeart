@@ -107,9 +107,18 @@ on the page, given as "In three days · Thursday 27 August · 09:00". Everything
 else follows beneath it, and past appointments are folded away behind a
 disclosure.
 
+It also carries their **prescriptions and test results**, read-only, each with
+the one action that matters: the printed prescription, and the report file. The
+API has served both to a patient since the ownership checks went in — the
+services narrow to the `patientId` claim and refuse anything that is not the
+caller's own — but nothing in the interface admitted it. They are surfaced here
+rather than by letting a patient onto the staff screens, which carry controls
+they cannot use and a filter over a register they cannot read.
+
 The clinic's lifecycle is renamed on the way out: `REQUESTED` is how the state
 machine describes a slot nobody has answered, and "Awaiting confirmation" is
-what that means to the person who asked for it. Where the doctor's name cannot
+what that means to the person who asked for it. A laboratory request is
+"Waiting for your sample", "At the laboratory" or "Result ready". Where the doctor's name cannot
 be read — the gateway does not serve the doctor register to a patient — the
 line is omitted rather than printing the circuit breaker's fallback string.
 
@@ -258,15 +267,17 @@ everything when nothing is open, rather than landing on an empty tab.
 
 Uploading is offered to doctors, admins and lab technicians only — the roles
 the gateway will actually accept a file from — so nobody is given a button that
-can only produce a 403.
+can only produce a 403. Writing the finding itself is doctors and admins: the
+gateway serves `POST /labs/results/*/file` to a technician and every other
+`POST /labs/**` only to those two, so the two permissions are tracked
+separately.
+
+**This is where a `LAB_TECHNICIAN` lands**, and the only place they can act. The
+patient register is not served to them, so they see the patient number rather
+than the name, and the filter and the link into a record are both withheld.
 
 Accepted formats and the size limit are stated next to the control rather than
 discovered by having a file rejected.
-
-> The API lets a patient read and download their own prescriptions and lab
-> reports, but no screen exposes that yet: both pages are staff-only, and the
-> patient portal shows appointments and details only. See
-> [what is not here yet](#what-is-not-here-yet).
 
 ### Not found — `*`
 
@@ -543,8 +554,9 @@ identical working setup with no console steps.
 | `doctor.demo` | Doctor | Today | Patients, appointments, prescriptions, labs |
 | `reception.demo` | Receptionist | Overview | Registration, scheduling, invoices |
 | `patient.demo` | Patient | My health | Only their own records |
+| `lab.demo` | Lab technician | Laboratory | Laboratory requests and results only |
 
-Password for all four: `DemoPass123!`
+Password for all five: `DemoPass123!`
 
 `doctor.demo` carries a `doctorId` claim and `patient.demo` a `patientId`
 claim; those are what the ownership checks read.
@@ -708,24 +720,21 @@ Stated plainly, because a README that only lists strengths is not much use.
 
 - **Automated tests are thin.** Behaviour has been verified against a running
   stack rather than by a suite. That is the largest gap.
-- **`KeycloakRoleConverter` is copied into six services** and the ownership
-  helper into four. A shared `common-lib` module is the next piece of work, and
-  until it exists a security fix has to be applied correctly in several places.
+- **`KeycloakRoleConverter` is copied into six services** and `CallerIdentity`
+  into three. A shared `common-lib` module is the next piece of work, and until
+  it exists a security fix has to be applied correctly in several places.
+
+  This is no longer hypothetical. The three copies of `CallerIdentity` each hold
+  a `STAFF_ROLES` array, and lab-service's had drifted: it omitted
+  `LAB_TECHNICIAN`, so the one role whose entire job is filing laboratory
+  reports was treated as a member of the public and refused every result. It had
+  never been caught because the role had no account to exercise it.
 - **No OpenAPI documents and no CI pipeline yet.**
 - **No deployment.** The system runs locally under Docker Compose; hosting is
   deliberately deferred to the end of the project.
 - **One report file per laboratory result.** Several attachments per result
   would need a separate table.
 - **Search is a `LIKE` query.** Fine at this size, wrong at a real one.
-- **The front end has not caught up with two back-end permissions.** A patient
-  may fetch their own prescriptions and laboratory reports through the API, but
-  neither page admits them and the portal does not surface either. The rules
-  live in `Frontend/src/auth/roles.js`.
-- **`LAB_TECHNICIAN` has no screen at all.** The role exists in the realm and
-  now carries permissions on laboratory uploads, but it appears in no route rule
-  and no sidebar entry, so an account holding only that role signs in and lands
-  on a refusal. There is no demo user for it, which is why this is latent rather
-  than visible.
 - **The interface is verified by screenshot, not by test.** Every screen has
   been rendered in Chrome against the running stack at 375, 768, 1024 and 1440,
   in both themes, for the admin, doctor, receptionist and patient accounts, and
