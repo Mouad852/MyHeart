@@ -648,6 +648,8 @@ docker compose up -d --build <service>    # rebuild one service
 
 ## Tests
 
+### Front end
+
 `npm test` in `Frontend/` runs the suite: Vitest, Testing Library and jsdom.
 
 There is no attempt at a coverage number. The suite covers the three places
