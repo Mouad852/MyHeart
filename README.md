@@ -23,6 +23,7 @@ from anything the browser sends.
 - [Back-end architecture](#back-end-architecture)
 - [Authorization](#authorization)
 - [Running it](#running-it)
+- [Tests](#tests)
 - [API reference](#api-reference)
 - [Repository layout](#repository-layout)
 - [What is not here yet](#what-is-not-here-yet)
@@ -633,12 +634,58 @@ with the credentials from `.env`.
 npm run dev              # dev server on :3000
 npm run build            # production build
 npm run lint             # eslint, zero warnings tolerated
+npm test                 # vitest, once
+npm run test:watch       # vitest, watching
+npm run test:coverage    # with a coverage report
 
 # Back end
 cd Backend/<service> && mvn clean package
 docker compose logs -f <service>
 docker compose up -d --build <service>    # rebuild one service
 ```
+
+---
+
+## Tests
+
+`npm test` in `Frontend/` runs the suite: Vitest, Testing Library and jsdom.
+
+There is no attempt at a coverage number. The suite covers the three places
+where a mistake is expensive and invisible, and every case in it corresponds to
+something that has actually gone wrong here or could plausibly go wrong the
+same way:
+
+- **`src/auth/roles.test.js`** — where each role lands after signing in and
+  which routes it may open. One property covers the two dead ends this project
+  has already shipped: *no role may be sent to a page its own role cannot
+  open*. A patient must not reach a staff route, a concrete `/patients/5` must
+  match its `/patients/:id` rule rather than falling through to
+  "authenticated-only", and every role must have somewhere to go.
+- **`src/components/ui/StatusBadge.test.jsx`** — the wording and the colour of
+  every state in the product. The four-colour cap is enforced rather than
+  merely documented: a fifth coloured tone fails the suite. A cancelled
+  appointment stays grey, a state the badge has never seen still reads as
+  English, and the colour is never the only channel carrying the meaning.
+- **`src/pages/Labs/LabsPage.test.jsx`** — what each role is offered on the
+  laboratory screen. This page shipped three faults: a blank-page crash for a
+  laboratory technician, a "Record the result" button the gateway would refuse,
+  and a request for the patient register the same role may not read. All three
+  are pinned. Both regressions were reintroduced deliberately to confirm the
+  tests fail on them — a test that has never been seen to fail is not evidence
+  of anything.
+- **`src/utils/index.test.js`** — money, references and phone numbers. Writing
+  these tests found a real bug: `formatPhone` grouped only the last eight
+  digits, so a number stored in the local form `0691253981` was displayed as
+  `91 25 39 81` — two digits short, on the patient register, the patient
+  record, the doctors page and the portal. The seeded numbers are all in
+  `+212…` form, which is why nobody had seen it; the patient form accepts the
+  local form, so anything typed that way was affected. Fixed, and pinned by a
+  test that asserts no digit is ever lost in any accepted format.
+
+The back end is still verified against a running stack rather than by a suite —
+37 authorization checks across every role, including unauthenticated calls
+straight to each service port. That is real evidence and it is not automated,
+which is the next gap.
 
 ---
 
@@ -733,8 +780,11 @@ My_Heart_Project/
 
 Stated plainly, because a README that only lists strengths is not much use.
 
-- **Automated tests are thin.** Behaviour has been verified against a running
-  stack rather than by a suite. That is the largest gap.
+- **The back end has no test suite.** Its behaviour is verified against a
+  running stack — see [Tests](#tests) — which is real evidence but not
+  automated, and not something a reader of this repository can run. The front
+  end has a suite covering routing, state vocabulary, role permissions and
+  formatting; the pages beyond `/labs` do not have one yet.
 - **No OpenAPI documents and no CI pipeline yet.**
 - **No deployment.** The system runs locally under Docker Compose; hosting is
   deliberately deferred to the end of the project.

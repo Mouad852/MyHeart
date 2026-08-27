@@ -163,11 +163,23 @@ export function formatPhone(value) {
     return `+212 ${rest.slice(0, 3)} ${rest.slice(3, 5)} ${rest.slice(5, 7)} ${rest.slice(7, 9)}`
   }
 
-  if (digits.length >= 9) {
-    const head = plus ? digits.slice(0, digits.length - 8) : ''
+  // Some other country code: keep the code whole and read the subscriber
+  // number in pairs.
+  if (plus && digits.length >= 9) {
+    const head = digits.slice(0, digits.length - 8)
     const tail = digits.slice(digits.length - 8)
     const pairs = tail.match(/.{1,2}/g)?.join(' ') ?? tail
-    return `${plus ? '+' + head + ' ' : ''}${pairs}`.trim()
+    return `+${head} ${pairs}`.trim()
+  }
+
+  // Written in the local form: 0661 20 41 08. Grouping only the last eight
+  // digits dropped the leading 0 and the first digit of the operator code, so
+  // a number that was correct in the database was displayed — and dialled —
+  // two digits short.
+  if (digits.length >= 9) {
+    const lead = digits.length % 2 === 0 ? digits.slice(0, 2) : digits.slice(0, 3)
+    const rest = digits.slice(lead.length).match(/.{1,2}/g)?.join(' ') ?? ''
+    return `${lead} ${rest}`.trim()
   }
 
   return raw
