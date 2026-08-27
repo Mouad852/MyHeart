@@ -172,9 +172,8 @@ function Row({ appointment, onTransition, onCancel, isPending }) {
             type="button"
             disabled={isPending}
             onClick={() => onTransition({ id: appointment.id, action: primary.action })}
-            className="btn-row"
+            className="link-action"
           >
-            <primary.icon size={12} strokeWidth={2.5} aria-hidden="true" />
             {primary.label}
           </button>
         )}
@@ -307,10 +306,13 @@ export default function AppointmentsPage() {
 
           <div className="mb-2 flex flex-wrap items-center gap-3 sm:mb-0">
             {/* Two views of the same diary, switched in place. */}
+            {/* Below xl the two views are mutually exclusive, because there
+                is not room for both. From xl up the day is always beside the
+                list and this control is unnecessary. */}
             <div
               role="group"
               aria-label="How to show the diary"
-              className="flex overflow-hidden rounded border border-rule-strong"
+              className="flex overflow-hidden rounded border border-rule-strong xl:hidden"
             >
               {[
                 { value: 'list', label: 'List', icon: List },
@@ -372,9 +374,77 @@ export default function AppointmentsPage() {
 
         {isLoading && <SkeletonRows rows={5} label="Loading the diary" />}
 
+        {!isLoading && (
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_23rem]">
+            {/* ── The list ─────────────────────────────────────────── */}
+            <div className={`min-w-0 ${view === 'day' ? 'hidden xl:block' : ''}`}>
+        {/* ── The list ────────────────────────────────────────────────── */}
+              {shown === 0 && (
+
+          <EmptyState
+            icon={CalendarDays}
+            title={
+              filtering
+                ? 'Nothing matches that'
+                : scope === 'requested'
+                  ? 'No requests waiting'
+                  : 'Nothing in this part of the diary'
+            }
+            description={
+              filtering
+                ? 'Try a shorter term, or a different tab.'
+                : scope === 'requested'
+                  ? 'Every appointment a patient has asked for has been answered.'
+                  : 'Appointments appear here as the desk books them.'
+            }
+            action={
+              !filtering &&
+              scope !== 'requested' && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  <CalendarPlus size={14} strokeWidth={2} aria-hidden="true" />
+                  Book an appointment
+                </button>
+              )
+            }
+          />
+        )}
+
+              {groups.map((group) => (
+            <section key={group.key}>
+              {/* The day heading is the row above its own appointments, on the
+                  raised ground, so a long diary stays navigable while it
+                  scrolls. */}
+              <h2 className="flex items-baseline justify-between gap-4 border-b border-rule bg-raised px-5 py-2">
+                <span className="text-meta font-medium text-ink-2">
+                  {group.date ? dayLabel(group.date) : 'Undated'}
+                </span>
+                <span className="ident text-meta text-ink-3">{group.rows.length}</span>
+              </h2>
+              <ul className="divide-y divide-rule">
+                {group.rows.map((appointment) => (
+                  <Row
+                    key={appointment.id}
+                    appointment={appointment}
+                    onTransition={transition.mutate}
+                    onCancel={setToCancel}
+                    isPending={transition.isPending}
+                  />
+                    ))}
+              </ul>
+            </section>
+              ))}
+            </div>
+
+            {/* ── The day ──────────────────────────────────────────── */}
+            <div
+              className={`min-w-0 border-rule xl:border-l
+                          ${view === 'day' ? '' : 'hidden xl:block'}`}
+            >
         {/* ── The day ─────────────────────────────────────────────────── */}
-        {!isLoading && view === 'day' && (
-          <>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
               <div className="flex items-center gap-1">
                 <button
@@ -412,7 +482,7 @@ export default function AppointmentsPage() {
               </p>
             </div>
 
-            <div className="overflow-x-auto px-5 py-5">
+            <div className="overflow-x-auto px-5 pb-6 pr-6 pt-5">
               <div className="min-w-[26rem]">
                 <DayGrid
                   day={gridDay}
@@ -431,71 +501,20 @@ export default function AppointmentsPage() {
                 />
               </div>
             </div>
-          </>
+            </div>
+          </div>
         )}
 
-        {/* ── The list ────────────────────────────────────────────────── */}
-        {!isLoading && view === 'list' && shown === 0 && (
-
-          <EmptyState
-            icon={CalendarDays}
-            title={
-              filtering
-                ? 'Nothing matches that'
-                : scope === 'requested'
-                  ? 'No requests waiting'
-                  : 'Nothing in this part of the diary'
-            }
-            description={
-              filtering
-                ? 'Try a shorter term, or a different tab.'
-                : scope === 'requested'
-                  ? 'Every appointment a patient has asked for has been answered.'
-                  : 'Appointments appear here as the desk books them.'
-            }
-            action={
-              !filtering &&
-              scope !== 'requested' && (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setCreateOpen(true)}
-                >
-                  <CalendarPlus size={14} strokeWidth={2} aria-hidden="true" />
-                  Book an appointment
-                </button>
-              )
-            }
-          />
-        )}
-
-        {!isLoading &&
-          view === 'list' &&
-          groups.map((group) => (
-            <section key={group.key}>
-              {/* The day heading is the row above its own appointments, on the
-                  raised ground, so a long diary stays navigable while it
-                  scrolls. */}
-              <h2 className="flex items-baseline justify-between gap-4 border-b border-rule bg-raised px-5 py-2">
-                <span className="text-meta font-medium text-ink-2">
-                  {group.date ? dayLabel(group.date) : 'Undated'}
-                </span>
-                <span className="ident text-meta text-ink-3">{group.rows.length}</span>
-              </h2>
-              <ul className="divide-y divide-rule">
-                {group.rows.map((appointment) => (
-                  <Row
-                    key={appointment.id}
-                    appointment={appointment}
-                    onTransition={transition.mutate}
-                    onCancel={setToCancel}
-                    isPending={transition.isPending}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
       </Panel>
+
+      {!isLoading && view === 'list' && shown > 0 && (
+        <p className="note mt-3 max-w-[78ch]">
+          The move a row is waiting for sits inline; the rest are behind the row
+          menu, with the destructive one marked and separated. Slots are checked
+          server-side on half-open intervals, so a booking that merely touches
+          the end of another is allowed and one that overlaps is refused.
+        </p>
+      )}
 
       {filtering && shown > 0 && (
         <p className="mt-3 text-meta text-ink-3">

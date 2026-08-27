@@ -46,6 +46,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import StatusBadge from '../../components/ui/StatusBadge'
 import PageHeader from '../../components/ui/Page'
 import { Panel, PanelHead, Field } from '../../components/ui/Panel'
+import { formatPhone } from '../../utils'
 
 /** How the clinic's states are named to the person they concern. */
 const PATIENT_WORDING = {
@@ -336,7 +337,7 @@ export default function MyHealth() {
                 <Field label="Full name">{profile.data.name}</Field>
                 <Field label="Email">{profile.data.email}</Field>
                 <Field label="Phone" mono>
-                  {profile.data.phone}
+                  {formatPhone(profile.data.phone)}
                 </Field>
               </dl>
             )}

@@ -12,10 +12,29 @@
  * the pages had been designed separately.
  */
 
+/**
+ * @param {{
+ *   eyebrow?: React.ReactNode,
+ *   title: React.ReactNode,
+ *   description?: React.ReactNode,
+ *   lede?: boolean,
+ *   actions?: React.ReactNode,
+ *   meta?: React.ReactNode,
+ *   className?: string
+ * }} props
+ *
+ *   `lede` promotes the title to a full sentence about the state of the clinic
+ *   rather than the name of the screen. The Overview uses it: "Overview" is
+ *   the same word every morning, and the sentence beside it — who is next,
+ *   how many are still to be seen — is the only line on the page that changes
+ *   hourly. Naming the screen is then the eyebrow's job, which is what an
+ *   eyebrow is for.
+ */
 export default function PageHeader({
   eyebrow,
   title,
   description,
+  lede = false,
   actions,
   meta,
   className = '',
@@ -26,7 +45,15 @@ export default function PageHeader({
         <div className="min-w-0">
           {eyebrow && <p className="section-label mb-2">{eyebrow}</p>}
 
-          <h1 className="text-title font-semibold text-ink">{title}</h1>
+          <h1
+            className={
+              lede
+                ? 'max-w-[34ch] text-title font-semibold leading-snug text-ink'
+                : 'text-title font-semibold text-ink'
+            }
+          >
+            {title}
+          </h1>
 
           {description && (
             <p className="mt-2 max-w-[62ch] text-sm text-ink-2">{description}</p>

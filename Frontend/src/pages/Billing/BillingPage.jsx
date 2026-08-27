@@ -48,17 +48,7 @@ import {
 import { usePatientOptions } from '../../hooks/usePatients'
 import { useAuth } from '../../auth/AuthProvider'
 import { ROLES } from '../../auth/roles'
-
-/** An amount, written out in full. Rounding money hides the pennies owed. */
-export function money(amount, currency) {
-  const value = Number(amount ?? 0)
-  if (!currency) return value.toFixed(2)
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency,
-    currencyDisplay: 'code',
-  }).format(value)
-}
+import { money, reference } from '../../utils'
 
 function on(value, pattern = 'd MMM yyyy') {
   if (!value) return null
@@ -321,7 +311,7 @@ export default function BillingPage() {
                           className="rounded text-left"
                         >
                           <span className="ident block font-medium text-ink">
-                            INV-{String(invoice.id).padStart(5, '0')}
+                            {reference('INV', invoice.id, invoice.createdAt)}
                           </span>
                           {/* On a phone the amount folds into this cell and
                               the description gives way to it: the sum owed is
@@ -390,9 +380,8 @@ export default function BillingPage() {
                               onClick={() =>
                                 transition.mutate({ id: invoice.id, action: 'pay' })
                               }
-                              className="btn-row hidden whitespace-nowrap xl:inline-flex"
+                              className="link-action hidden whitespace-nowrap xl:inline"
                             >
-                              <Banknote size={12} strokeWidth={2} aria-hidden="true" />
                               Mark paid
                             </button>
                           )}
@@ -433,6 +422,12 @@ export default function BillingPage() {
             </table>
           </div>
         )}
+        {!invoices.isLoading && rows.length > 0 && (
+          <p className="note border-t border-rule px-5 py-3">
+            Amber marks what is owed and rose what is late. A paid invoice is
+            plain grey — it needs nothing from anybody.
+          </p>
+        )}
       </Panel>
 
       <Modal
@@ -449,7 +444,7 @@ export default function BillingPage() {
       <Modal
         isOpen={Boolean(viewing)}
         onClose={() => setViewing(null)}
-        title={viewing ? `INV-${String(viewing.id).padStart(5, '0')}` : ''}
+        title={viewing ? reference('INV', viewing.id, viewing.createdAt) : ''}
         description={viewing ? patientName(viewing) : undefined}
       >
         <InvoiceDetails
@@ -473,9 +468,11 @@ export default function BillingPage() {
         title={confirming?.action === 'refund' ? 'Refund this invoice?' : 'Void this invoice?'}
         message={
           confirming
-            ? `${money(confirming.invoice.amount, confirming.invoice.currency)} on INV-${String(
-                confirming.invoice.id
-              ).padStart(5, '0')} for ${patientName(confirming.invoice)} will be ${
+            ? `${money(confirming.invoice.amount, confirming.invoice.currency)} on ${reference(
+                'INV',
+                confirming.invoice.id,
+                confirming.invoice.createdAt
+              )} for ${patientName(confirming.invoice)} will be ${
                 confirming.action === 'refund'
                   ? 'returned to the patient. The invoice moves to refunded and cannot be paid again.'
                   : 'written off. The invoice moves to void and cannot be paid or refunded afterwards.'

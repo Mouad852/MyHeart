@@ -29,8 +29,10 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   CalendarDays,
+  CalendarPlus,
   ChevronLeft,
   FlaskConical,
+  Pencil,
   Pill,
   ReceiptText,
 } from 'lucide-react'
@@ -43,6 +45,12 @@ import ErrorBanner from '../../components/ui/ErrorBanner'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { Panel, Field } from '../../components/ui/Panel'
 import Avatar from '../../components/ui/Avatar'
+import Modal from '../../components/ui/Modal'
+import PatientForm from './PatientForm'
+import AppointmentForm from '../Appointments/AppointmentForm'
+import { useUpdatePatient } from '../../hooks/usePatients'
+import { useCreateAppointment } from '../../hooks/useAppointments'
+import { formatPhone, reference } from '../../utils'
 
 /** The glyph and the word for each kind of event. No colour. */
 const KIND = {
@@ -77,7 +85,16 @@ function safeDate(value, pattern) {
  * what the record is made of, and nothing else — a rail that grows becomes a
  * second page competing with the first.
  */
-function StoryboardRail({ patient, isLoading, sources, totalEvents, activeFilter, onFilter }) {
+function StoryboardRail({
+  patient,
+  isLoading,
+  sources,
+  totalEvents,
+  activeFilter,
+  onFilter,
+  onBook,
+  onEdit,
+}) {
   if (isLoading) {
     return (
       <aside className="panel p-5">
@@ -104,7 +121,7 @@ function StoryboardRail({ patient, isLoading, sources, totalEvents, activeFilter
           <div className="min-w-0 pt-0.5">
             <h1 className="text-xl font-semibold leading-tight text-ink">{patient.name}</h1>
             <p className="ident mt-1.5 text-meta text-ink-3">
-              Record {String(patient.id).padStart(5, '0')}
+              {reference('P', patient.id)}
             </p>
           </div>
         </div>
@@ -120,7 +137,7 @@ function StoryboardRail({ patient, isLoading, sources, totalEvents, activeFilter
           <Field label="Phone" mono>
             {patient.phone ? (
               <a href={`tel:${patient.phone}`} className="text-ink hover:text-primary">
-                {patient.phone}
+                {formatPhone(patient.phone)}
               </a>
             ) : null}
           </Field>
@@ -184,6 +201,20 @@ function StoryboardRail({ patient, isLoading, sources, totalEvents, activeFilter
             })}
           </ul>
         </div>
+
+        {/* A record you can only read is half a record. These are the two
+            things a clinician does next after looking at one, so they sit at
+            the foot of the rail rather than somewhere else on the page. */}
+        <div className="flex flex-col gap-2 border-t border-rule px-5 py-4">
+          <button type="button" className="btn-primary w-full" onClick={onBook}>
+            <CalendarPlus size={14} strokeWidth={2} aria-hidden="true" />
+            Book appointment
+          </button>
+          <button type="button" className="btn-secondary w-full" onClick={onEdit}>
+            <Pencil size={13} strokeWidth={2} aria-hidden="true" />
+            Edit details
+          </button>
+        </div>
       </div>
     </aside>
   )
@@ -246,6 +277,11 @@ export default function PatientDetail() {
   const patient = usePatient(patientId)
   const timeline = usePatientTimeline(patientId)
   const [filter, setFilter] = useState('all')
+  const [booking, setBooking] = useState(false)
+  const [editing, setEditing] = useState(false)
+
+  const updatePatient = useUpdatePatient({ onSuccess: () => setEditing(false) })
+  const createAppointment = useCreateAppointment({ onSuccess: () => setBooking(false) })
 
   const events = useMemo(
     () =>
@@ -299,6 +335,8 @@ export default function PatientDetail() {
           totalEvents={timeline.events.length}
           activeFilter={filter}
           onFilter={setFilter}
+          onBook={() => setBooking(true)}
+          onEdit={() => setEditing(true)}
         />
 
         <div className="min-w-0">
@@ -392,8 +430,39 @@ export default function PatientDetail() {
               </div>
             )}
           </Panel>
+
+          <p className="note mt-3 max-w-[78ch]">
+            Assembled in the browser from four services. Each is fetched
+            independently, so one being unavailable names itself above and leaves
+            the rest of the record readable.
+          </p>
         </div>
       </div>
+
+      <Modal
+        isOpen={booking}
+        onClose={() => setBooking(false)}
+        title="Book an appointment"
+        description={patient.data ? `For ${patient.data.name}` : undefined}
+      >
+        <AppointmentForm
+          initialPatientId={patientId}
+          onSubmit={(data) => createAppointment.mutate(data)}
+          isLoading={createAppointment.isPending}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={editing}
+        onClose={() => setEditing(false)}
+        title="Edit patient details"
+      >
+        <PatientForm
+          initialData={patient.data}
+          onSubmit={(data) => updatePatient.mutate({ id: patientId, data })}
+          isLoading={updatePatient.isPending}
+        />
+      </Modal>
     </>
   )
 }

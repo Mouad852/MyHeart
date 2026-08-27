@@ -33,7 +33,7 @@ import {
   useDeletePatient,
 } from '../../hooks/usePatients'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
-import { formatDate } from '../../utils'
+import { formatDate, formatPhone, reference } from '../../utils'
 
 function LoadingRows() {
   return Array.from({ length: 6 }, (_, i) => (
@@ -43,6 +43,9 @@ function LoadingRows() {
           <Skeleton className="h-8 w-8 rounded-full" />
           <SkeletonText chars={18} />
         </div>
+      </td>
+      <td className="td hidden sm:table-cell">
+        <SkeletonText chars={7} />
       </td>
       <td className="td hidden md:table-cell">
         <SkeletonText chars={22} />
@@ -181,6 +184,7 @@ export default function PatientsPage() {
               <thead>
                 <tr>
                   <th className="th pl-5">Patient</th>
+                  <th className="th ident hidden sm:table-cell">Ref</th>
                   <th className="th hidden md:table-cell">Email</th>
                   <th className="th hidden lg:table-cell">Phone</th>
                   <th className="th hidden xl:table-cell">Registered</th>
@@ -214,12 +218,20 @@ export default function PatientsPage() {
                         </Link>
                       </td>
 
+                      <td className="td ident hidden text-ink-2 sm:table-cell">
+                        {reference('P', patient.id)}
+                      </td>
+
                       <td className="td hidden text-ink-2 md:table-cell">
                         {patient.email || <span className="text-ink-3">—</span>}
                       </td>
 
-                      <td className="td ident hidden text-ink-2 lg:table-cell">
-                        {patient.phone || <span className="text-ink-3">—</span>}
+                      <td className="td ident hidden whitespace-nowrap text-ink-2 lg:table-cell">
+                        {patient.phone ? (
+                          formatPhone(patient.phone)
+                        ) : (
+                          <span className="text-ink-3">—</span>
+                        )}
                       </td>
 
                       <td className="td hidden text-meta text-ink-3 xl:table-cell">
@@ -252,6 +264,14 @@ export default function PatientsPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isLoading && patients.length > 0 && (
+          <p className="note border-t border-rule px-5 py-3">
+            The name is the link, so the thing you read is the thing you click.
+            Editing and deleting live in the row menu, not in a column of
+            destructive buttons.
+          </p>
         )}
 
         {!isLoading && data && (

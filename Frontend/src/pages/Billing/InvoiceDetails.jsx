@@ -15,8 +15,8 @@ import { Banknote, RotateCcw, Ban } from 'lucide-react'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { Spinner } from '../../components/ui/LoadingSpinner'
 import { Field } from '../../components/ui/Panel'
-import { formatDate } from '../../utils'
-import { money } from './BillingPage'
+import { formatDate, money, reference } from '../../utils'
+
 
 export default function InvoiceDetails({ invoice, patientName, onTransition, isPending }) {
   if (!invoice) return null
@@ -38,7 +38,7 @@ export default function InvoiceDetails({ invoice, patientName, onTransition, isP
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 py-5">
         <Field label="Reference" mono>
-          INV-{String(invoice.id).padStart(5, '0')}
+          {reference('INV', invoice.id, invoice.createdAt)}
         </Field>
         <Field label="Patient">
           {patientName || `Patient ${invoice.patientId}`}

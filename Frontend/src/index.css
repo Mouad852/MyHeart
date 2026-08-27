@@ -331,6 +331,34 @@
            focus-visible:border-primary focus-visible:text-primary;
   }
 
+  /**
+   * The action a row is waiting for — as a link, not a button.
+   *
+   * A bordered control is right when there is one of it on screen. Repeated
+   * down a column of twenty-seven invoices, twenty-seven borders become a
+   * stripe of furniture that says nothing, in the same way a column of red
+   * Cancel buttons used to. The label still says exactly what happens; it is
+   * simply set in the one colour on the page that means "this does something".
+   */
+  .link-action {
+    @apply rounded text-meta font-medium text-primary underline-offset-4
+           transition-colors duration-fast
+           hover:underline
+           disabled:pointer-events-none disabled:no-underline disabled:opacity-45;
+  }
+
+  /**
+   * A note under a region, explaining how the thing above it works.
+   *
+   * These are not decoration. MedCore enforces its rules on the server — legal
+   * state transitions, half-open interval conflict checks, who may upload a
+   * report — and the interface only ever reflects them. Saying so in place is
+   * how a reader learns to trust what they are looking at.
+   */
+  .note {
+    @apply text-meta leading-relaxed text-ink-3;
+  }
+
   .btn-icon {
     @apply inline-flex h-8 w-8 items-center justify-center rounded
            border border-transparent text-ink-2 transition-colors duration-fast

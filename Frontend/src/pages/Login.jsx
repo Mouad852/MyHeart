@@ -59,7 +59,8 @@ function CopyButton({ value, label, copied, onCopy, mono = false }) {
       type="button"
       onClick={() => onCopy(value)}
       aria-label={`Copy ${label}`}
-      className={`btn-row flex-shrink-0 ${mono ? 'font-mono' : ''}`}
+      className={`link-action inline-flex flex-shrink-0 items-center gap-1.5
+                  ${mono ? 'font-mono' : ''}`}
     >
       {isCopied ? (
         <Check size={12} strokeWidth={2.5} aria-hidden="true" />

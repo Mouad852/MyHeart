@@ -174,32 +174,55 @@ function Slot({ appointment, isNext, isPast, onTransition, isPending }) {
         {/* Only transitions the server has said are legal. */}
         {(allowed.includes('COMPLETED') || allowed.includes('NO_SHOW') || patient?.id) && (
           <div className="flex w-full flex-shrink-0 flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end">
-            {allowed.includes('COMPLETED') && (
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => onTransition({ id: appointment.id, action: 'complete' })}
-                className="btn-row"
-              >
-                <Check size={12} strokeWidth={2.5} aria-hidden="true" />
-                Seen
-              </button>
-            )}
-            {allowed.includes('NO_SHOW') && (
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => onTransition({ id: appointment.id, action: 'no-show' })}
-                className="btn btn-secondary btn-sm"
-              >
-                <UserX size={12} strokeWidth={2} aria-hidden="true" />
-                No show
-              </button>
-            )}
+            {/* Only the patient in front of the doctor gets bordered
+                controls. Every other row's actions are links, so the eye lands
+                on the one row that is actually happening. */}
+            {allowed.includes('COMPLETED') &&
+              (isNext ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onTransition({ id: appointment.id, action: 'complete' })}
+                  className="btn-primary btn-sm"
+                >
+                  <Check size={12} strokeWidth={2.5} aria-hidden="true" />
+                  Mark seen
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onTransition({ id: appointment.id, action: 'complete' })}
+                  className="link-action"
+                >
+                  Mark seen
+                </button>
+              ))}
+            {allowed.includes('NO_SHOW') &&
+              (isNext ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onTransition({ id: appointment.id, action: 'no-show' })}
+                  className="btn btn-secondary btn-sm"
+                >
+                  <UserX size={12} strokeWidth={2} aria-hidden="true" />
+                  Did not attend
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onTransition({ id: appointment.id, action: 'no-show' })}
+                  className="link-action"
+                >
+                  Did not attend
+                </button>
+              ))}
             {isNext && patient?.id && (
               <Link to={`/patients/${patient.id}`} className="btn btn-secondary btn-sm">
                 <FileText size={12} strokeWidth={2} aria-hidden="true" />
-                Record
+                Open record
               </Link>
             )}
           </div>
@@ -339,8 +362,10 @@ export default function TodayWorkspace() {
         )}
       </Panel>
 
-      <p className="mt-4 text-meta text-ink-3">
-        Times are shown in the clinic’s local time zone.
+      <p className="note mt-4 max-w-[78ch]">
+        Scoped server-side from the <span className="ident">doctorId</span> claim in
+        your token, so it cannot be pointed at a colleague’s calendar. Times are
+        shown in the clinic’s local time zone.
       </p>
     </>
   )

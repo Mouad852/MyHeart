@@ -18,11 +18,12 @@
  * shown an empty money panel and a billing clerk is not shown an empty ward.
  */
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { format, isValid, parseISO } from 'date-fns'
 import { useClinicOverview } from '../hooks/useClinicOverview'
 import { useAppointmentTransition } from '../hooks/useAppointments'
 import { useAuth } from '../auth/AuthProvider'
+import { money } from '../utils'
 import { Skeleton, SkeletonRows, SkeletonText } from '../components/ui/LoadingSpinner'
 import ErrorBanner from '../components/ui/ErrorBanner'
 import EmptyState from '../components/ui/EmptyState'
@@ -31,18 +32,6 @@ import Figures from '../components/ui/Figures'
 import { Panel, PanelHead } from '../components/ui/Panel'
 import Avatar from '../components/ui/Avatar'
 import StatusBadge from '../components/ui/StatusBadge'
-
-/** Money, in whatever currency the summary reports. */
-function money(amount, currency) {
-  const value = Number(amount ?? 0)
-  if (!currency) return value.toFixed(2)
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency,
-    currencyDisplay: 'code',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 function at(value, pattern) {
   if (!value) return null
@@ -136,15 +125,18 @@ function Decisions({ awaiting }) {
                     type="button"
                     disabled={transition.isPending}
                     onClick={() => transition.mutate({ id: row.id, action: 'confirm' })}
-                    className="btn-row flex-shrink-0"
+                    className="link-action flex-shrink-0"
                   >
-                    <Check size={12} strokeWidth={2.5} aria-hidden="true" />
                     Confirm
                   </button>
                 )}
               </li>
             ))}
           </ul>
+
+          <p className="note border-t border-rule px-5 py-3">
+            Confirm appears only where the server says that transition is legal.
+          </p>
 
           {awaiting.count > rows.length && (
             <div className="border-t border-rule px-5 py-3">
@@ -360,16 +352,33 @@ export default function Dashboard() {
    * displaced tells a receptionist, before she has read anything else, whether
    * she needs to do something in the next hour.
    */
-  const summary = () => {
-    if (!permissions.canReadAppointments) return 'What is happening in the clinic today.'
-    if (day.isLoading) return 'Reading today’s list…'
+  /**
+   * The state of the clinic, as the page's headline.
+   *
+   * This is the largest thing on the Overview, in place of the word
+   * "Overview" — which is the same word every morning and tells a receptionist
+   * nothing. The clock time is set in the identifier face inside the sentence,
+   * so the one value somebody is actually reading off the screen is the one
+   * their eye lands on.
+   */
+  const headline = () => {
+    if (!permissions.canReadAppointments) {
+      return <>What is happening in the clinic today.</>
+    }
+    if (day.isLoading) return <>Reading today’s list…</>
 
     if (day.next) {
       const time = at(day.next.appointmentDate, 'HH:mm')
       const who = day.next.patient?.name
       const rest =
         day.remaining > 1 ? ` ${day.remaining} still to be seen.` : ' The last of the day.'
-      return who ? `Next at ${time} — ${who}.${rest}` : `Next appointment at ${time}.${rest}`
+      return (
+        <>
+          Next at <span className="ident">{time}</span>
+          {who ? <> — {who}.</> : '.'}
+          {rest}
+        </>
+      )
     }
 
     // Slots can still be open after their time has passed: the appointment was
@@ -377,21 +386,23 @@ export default function Dashboard() {
     // accounted for" while a row sits in the list below is the kind of small
     // contradiction that teaches people to stop reading the summary.
     if (day.remaining > 0) {
-      return day.remaining === 1
-        ? 'One appointment from earlier today is still open.'
-        : `${day.remaining} appointments from earlier today are still open.`
+      return day.remaining === 1 ? (
+        <>One appointment from earlier today is still open.</>
+      ) : (
+        <>{day.remaining} appointments from earlier today are still open.</>
+      )
     }
 
-    if (day.booked > 0) return 'Everyone booked for today has been seen or accounted for.'
-    return 'Nothing is booked for today.'
+    if (day.booked > 0) return <>Everyone booked for today has been seen or accounted for.</>
+    return <>Nothing is booked for today.</>
   }
 
   return (
     <>
       <PageHeader
-        eyebrow={format(new Date(), 'EEEE d MMMM yyyy')}
-        title="Overview"
-        description={summary()}
+        lede
+        eyebrow={`Overview · ${format(new Date(), 'EEEE d MMMM yyyy')}`}
+        title={headline()}
         meta={
           permissions.canReadAppointments && (
             <Figures

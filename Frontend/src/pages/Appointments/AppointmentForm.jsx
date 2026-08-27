@@ -11,8 +11,21 @@ import { getMinAppointmentDate } from '../../utils'
 
 const EMPTY = { patientId: '', doctorId: '', appointmentDate: '', notes: '' }
 
-export default function AppointmentForm({ onSubmit, isLoading }) {
-  const [form, setForm]     = useState(EMPTY)
+/**
+ * @param {{
+ *   onSubmit: Function,
+ *   isLoading?: boolean,
+ *   initialPatientId?: number
+ * }} props
+ *   `initialPatientId` pre-selects the patient when the form is opened from
+ *   inside their record. Booking from a record and then having to find the
+ *   same person in a dropdown is the kind of small indignity that makes people
+ *   keep a second tab open.
+ */
+export default function AppointmentForm({ onSubmit, isLoading, initialPatientId }) {
+  const [form, setForm] = useState(() =>
+    initialPatientId ? { ...EMPTY, patientId: String(initialPatientId) } : EMPTY
+  )
   const [errors, setErrors] = useState({})
 
   const { data: patients = [], isLoading: pLoading } = usePatientOptions()

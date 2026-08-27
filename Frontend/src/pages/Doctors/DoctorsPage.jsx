@@ -31,6 +31,7 @@ import {
   useDeleteDoctor,
 } from '../../hooks/useDoctors'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { formatPhone } from '../../utils'
 
 export default function DoctorsPage() {
   const [search, setSearch] = useState('')
@@ -180,6 +181,7 @@ export default function DoctorsPage() {
                   <th className="th pl-5">Doctor</th>
                   <th className="th hidden sm:table-cell">Specialty</th>
                   <th className="th hidden md:table-cell">Email</th>
+                  <th className="th hidden lg:table-cell">Phone</th>
                   <th className="th pr-5 text-right">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -200,6 +202,9 @@ export default function DoctorsPage() {
                         </td>
                         <td className="td hidden md:table-cell">
                           <SkeletonText chars={20} />
+                        </td>
+                        <td className="td hidden lg:table-cell">
+                          <SkeletonText chars={16} />
                         </td>
                         <td className="td" />
                       </tr>
@@ -224,6 +229,14 @@ export default function DoctorsPage() {
 
                         <td className="td hidden text-ink-2 md:table-cell">
                           {doctor.email || <span className="text-ink-3">—</span>}
+                        </td>
+
+                        <td className="td ident hidden whitespace-nowrap text-ink-2 lg:table-cell">
+                          {doctor.phone ? (
+                            formatPhone(doctor.phone)
+                          ) : (
+                            <span className="text-ink-3">—</span>
+                          )}
                         </td>
 
                         <td className="td pr-5">
@@ -251,6 +264,14 @@ export default function DoctorsPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isLoading && rows.length > 0 && (
+          <p className="note border-t border-rule px-5 py-3">
+            Specialities are not colour-coded. A column of violet, amber and blue
+            badges would say which department a row belongs to, which is not a
+            thing anybody needs colour for.
+          </p>
         )}
 
         {!isLoading && data && !specialty && (

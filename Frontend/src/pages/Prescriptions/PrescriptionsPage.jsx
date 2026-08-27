@@ -32,7 +32,7 @@ import {
 } from '../../hooks/usePrescriptions'
 import { usePatientOptions } from '../../hooks/usePatients'
 import { useDoctorOptions } from '../../hooks/useDoctors'
-import { formatDate } from '../../utils'
+import { formatDate, reference } from '../../utils'
 
 /** The medication table, shown when a prescription is opened. */
 function Medications({ items = [] }) {
@@ -96,7 +96,7 @@ function Row({ prescription, patientName, doctorName, isOpen, onToggle, print })
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="ident text-sm font-medium text-ink">
-                RX-{String(prescription.id).padStart(5, '0')}
+                {reference('RX', prescription.id, prescription.createdAt)}
               </span>
               {prescription.diagnosis && (
                 <span className="min-w-0 truncate text-sm text-ink-2">
@@ -289,6 +289,12 @@ export default function PrescriptionsPage() {
           </ul>
         )}
       </Panel>
+
+      <p className="note mt-3 max-w-[78ch]">
+        Print renders a real A4 document on the server — letterhead, prescriber,
+        medication table and signature line — and it carries a notice on its face
+        that it is a demonstration and not a valid prescription.
+      </p>
 
       <Modal
         isOpen={createOpen}

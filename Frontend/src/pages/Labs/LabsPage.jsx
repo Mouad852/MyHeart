@@ -50,7 +50,7 @@ import {
 import { usePatientOptions } from '../../hooks/usePatients'
 import { useAuth } from '../../auth/AuthProvider'
 import { ROLES } from '../../auth/roles'
-import { formatDate } from '../../utils'
+import { formatDate, reference } from '../../utils'
 
 /** What the server will accept, said in the reader's words. */
 const ACCEPTED = 'application/pdf,image/png,image/jpeg'
@@ -91,7 +91,7 @@ function Result({ result, requestId, canUpload }) {
       </span>
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
-        <p className="section-label">Result {String(result.id).padStart(4, '0')}</p>
+        <p className="section-label">{reference('LAB-R', result.id)}</p>
         <p className="ident text-meta text-ink-3">
           {formatDate(result.resultedAt, 'd MMM yyyy')}
         </p>
@@ -420,6 +420,9 @@ export default function LabsPage() {
                           </span>
                           <StatusBadge status={request.status} size="sm" />
                         </span>
+                        <span className="ident mt-1 block text-meta text-ink-3">
+                          {reference('LAB', request.id, request.requestedAt)}
+                        </span>
                         <span className="mt-1 block truncate text-meta text-ink-3">
                           {patientNames.get(request.patientId) || `Patient ${request.patientId}`}
                           {` · ordered ${formatDate(request.requestedAt, 'd MMM yyyy')}`}
@@ -458,6 +461,13 @@ export default function LabsPage() {
           </ul>
         )}
       </Panel>
+
+      <p className="note mt-3 max-w-[78ch]">
+        Uploading is offered to doctors, admins and lab technicians only — the
+        roles the gateway will actually accept a file from. Every upload is
+        checked by its bytes rather than its name, and served back as an
+        attachment so a file can never render in the browser.
+      </p>
 
       <Modal
         isOpen={requestOpen}
