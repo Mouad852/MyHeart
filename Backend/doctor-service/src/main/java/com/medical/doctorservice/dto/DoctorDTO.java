@@ -2,6 +2,7 @@ package com.medical.doctorservice.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
 /**
@@ -25,6 +26,9 @@ public class DoctorDTO {
         @NotBlank(message = "Email is required")
         @Email(message = "Email must be valid")
         private String email;
+
+        @Pattern(regexp = "^[+]?[0-9]{7,15}$", message = "Phone must be valid (7-15 digits)")
+        private String phone;
     }
 
     @Getter
@@ -38,6 +42,7 @@ public class DoctorDTO {
         private String name;
         private String specialty;
         private String email;
+        private String phone;
         private String createdAt;
         private String updatedAt;
     }

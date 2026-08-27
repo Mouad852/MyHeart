@@ -43,6 +43,7 @@ public class DoctorServiceImpl implements DoctorService {
                 .name(request.getName())
                 .specialty(request.getSpecialty())
                 .email(request.getEmail())
+                .phone(request.getPhone())
                 .build();
 
         Doctor saved = doctorRepository.save(doctor);
@@ -106,6 +107,7 @@ public class DoctorServiceImpl implements DoctorService {
         existing.setName(request.getName());
         existing.setSpecialty(request.getSpecialty());
         existing.setEmail(request.getEmail());
+        existing.setPhone(request.getPhone());
 
         Doctor updated = doctorRepository.save(existing);
         log.info("Doctor updated with ID: {}", updated.getId());
@@ -130,6 +132,7 @@ public class DoctorServiceImpl implements DoctorService {
                 .name(doctor.getName())
                 .specialty(doctor.getSpecialty())
                 .email(doctor.getEmail())
+                .phone(doctor.getPhone())
                 .createdAt(doctor.getCreatedAt() != null ? doctor.getCreatedAt().toString() : null)
                 .updatedAt(doctor.getUpdatedAt() != null ? doctor.getUpdatedAt().toString() : null)
                 .build();

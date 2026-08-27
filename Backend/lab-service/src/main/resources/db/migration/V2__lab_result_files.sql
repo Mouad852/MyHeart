@@ -11,10 +11,17 @@
 -- conditional.
 
 -- ---------------------------------------------------------------------------
--- Attachment columns. file_path already exists: it was added by Hibernate from
--- a field commented "Simulated file path" that nothing ever wrote to. It now
--- holds a real storage key.
+-- Attachment columns.
+--
+-- file_path exists on a Hibernate-built database, added from a field commented
+-- "Simulated file path" that nothing ever wrote to; it now holds a real storage
+-- key. It does *not* exist on a database built from V1, which never declared
+-- it. This script originally assumed the first case and aborted on the second
+-- with `column "file_path" does not exist`, taking the whole service down with
+-- it — a clean clone could not migrate lab-service at all. Creating it here
+-- first makes both cases work.
 -- ---------------------------------------------------------------------------
+ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS file_path       VARCHAR(255);
 ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS file_name       VARCHAR(160);
 ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS file_content_type VARCHAR(80);
 ALTER TABLE lab_results ADD COLUMN IF NOT EXISTS file_size       BIGINT;
