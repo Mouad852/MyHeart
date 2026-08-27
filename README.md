@@ -460,10 +460,12 @@ demo of a different product:
 What it does not do is stated plainly in [`Frontend/src/demo/README.md`](Frontend/src/demo/README.md),
 including that it is a fidelity exercise and not a security boundary.
 
-Deploying it is free: Cloudflare Pages (or Netlify, or Vercel) with root
-directory `Frontend`, build `npm run build`, output `dist`, and
-`VITE_DEMO_MODE=true`. `public/_redirects` is committed, without which every
-route except `/` is a 404 on refresh.
+Deploying it is free. On Cloudflare the settings are root directory
+`Frontend`, build `npm run build`, output `dist`, and the environment variable
+`VITE_DEMO_MODE=true` - without which the build succeeds and every screen then
+reaches for a gateway that is not there. `Frontend/wrangler.jsonc` carries
+`not_found_handling: single-page-application`, which is what makes a route like
+`/appointments/calendar` survive a refresh instead of 404ing.
 
 ---
 

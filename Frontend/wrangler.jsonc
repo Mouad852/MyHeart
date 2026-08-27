@@ -1,0 +1,21 @@
+{
+  // Cloudflare Workers static assets.
+  //
+  // The hosted demo is a static build; this file exists so the deploy is
+  // deterministic rather than re-derived by wrangler on every build.
+  //
+  // `single-page-application` is what makes /appointments/calendar survive a
+  // refresh: any path with no matching asset serves index.html and lets the
+  // router decide. A Pages-style public/_redirects file used to do this job and
+  // was removed - on Workers it is parsed as a redirect rule and rejected,
+  // "Infinite loop detected in this rule", which fails the deploy.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "myheart",
+  "compatibility_date": "2026-08-26",
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

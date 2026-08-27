@@ -81,6 +81,8 @@ Cloudflare Pages, free tier, no card:
 | Output directory | `dist` |
 | Environment variable | `VITE_DEMO_MODE` = `true` |
 
-`public/_redirects` carries `/* /index.html 200`, without which every route
-except `/` is a 404 on refresh. Netlify and Vercel work the same way with the
-same settings.
+SPA routing comes from `Frontend/wrangler.jsonc`:
+`"not_found_handling": "single-page-application"`. Without it every route except
+`/` is a 404 on refresh. A Pages-style `public/_redirects` does the same job on
+Netlify and Vercel, but Workers rejects it as an infinite-loop redirect rule, so
+it is not in this repository.
