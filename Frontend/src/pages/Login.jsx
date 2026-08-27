@@ -1,20 +1,30 @@
 /**
  * Login.jsx — the way in.
  *
- * There is deliberately no password field. Authentication is the OpenID Connect
+ * There is no password field. Authentication is the OpenID Connect
  * Authorization Code Flow with PKCE, so credentials are typed on Keycloak's own
  * screen and this application never sees them. The page's whole job is to say
- * that clearly and then get out of the way.
+ * that clearly, get out of the way, and — because this is a portfolio
+ * deployment — tell somebody arriving cold what they are looking at.
  *
- * The left panel is typographic. It previously carried a teal dot grid, a
- * blurred teal orb and three large figures — "6 clinical services · 5 staff
- * roles · 1 patient record" — which is the shape of a marketing page rather
- * than the front door of a clinical tool, and two of the three numbers were
- * facts about the architecture that no user has ever needed.
+ * The left panel earns its half now.
+ *
+ * It used to hold three small blocks pinned to the top, middle and bottom of a
+ * 900px column: a wordmark, a two-line headline and five words in a row. Two
+ * hundred and fifty pixels of nothing above the headline, the same below it,
+ * and a list of areas stranded on the floor three hundred pixels away from the
+ * paragraph it belonged to. `justify-between` is not a composition; it is what
+ * happens when there is not enough content and nobody decided what to do about
+ * it.
+ *
+ * So it carries real content — what the system actually covers, named and
+ * described — set as one centred block. It fills the height because there is
+ * something to fill it with, and somebody arriving cold learns what MedCore is
+ * in about ten seconds without signing in.
  */
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Check, Copy, ShieldCheck } from 'lucide-react'
+import { Check, Copy, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { homeRouteFor } from '../auth/roles'
 import ErrorBanner from '../components/ui/ErrorBanner'
@@ -33,8 +43,20 @@ const DEMO_ACCOUNTS = [
 
 const DEMO_PASSWORD = 'DemoPass123!'
 
-/** What the product actually covers, in its own words. */
-const AREAS = ['Scheduling', 'Patient records', 'Prescribing', 'Laboratory', 'Billing']
+/**
+ * What the system covers, described rather than listed.
+ *
+ * Five nouns in a row told a reader nothing they could not have guessed from
+ * the word "clinic". Each of these is a true sentence about a screen that
+ * exists, which is the only kind of claim worth putting on a front door.
+ */
+const COVERAGE = [
+  ['Front desk', 'Register a patient, book a slot, answer a request'],
+  ['The day', 'A doctor’s list in time order, and what may happen next'],
+  ['Records', 'Prescriptions that print as A4, reports that attach'],
+  ['Ledger', 'What is outstanding, what is late, what is collected'],
+  ['Access', 'Seven roles, enforced twice on every request'],
+]
 
 function Wordmark({ className = '' }) {
   return (
@@ -44,9 +66,7 @@ function Wordmark({ className = '' }) {
         <span className="block text-xl font-bold leading-none tracking-tight text-ink">
           MedCore
         </span>
-        <span className="mt-1 block text-meta font-medium text-ink-3">
-          Clinic operations
-        </span>
+        <span className="mt-1 block text-meta text-ink-3">Clinic operations</span>
       </span>
     </span>
   )
@@ -95,44 +115,64 @@ export default function Login() {
 
   return (
     <main className="min-h-[100dvh] bg-surface text-ink">
-      <div className="mx-auto grid min-h-[100dvh] max-w-[1500px] lg:grid-cols-[1.1fr_1fr]">
-        {/* ── The statement ─────────────────────────────────────────── */}
-        <section className="hidden border-r border-rule bg-ground px-14 py-14 lg:flex lg:flex-col lg:justify-between xl:px-20">
-          <Wordmark />
+      <div className="mx-auto grid min-h-[100dvh] max-w-[1560px] lg:grid-cols-[1.25fr_1fr]">
+        {/* ── What this is ──────────────────────────────────────────── */}
+        <section className="hidden border-r border-rule bg-ground px-14 py-16 lg:flex lg:flex-col lg:justify-center xl:px-20">
+          <div className="max-w-[34rem]">
+            <Wordmark />
 
-          <div className="max-w-[36rem]">
-            <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-ink xl:text-5xl">
-              Every part of the clinic,
-              <br />
-              <span className="text-primary">in one record.</span>
+            {/* Balanced, so it does not break between "front" and "desk". */}
+            <h1 className="mt-12 text-balance text-4xl font-bold leading-[1.1]
+                           tracking-tight text-ink">
+              An outpatient clinic, from the front desk to the ledger.
             </h1>
-            <p className="mt-6 max-w-[52ch] leading-relaxed text-ink-2">
-              Scheduling, patient history, prescribing, laboratory work and billing —
-              held by separate services, read as one thing, so nobody re-types what the
-              clinic already knows.
+
+            <p className="mt-6 leading-relaxed text-ink-2">
+              Registering patients, running a clinic day, prescribing, filing
+              laboratory reports and chasing what is owed — held by six services,
+              read as one record.
+            </p>
+
+            {/* Ruled rather than boxed, and on one column so the left edge of
+                every description lines up. Five rows of substance in place of
+                five words in a row. */}
+            <dl className="mt-10 border-t border-rule">
+              {COVERAGE.map(([area, detail]) => (
+                <div
+                  key={area}
+                  className="grid grid-cols-[7rem_minmax(0,1fr)] gap-5 border-b border-rule py-3"
+                >
+                  <dt className="text-sm font-semibold text-ink">{area}</dt>
+                  <dd className="text-sm text-ink-2">{detail}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <p className="note mt-7">
+              Every record in this deployment is fictional. It is a portfolio
+              project and is not certified for real medical data.
             </p>
           </div>
-
-          {/* Named, not counted. A list of what the product does is worth more
-              than a large number saying how many of them there are. */}
-          <ul className="flex flex-wrap gap-x-8 gap-y-2 border-t border-rule pt-7">
-            {AREAS.map((area) => (
-              <li key={area} className="text-meta text-ink-3">
-                {area}
-              </li>
-            ))}
-          </ul>
         </section>
 
         {/* ── Sign in ───────────────────────────────────────────────── */}
-        <section className="flex flex-col justify-center px-6 py-14 sm:px-12 lg:px-14">
-          <div className="mx-auto w-full max-w-md">
-            <Wordmark className="mb-12 lg:hidden" />
+        <section className="flex flex-col justify-center px-6 py-14 sm:px-10 lg:px-12 xl:px-16">
+          <div className="mx-auto w-full max-w-[26rem]">
+            {/* Below lg the statement panel is gone, so the wordmark and a
+                one-line version of it travel with the form instead — the page
+                still has to say what it is on a phone. */}
+            <div className="lg:hidden">
+              <Wordmark />
+              <p className="mt-6 text-lg font-semibold leading-snug text-ink">
+                An outpatient clinic, from the front desk to the ledger.
+              </p>
+              <div className="mt-8 border-t border-rule" />
+            </div>
 
-            <h2 className="text-title font-bold text-ink">Sign in</h2>
+            <h2 className="mt-8 text-title font-semibold text-ink lg:mt-0">Sign in</h2>
             <p className="mt-2.5 leading-relaxed text-ink-2">
-              You will be taken to the MedCore identity service to enter your credentials.
-              They are never typed into this application.
+              You will be taken to the MedCore identity service to type your
+              credentials. They are never entered into this application.
             </p>
 
             {status === 'failed' && (
@@ -147,7 +187,7 @@ export default function Login() {
               type="button"
               onClick={() => login(returnTo)}
               disabled={status !== 'ready'}
-              className="btn-primary mt-8 w-full py-3 text-base"
+              className="btn-primary mt-7 w-full py-2.5 text-base"
             >
               {status === 'initialising' ? (
                 <>
@@ -155,22 +195,22 @@ export default function Login() {
                   Connecting
                 </>
               ) : (
-                <>
-                  Continue to sign in
-                  <ArrowRight size={15} strokeWidth={2.5} aria-hidden="true" />
-                </>
+                'Continue to sign in'
               )}
             </button>
 
-            <p className="mt-4 flex items-center justify-center gap-1.5 text-meta text-ink-3">
-              <ShieldCheck size={13} strokeWidth={2} aria-hidden="true" />
+            <p className="mt-3.5 flex items-center justify-center gap-1.5 text-center text-meta text-ink-3">
+              <ShieldCheck size={13} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
               OpenID Connect, Authorization Code Flow with PKCE
             </p>
 
             {/* ── Demo accounts ─────────────────────────────────────── */}
-            <div className="mt-12 border border-rule">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-4 py-3">
-                <h3 className="text-sm font-semibold text-ink">Demo accounts</h3>
+            {/* A ruled list rather than a bordered panel. Boxed, it was the
+                heaviest object on the page and outweighed the one control
+                anybody came here to press. */}
+            <div className="mt-12">
+              <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-2.5">
+                <h3 className="section-label">Demo accounts</h3>
                 <CopyButton
                   mono
                   value={DEMO_PASSWORD}
@@ -184,12 +224,10 @@ export default function Login() {
                 {DEMO_ACCOUNTS.map((account) => (
                   <li
                     key={account.username}
-                    className="flex items-center justify-between gap-4 px-4 py-3"
+                    className="flex items-center justify-between gap-4 py-2.5"
                   >
                     <div className="min-w-0">
-                      <p className="ident truncate text-sm text-ink">
-                        {account.username}
-                      </p>
+                      <p className="ident truncate text-sm text-ink">{account.username}</p>
                       <p className="mt-0.5 truncate text-meta text-ink-3">
                         {account.role} · {account.summary}
                       </p>
@@ -204,9 +242,9 @@ export default function Login() {
                 ))}
               </ul>
 
-              <p className="border-t border-rule px-4 py-3 text-meta leading-relaxed text-ink-3">
-                Every record in this deployment is fictional. Do not enter real patient
-                information.
+              <p className="note mt-4 lg:hidden">
+                Every record in this deployment is fictional. Do not enter real
+                patient information.
               </p>
             </div>
           </div>
