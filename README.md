@@ -13,7 +13,11 @@ from anything the browser sends.
 > Every record in this deployment is fictional. This is a portfolio project and
 > is not certified for real medical data.
 
-![The clinic overview](docs/screenshots/03-overview.jpeg)
+![A walkthrough of the screens](docs/walkthrough.gif)
+
+*Eight screens in order, captured from the running system. The longer version -
+fourteen screens, with the full-page views scrolled - is
+[docs/walkthrough.mp4](docs/walkthrough.mp4).*
 
 ---
 
@@ -84,6 +88,8 @@ There are no figures on it. An earlier version reported "6 clinical services ·
 anything a user of the clinic needed to know.
 
 ### Overview — `/`
+
+![The clinic overview](docs/screenshots/03-overview.jpeg)
 
 The clinic's operations screen, ordered by the questions the person running a
 clinic actually asks: **is today under control**, **what needs a decision**,
