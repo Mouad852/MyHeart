@@ -19,17 +19,18 @@ Seven roles, one click each, no password. It is the real interface answering its
 own requests, with the same clinic as the seeded database - see
 [the hosted demo](#the-hosted-demo) for what that means and what it does not.
 
-![A walkthrough of MedCore](docs/walkthrough.gif)
+[![A walkthrough of MedCore](docs/walkthrough.gif)](https://youtu.be/AJEzYZvm-dY)
 
-*Thirteen seconds of the full walkthrough. The whole thing, two and a half
-minutes across every screen and three accounts, is
-[docs/medcore-walkthrough.mp4](docs/medcore-walkthrough.mp4).*
+*Thirteen seconds of it. [Watch the full walkthrough on
+YouTube](https://youtu.be/AJEzYZvm-dY) - two and a half minutes across every
+screen and three accounts - or take
+[the file](docs/medcore-walkthrough.mp4).*
 
 ---
 
 ## Contents
 
-- [Live demo](https://myheart.mdchaouni.workers.dev)
+- [Live demo](https://myheart.mdchaouni.workers.dev) · [walkthrough video](https://youtu.be/AJEzYZvm-dY)
 - [What it does](#what-it-does)
 - [The screens](#the-screens)
 - [Running it](#running-it)
