@@ -234,11 +234,29 @@ function Results({ requestId, canUpload, canRecord, onRecord }) {
 
 export default function LabsPage() {
   const { hasAnyRole } = useAuth()
-  const requests = useAllLabRequests()
-  const patients = usePatientOptions()
 
+  // These are not the same list, and treating them as one offered a
+  // laboratory technician a button that could only ever return 403. The
+  // gateway serves POST /labs/results/*/file to DOCTOR, ADMIN and
+  // LAB_TECHNICIAN, but every other POST under /labs to DOCTOR and ADMIN
+  // alone — so a technician may attach a report to a finding and may not write
+  // the finding itself.
   const canUpload = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN, ROLES.LAB_TECHNICIAN])
-  const canRecord = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN, ROLES.LAB_TECHNICIAN])
+  const canRecord = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN])
+  const canOrder = hasAnyRole([ROLES.DOCTOR, ROLES.ADMIN])
+
+  // A laboratory technician cannot read the patient register, so asking for it
+  // on their behalf is a guaranteed 403 and a red banner about a permission
+  // they were never meant to have. They see the patient number instead.
+  const canReadPatients = hasAnyRole([
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.RECEPTIONIST,
+    ROLES.NURSE,
+  ])
+
+  const requests = useAllLabRequests()
+  const patients = usePatientOptions({ enabled: canReadPatients })
 
   const [scope, setScope] = useState('open')
   const [patientFilter, setPatientFilter] = useState('')
@@ -303,10 +321,12 @@ export default function LabsPage() {
         title="Laboratory"
         description="Tests the clinic has ordered, the findings returned against them, and the reports attached to those findings."
         actions={
-          <button type="button" className="btn-primary" onClick={() => setRequestOpen(true)}>
-            <Plus size={14} strokeWidth={2} aria-hidden="true" />
-            Order a test
-          </button>
+          canOrder && (
+            <button type="button" className="btn-primary" onClick={() => setRequestOpen(true)}>
+              <Plus size={14} strokeWidth={2} aria-hidden="true" />
+              Order a test
+            </button>
+          )
         }
       />
 
@@ -336,6 +356,7 @@ export default function LabsPage() {
             ]}
           />
 
+          {canReadPatients && (
           <div className="mb-2 w-full max-w-[15rem] sm:mb-0">
             <label className="sr-only" htmlFor="lab-patient-filter">
               Filter by patient
@@ -357,6 +378,7 @@ export default function LabsPage() {
               ))}
             </select>
           </div>
+          )}
         </div>
 
         {requests.isLoading && <SkeletonRows rows={4} label="Loading laboratory work" />}
@@ -377,7 +399,8 @@ export default function LabsPage() {
                 : 'Tests a doctor orders appear here, with their findings underneath.'
             }
             action={
-              !patientFilter && (
+              !patientFilter &&
+              canOrder && (
                 <button
                   type="button"
                   className="btn-secondary"
@@ -437,12 +460,14 @@ export default function LabsPage() {
 
                     {/* "Record" alone would sit next to "Record the result"
                         one level down and mean something else entirely. */}
-                    <Link
-                      to={`/patients/${request.patientId}`}
-                      className="btn-row flex-shrink-0"
-                    >
-                      Open patient
-                    </Link>
+                    {canReadPatients && (
+                      <Link
+                        to={`/patients/${request.patientId}`}
+                        className="btn-row flex-shrink-0"
+                      >
+                        Open patient
+                      </Link>
+                    )}
                   </div>
 
                   {isOpen && (

@@ -22,8 +22,28 @@ public class CallerIdentity {
 
     private static final String PATIENT_ID_CLAIM = "patientId";
 
+    /**
+     * Who counts as staff *for laboratory work*.
+     *
+     * LAB_TECHNICIAN belongs here and belongs here only. A technician processes
+     * samples for the whole clinic, so they must be able to read any request and
+     * any result in order to file a report against it — the gateway already
+     * confines them to /labs and to attaching files, and nothing else.
+     *
+     * It was missing, which meant `canRead` treated the one role whose entire
+     * job is filing reports as a member of the public, looked for a patientId
+     * claim it does not carry, and refused. The role had no account until now,
+     * so nothing had ever exercised the path.
+     *
+     * The same array appears in appointment-service and prescription-service
+     * with a deliberately different membership: a laboratory technician has no
+     * business reading appointments or prescriptions, and the gateway refuses
+     * them there. This is exactly the drift that having three copies invites,
+     * and the reason common-lib is queued.
+     */
     private static final String[] STAFF_ROLES = {
-            "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_NURSE", "ROLE_BILLING"
+            "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_NURSE",
+            "ROLE_BILLING", "ROLE_LAB_TECHNICIAN"
     };
 
     /** True when the caller is a patient with no staff role of any kind. */

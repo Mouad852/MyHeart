@@ -29,7 +29,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarDays, UserRound } from 'lucide-react'
+import { CalendarDays, FileDown, UserRound } from 'lucide-react'
 import {
   differenceInCalendarDays,
   format,
@@ -47,8 +47,25 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import PageHeader from '../../components/ui/Page'
 import { Panel, PanelHead, Field } from '../../components/ui/Panel'
 import { formatPhone } from '../../utils'
+import {
+  usePrescriptionsByPatient,
+  usePrescriptionDocument,
+} from '../../hooks/usePrescriptions'
+import {
+  useLabRequestsByPatient,
+  useLabResults,
+  useDownloadLabResultFile,
+} from '../../hooks/useLabs'
+import { Spinner } from '../../components/ui/LoadingSpinner'
 
 /** How the clinic's states are named to the person they concern. */
+const PATIENT_TEST_WORDING = {
+  PENDING: 'Waiting for your sample',
+  IN_PROGRESS: 'At the laboratory',
+  COMPLETED: 'Result ready',
+  CANCELLED: 'Cancelled',
+}
+
 const PATIENT_WORDING = {
   REQUESTED: 'Awaiting confirmation',
   CONFIRMED: 'Confirmed',
@@ -162,6 +179,179 @@ function Row({ appointment, dim = false }) {
         label={PATIENT_WORDING[appointment.status]}
       />
     </li>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Prescriptions and results
+
+   The API has served these to a patient since the ownership checks went in —
+   prescription-service and lab-service both narrow to the patientId claim and
+   refuse anything that is not the caller's own. Nothing in the interface
+   admitted it, so a patient could not read a prescription the system was
+   perfectly willing to give them.
+
+   They are not the staff screens with the controls removed. A patient does not
+   file results, order tests or write prescriptions; they read what was written
+   about them and take a copy away. So these are read-only, in the portal's
+   larger type, with the one action that matters on each — the printed
+   document, and the report file.
+   ───────────────────────────────────────────────────────────────────────── */
+
+function PortalPrescriptions({ patientId }) {
+  const { data: rows = [], isLoading, isError, refetch } = usePrescriptionsByPatient(patientId)
+  const print = usePrescriptionDocument()
+
+  if (isLoading || (!isError && rows.length === 0)) return null
+
+  return (
+    <Panel>
+      <PanelHead title="Your prescriptions" count={rows.length} />
+
+      {isError ? (
+        <div className="px-5 py-4">
+          <ErrorBanner
+            variant="degraded"
+            title="Your prescriptions are unavailable"
+            message="Your appointments above are unaffected."
+            onRetry={refetch}
+          />
+        </div>
+      ) : (
+        <ul className="divide-y divide-rule">
+          {rows.map((rx) => {
+            const items = rx.items ?? []
+            const printingThis = print.isPending && print.variables === rx.id
+            return (
+              <li key={rx.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
+                  <p className="text-portal font-medium text-ink">
+                    {rx.diagnosis || 'Prescription'}
+                  </p>
+                  <p className="ident text-sm text-ink-3">
+                    {on(rx.createdAt, 'd MMMM yyyy')}
+                  </p>
+                </div>
+
+                {items.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {items.map((item, index) => (
+                      <li key={index} className="text-sm text-ink-2">
+                        <span className="font-medium text-ink">{item.medicineName}</span>
+                        {item.dosage ? ` · ${item.dosage}` : ''}
+                        {item.frequency ? ` · ${item.frequency}` : ''}
+                        {item.duration ? ` · for ${item.duration}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {rx.notes && <p className="mt-3 text-sm text-ink-2">{rx.notes}</p>}
+
+                <button
+                  type="button"
+                  disabled={print.isPending}
+                  onClick={() => print.mutate(rx.id)}
+                  className="btn-secondary btn-sm mt-4"
+                >
+                  {printingThis ? (
+                    <Spinner size={12} />
+                  ) : (
+                    <FileDown size={13} strokeWidth={2} aria-hidden="true" />
+                  )}
+                  {printingThis ? 'Preparing' : 'Download a copy'}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Panel>
+  )
+}
+
+/** One test, with whatever the laboratory has written against it so far. */
+function PortalTest({ request }) {
+  const { data: results = [], isLoading } = useLabResults(request.id)
+  const download = useDownloadLabResultFile()
+
+  return (
+    <li className="px-5 py-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1">
+        <p className="text-portal font-medium text-ink">{request.testName}</p>
+        <p className="ident text-sm text-ink-3">{on(request.requestedAt, 'd MMMM yyyy')}</p>
+      </div>
+
+      <div className="mt-2">
+        <StatusBadge
+          status={request.status}
+          label={PATIENT_TEST_WORDING[request.status]}
+        />
+      </div>
+
+      {isLoading && <p className="mt-3 text-sm text-ink-3">Looking for your result…</p>}
+
+      {!isLoading && results.length === 0 && request.status !== 'CANCELLED' && (
+        <p className="mt-3 text-sm text-ink-2">
+          The laboratory has not sent a result back yet. Your clinic will be in touch
+          when it arrives.
+        </p>
+      )}
+
+      {results.map((result) => (
+        <div key={result.id} className="mt-3">
+          <p className="text-sm leading-relaxed text-ink-2">{result.resultText}</p>
+          {result.hasFile && (
+            <button
+              type="button"
+              disabled={download.isPending}
+              onClick={() => download.mutate(result)}
+              className="btn-secondary btn-sm mt-3"
+            >
+              {download.isPending && download.variables?.id === result.id ? (
+                <Spinner size={12} />
+              ) : (
+                <FileDown size={13} strokeWidth={2} aria-hidden="true" />
+              )}
+              {result.fileName}
+            </button>
+          )}
+        </div>
+      ))}
+    </li>
+  )
+}
+
+function PortalTests({ patientId }) {
+  const { data: rows = [], isLoading, isError, refetch } = useLabRequestsByPatient(patientId)
+
+  if (isLoading || (!isError && rows.length === 0)) return null
+
+  const ordered = [...rows].sort(
+    (a, b) => (Date.parse(b.requestedAt) || 0) - (Date.parse(a.requestedAt) || 0)
+  )
+
+  return (
+    <Panel>
+      <PanelHead title="Your test results" count={rows.length} />
+
+      {isError ? (
+        <div className="px-5 py-4">
+          <ErrorBanner
+            variant="degraded"
+            title="Your test results are unavailable"
+            message="Everything else on this page is current."
+            onRetry={refetch}
+          />
+        </div>
+      ) : (
+        <ul className="divide-y divide-rule">
+          {ordered.map((request) => (
+            <PortalTest key={request.id} request={request} />
+          ))}
+        </ul>
+      )}
+    </Panel>
   )
 }
 
@@ -281,6 +471,10 @@ export default function MyHealth() {
               </ul>
             </Panel>
           )}
+
+          <PortalPrescriptions patientId={patientId} />
+
+          <PortalTests patientId={patientId} />
 
           {/* Folded away by default. A patient's history is worth keeping and
               rarely worth reading; eighteen past visits above the fold is a

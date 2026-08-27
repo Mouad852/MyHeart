@@ -13,13 +13,34 @@
   "ssoSessionMaxLifespan": 36000,
   "roles": {
     "realm": [
-      { "name": "ADMIN", "description": "Full platform access" },
-      { "name": "DOCTOR", "description": "Clinical workspace: appointments, prescriptions, lab requests" },
-      { "name": "PATIENT", "description": "Self-service portal, limited to the patient's own records" },
-      { "name": "RECEPTIONIST", "description": "Front desk: registration, scheduling, confirmations" },
-      { "name": "BILLING", "description": "Invoices, payments and financial exports" },
-      { "name": "NURSE", "description": "Read access to patient clinical data" },
-      { "name": "LAB_TECHNICIAN", "description": "Laboratory queue and result upload" }
+      {
+        "name": "ADMIN",
+        "description": "Full platform access"
+      },
+      {
+        "name": "DOCTOR",
+        "description": "Clinical workspace: appointments, prescriptions, lab requests"
+      },
+      {
+        "name": "PATIENT",
+        "description": "Self-service portal, limited to the patient's own records"
+      },
+      {
+        "name": "RECEPTIONIST",
+        "description": "Front desk: registration, scheduling, confirmations"
+      },
+      {
+        "name": "BILLING",
+        "description": "Invoices, payments and financial exports"
+      },
+      {
+        "name": "NURSE",
+        "description": "Read access to patient clinical data"
+      },
+      {
+        "name": "LAB_TECHNICIAN",
+        "description": "Laboratory queue and result upload"
+      }
     ]
   },
   "clients": [
@@ -88,9 +109,15 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "DemoPass123!", "temporary": false }
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["ADMIN"]
+      "realmRoles": [
+        "ADMIN"
+      ]
     },
     {
       "username": "doctor.demo",
@@ -100,11 +127,19 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "DemoPass123!", "temporary": false }
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["DOCTOR"],
+      "realmRoles": [
+        "DOCTOR"
+      ],
       "attributes": {
-        "doctorId": ["2"]
+        "doctorId": [
+          "2"
+        ]
       }
     },
     {
@@ -115,11 +150,19 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "DemoPass123!", "temporary": false }
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["PATIENT"],
+      "realmRoles": [
+        "PATIENT"
+      ],
       "attributes": {
-        "patientId": ["1"]
+        "patientId": [
+          "1"
+        ]
       }
     },
     {
@@ -130,9 +173,33 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "DemoPass123!", "temporary": false }
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["RECEPTIONIST"]
+      "realmRoles": [
+        "RECEPTIONIST"
+      ]
+    },
+    {
+      "username": "lab.demo",
+      "email": "lab.demo@medcore.local",
+      "firstName": "Nadia",
+      "lastName": "Bensalem",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "LAB_TECHNICIAN"
+      ]
     }
   ]
 }

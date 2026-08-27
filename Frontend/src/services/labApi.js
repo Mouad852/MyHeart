@@ -42,8 +42,8 @@ const labApi = {
     }).then((r) => r.data),
 
   /**
-   * GET /labs/results/request/{requestId}
-   * Fetch all results for a given lab request.
+   * GET /labs/{requestId}/results
+   * Every result filed against one request.
    */
   getResultsByRequest: (requestId) =>
     axiosInstance.get(`${BASE}/${requestId}/results`).then((r) => r.data),

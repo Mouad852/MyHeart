@@ -107,7 +107,7 @@ const GROUPS = [
         to: '/labs',
         icon: FlaskConical,
         label: 'Laboratory',
-        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST],
+        roles: [R.ADMIN, R.DOCTOR, R.RECEPTIONIST, R.LAB_TECHNICIAN],
       },
     ],
   },
@@ -128,6 +128,7 @@ const GROUPS = [
 /** What each role opens the product to do, most important first. */
 const GROUP_ORDER = {
   [R.DOCTOR]: ['workspace', 'records', 'clinic', 'finance'],
+  [R.LAB_TECHNICIAN]: ['records'],
   [R.RECEPTIONIST]: ['workspace', 'clinic', 'finance', 'records'],
   [R.BILLING]: ['workspace', 'finance', 'clinic', 'records'],
   [R.NURSE]: ['workspace', 'clinic', 'records', 'finance'],

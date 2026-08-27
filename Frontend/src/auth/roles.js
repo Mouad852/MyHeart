@@ -24,6 +24,11 @@ export const ROLES = {
 export const ROLE_HOME = {
   [ROLES.PATIENT]: '/my-health',
   [ROLES.DOCTOR]: '/today',
+  // A laboratory technician reads requests and files reports against them, and
+  // reaches nothing else. Sending them to the staff overview — which their role
+  // cannot open — meant an account that signed in successfully and landed on a
+  // refusal.
+  [ROLES.LAB_TECHNICIAN]: '/labs',
 }
 
 /** The home route for a set of roles, defaulting to the staff dashboard. */
@@ -45,7 +50,7 @@ export const ROUTE_ROLES = {
   '/appointments': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
   '/billing': [ROLES.ADMIN, ROLES.BILLING, ROLES.RECEPTIONIST],
   '/prescriptions': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
-  '/labs': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST],
+  '/labs': [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.LAB_TECHNICIAN],
   '/my-health': [ROLES.PATIENT],
   '/today': [ROLES.DOCTOR, ROLES.ADMIN],
 }
