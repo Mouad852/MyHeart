@@ -4,7 +4,7 @@ import com.medical.appointmentservice.dto.AppointmentDTO;
 import com.medical.appointmentservice.dto.AppointmentFilter;
 import com.medical.appointmentservice.dto.PageResponse;
 import com.medical.appointmentservice.entity.AppointmentStatus;
-import com.medical.appointmentservice.security.CallerIdentity;
+import com.medical.common.security.CallerIdentity;
 import com.medical.appointmentservice.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -167,7 +167,7 @@ public class AppointmentController {
 
         // The row has to be fetched before ownership can be judged, so the
         // check happens here rather than in a @PreAuthorize expression.
-        if (!callerIdentity.canReadAppointmentOf(appointment.getPatientId(), authentication)) {
+        if (!callerIdentity.canRead(appointment.getPatientId(), authentication)) {
             throw new AccessDeniedException("Not permitted to read appointment " + id);
         }
         return ResponseEntity.ok(appointment);

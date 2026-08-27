@@ -1,7 +1,7 @@
 package com.medical.labservice.controller;
 
 import com.medical.labservice.dto.*;
-import com.medical.labservice.security.CallerIdentity;
+import com.medical.common.security.CallerIdentity;
 import com.medical.labservice.service.LabAttachment;
 import com.medical.labservice.service.LabService;
 import jakarta.validation.Valid;

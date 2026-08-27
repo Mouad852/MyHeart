@@ -1,4 +1,4 @@
-package com.medical.labservice.security;
+package com.medical.common.security;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -16,12 +16,15 @@ import java.util.Map;
 /**
  * Maps Keycloak's realm_access.roles claim onto ROLE_* authorities.
  *
- * The gateway performs the same translation for coarse routing rules. This copy
- * exists because the service must be able to defend itself: anything on the
- * Docker network can call it directly, bypassing the gateway entirely.
+ * The gateway performs the same translation for its coarse routing rules. Every
+ * service needs it too, because a service must be able to defend itself:
+ * anything on the Docker network can call it directly, bypassing the gateway
+ * entirely.
  *
- * TODO: move to a shared common-lib module once more services adopt it, rather
- * than copying this class six times.
+ * It lives here because it was copied into six services, byte for byte, and a
+ * change to how a role is read should not be six edits. The gateway keeps its
+ * own reactive converter — a different type against a different Spring Security
+ * stack — which is a real difference rather than a duplicated one.
  */
 public class KeycloakRoleConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 

@@ -2,7 +2,7 @@ package com.medical.prescriptionservice.controller;
 
 import com.medical.prescriptionservice.dto.CreatePrescriptionRequest;
 import com.medical.prescriptionservice.dto.PrescriptionDTO;
-import com.medical.prescriptionservice.security.CallerIdentity;
+import com.medical.common.security.CallerIdentity;
 import com.medical.prescriptionservice.service.PrescriptionPrinter;
 import com.medical.prescriptionservice.service.PrescriptionService;
 import jakarta.validation.Valid;

@@ -1,5 +1,7 @@
 package com.medical.doctorservice.security;
 
+import com.medical.common.security.KeycloakRoleConverter;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
