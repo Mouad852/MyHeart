@@ -6,10 +6,9 @@
  * all work and persist until reload — because a demo where the buttons do
  * nothing teaches a visitor that the buttons do nothing.
  *
- * The signed-in account and the outage switches are mirrored into
- * sessionStorage so a page reload does not sign you out mid-look. The data is
- * not: reload is the reset, which is also how the hosted demo stays tidy
- * without anybody administering it.
+ * The signed-in account is mirrored into sessionStorage so a page reload does
+ * not sign you out mid-look. The data is not: reload is the reset, which is
+ * also how the hosted demo stays tidy without anybody administering it.
  */
 import {
   appointments,
@@ -25,7 +24,6 @@ import {
 import { accountFor } from './config'
 
 const SESSION_KEY = 'demo.account'
-const OUTAGE_KEY = 'demo.outages'
 
 /** Deep-ish copy, so a reset restores the dataset rather than the last edit. */
 const clone = (rows) => rows.map((r) => ({ ...r }))
@@ -104,63 +102,6 @@ export function signOut() {
   }
 }
 
-// ── The outage switches ─────────────────────────────────────────
-// The real product treats partial failure as a designed state: one service
-// down names itself in place, with a retry, while the rest of the screen keeps
-// working, and a failed source's count reads as unknown rather than as zero.
-// Against a live backend none of that can be shown without breaking something
-// on purpose. Here it is a switch.
-export const SERVICES = [
-  { key: 'patients', label: 'Patient service' },
-  { key: 'doctors', label: 'Doctor service' },
-  { key: 'appointments', label: 'Appointment service' },
-  { key: 'billing', label: 'Billing service' },
-  { key: 'prescriptions', label: 'Prescription service' },
-  { key: 'labs', label: 'Lab service' },
-]
-
-let outages = new Set()
-try {
-  outages = new Set(JSON.parse(sessionStorage.getItem(OUTAGE_KEY) || '[]'))
-} catch {
-  /* ignored */
-}
-
-const listeners = new Set()
-
-export function subscribe(fn) {
-  listeners.add(fn)
-  return () => listeners.delete(fn)
-}
-
-function notify() {
-  listeners.forEach((fn) => fn())
-}
-
-export const isDown = (key) => outages.has(key)
-export const downServices = () => [...outages]
-
-export function toggleService(key) {
-  if (outages.has(key)) outages.delete(key)
-  else outages.add(key)
-  try {
-    sessionStorage.setItem(OUTAGE_KEY, JSON.stringify([...outages]))
-  } catch {
-    /* ignored */
-  }
-  notify()
-}
-
-export function clearOutages() {
-  outages.clear()
-  try {
-    sessionStorage.setItem(OUTAGE_KEY, '[]')
-  } catch {
-    /* ignored */
-  }
-  notify()
-}
-
 // ── Helpers the adapter builds responses from ───────────────────
 
 /** The PageResponse contract, declared explicitly by every service. */
@@ -186,28 +127,21 @@ const summarise = (row, fields) =>
 
 /**
  * Appointments are served enriched, exactly as appointment-service composes
- * them from patient-service and doctor-service. When one of those is switched
- * off, the appointment still returns and the missing half is null — which is
- * what a circuit-breaker fallback produces, and what the screens are built to
- * survive.
+ * them from patient-service and doctor-service.
  */
 export function enrichAppointment(a) {
-  const patient = isDown('patients')
-    ? null
-    : summarise(db.patients.find((p) => p.id === a.patientId), [
-        'id',
-        'name',
-        'email',
-        'phone',
-      ])
-  const doctor = isDown('doctors')
-    ? null
-    : summarise(db.doctors.find((d) => d.id === a.doctorId), [
-        'id',
-        'name',
-        'specialty',
-        'email',
-      ])
+  const patient = summarise(db.patients.find((p) => p.id === a.patientId), [
+    'id',
+    'name',
+    'email',
+    'phone',
+  ])
+  const doctor = summarise(db.doctors.find((d) => d.id === a.doctorId), [
+    'id',
+    'name',
+    'specialty',
+    'email',
+  ])
   return {
     ...a,
     patient,

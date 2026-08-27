@@ -18,10 +18,10 @@ run unmodified and unaware. There is no second implementation of anything.
 src/demo/
 ├── config.js       IS_DEMO, and the seven accounts
 ├── dataset.js      the clinic, mirroring V900__demo_seed.sql
-├── store.js        mutable state, the state machines, the outage switches
+├── store.js        mutable state and the state machines
 ├── adapter.js      the gateway's rules and six services' routes
 ├── useDemoAuth.js  the auth context, without an identity provider
-└── DemoBar.jsx     role switcher and outage switches
+└── DemoBar.jsx     the role switcher
 ```
 
 ## What is reproduced faithfully
@@ -62,19 +62,6 @@ src/demo/
 - **Uploaded report files live in memory** for the tab that uploaded them.
 - **Reload is the reset.** Which is also how the hosted demo stays tidy with
   nobody administering it.
-
-## The outage switches
-
-The product treats partial failure as a designed state: one service down names
-itself in place with a retry, the rest of the screen keeps working, and a failed
-source's count reads as unknown rather than as zero. Against a running backend
-none of that can be shown without breaking something on purpose.
-
-Take **Billing** down on a patient record and the history says "Billing
-temporarily unavailable · This patient's invoices are missing from the history
-below. Everything else is current.", the rail's billing count reads `—`, and the
-sidebar's health indicator turns to "Some services degraded". Everything else on
-the screen stays usable.
 
 ## Running it locally
 

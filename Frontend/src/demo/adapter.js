@@ -22,15 +22,12 @@
  */
 import {
   ACTIVE_STATUSES,
-  SERVICES,
-  downServices,
   allowedAppointmentTransitions,
   allowedInvoiceTransitions,
   currentAccount,
   db,
   enrichAppointment,
   enrichInvoice,
-  isDown,
   newId,
   now,
   page,
@@ -48,13 +45,6 @@ class HttpError extends Error {
 
 const forbidden = (m = 'Access denied.') => new HttpError(403, m)
 const notFound = (m = 'Not found.') => new HttpError(404, m)
-
-/** What a service being unreachable looks like from the browser. */
-function requireUp(service) {
-  if (isDown(service)) {
-    throw new HttpError(503, `${service} service is temporarily unavailable.`)
-  }
-}
 
 // ── The gateway's rules, transcribed ────────────────────────────
 const RULES = [
@@ -130,13 +120,11 @@ const route = (method, pattern, handler) => routes.push([method, pattern, handle
 
 // ---- patients --------------------------------------------------
 route('GET', /^\/patients\/batch$/, ({ params }) => {
-  requireUp('patients')
   const ids = String(params.ids ?? '').split(',').filter(Boolean).map(Number)
   return db.patients.filter((p) => ids.includes(p.id))
 })
 
 route('GET', /^\/patients$/, ({ params, account }) => {
-  requireUp('patients')
   const rows = scopeToCaller(account, db.patients, 'id').filter((p) =>
     matches(p, params.q, ['name', 'email', 'phone'])
   )
@@ -144,13 +132,11 @@ route('GET', /^\/patients$/, ({ params, account }) => {
 })
 
 route('GET', /^\/patients\/(\d+)$/, ({ id, account }) => {
-  requireUp('patients')
   assertOwnPatient(account, id)
   return byId(db.patients, id) ?? notFound('Patient not found.')
 })
 
 route('POST', /^\/patients$/, ({ body }) => {
-  requireUp('patients')
   const patient = {
     id: newId('patients'),
     ...body,
@@ -162,7 +148,6 @@ route('POST', /^\/patients$/, ({ body }) => {
 })
 
 route('PUT', /^\/patients\/(\d+)$/, ({ id, body }) => {
-  requireUp('patients')
   const patient = byId(db.patients, id)
   if (!patient) throw notFound('Patient not found.')
   Object.assign(patient, body, { updatedAt: now() })
@@ -170,7 +155,6 @@ route('PUT', /^\/patients\/(\d+)$/, ({ id, body }) => {
 })
 
 route('DELETE', /^\/patients\/(\d+)$/, ({ id }) => {
-  requireUp('patients')
   const index = db.patients.findIndex((p) => Number(p.id) === Number(id))
   if (index === -1) throw notFound('Patient not found.')
   db.patients.splice(index, 1)
@@ -179,13 +163,11 @@ route('DELETE', /^\/patients\/(\d+)$/, ({ id }) => {
 
 // ---- doctors ---------------------------------------------------
 route('GET', /^\/doctors\/batch$/, ({ params }) => {
-  requireUp('doctors')
   const ids = String(params.ids ?? '').split(',').filter(Boolean).map(Number)
   return db.doctors.filter((d) => ids.includes(d.id))
 })
 
 route('GET', /^\/doctors$/, ({ params }) => {
-  requireUp('doctors')
   const rows = db.doctors.filter((d) =>
     matches(d, params.q, ['name', 'specialty', 'email'])
   )
@@ -193,19 +175,16 @@ route('GET', /^\/doctors$/, ({ params }) => {
 })
 
 route('GET', /^\/doctors\/(\d+)$/, ({ id }) => {
-  requireUp('doctors')
   return byId(db.doctors, id) ?? notFound('Doctor not found.')
 })
 
 route('POST', /^\/doctors$/, ({ body }) => {
-  requireUp('doctors')
   const doctor = { id: newId('doctors'), ...body, createdAt: now(), updatedAt: now() }
   db.doctors.push(doctor)
   return doctor
 })
 
 route('PUT', /^\/doctors\/(\d+)$/, ({ id, body }) => {
-  requireUp('doctors')
   const doctor = byId(db.doctors, id)
   if (!doctor) throw notFound('Doctor not found.')
   Object.assign(doctor, body, { updatedAt: now() })
@@ -213,7 +192,6 @@ route('PUT', /^\/doctors\/(\d+)$/, ({ id, body }) => {
 })
 
 route('DELETE', /^\/doctors\/(\d+)$/, ({ id }) => {
-  requireUp('doctors')
   const index = db.doctors.findIndex((d) => Number(d.id) === Number(id))
   if (index === -1) throw notFound('Doctor not found.')
   db.doctors.splice(index, 1)
@@ -222,7 +200,6 @@ route('DELETE', /^\/doctors\/(\d+)$/, ({ id }) => {
 
 // ---- appointments ----------------------------------------------
 route('GET', /^\/appointments\/my-day$/, ({ params, account }) => {
-  requireUp('appointments')
   const day = params.day || now().slice(0, 10)
   // Scoped from the doctorId claim, never from a parameter, so it cannot be
   // pointed at a colleague's calendar.
@@ -242,7 +219,6 @@ route('GET', /^\/appointments\/my-day$/, ({ params, account }) => {
 })
 
 route('GET', /^\/appointments\/search$/, ({ params, account }) => {
-  requireUp('appointments')
   let rows = scopeToCaller(account, db.appointments)
   if (params.doctorId) rows = rows.filter((a) => Number(a.doctorId) === Number(params.doctorId))
   if (params.patientId) rows = rows.filter((a) => Number(a.patientId) === Number(params.patientId))
@@ -255,14 +231,12 @@ route('GET', /^\/appointments\/search$/, ({ params, account }) => {
 })
 
 route('GET', /^\/appointments$/, ({ account }) => {
-  requireUp('appointments')
   return scopeToCaller(account, db.appointments)
     .sort((a, b) => a.appointmentDate.localeCompare(b.appointmentDate))
     .map(enrichAppointment)
 })
 
 route('GET', /^\/appointments\/(\d+)$/, ({ id, account }) => {
-  requireUp('appointments')
   const appointment = byId(db.appointments, id)
   if (!appointment) throw notFound('Appointment not found.')
   assertOwnPatient(account, appointment.patientId)
@@ -270,7 +244,6 @@ route('GET', /^\/appointments\/(\d+)$/, ({ id, account }) => {
 })
 
 route('POST', /^\/appointments$/, ({ body, account }) => {
-  requireUp('appointments')
   const start = body.appointmentDate
   const minutes = body.durationMinutes ?? 30
   const end = new Date(new Date(start).getTime() + minutes * 60000).toISOString().slice(0, 19)
@@ -331,7 +304,6 @@ function transition(id, target, reason) {
 
 /** Idempotent by appointment, as the unique constraint enforces. */
 function raiseInvoice(appointment) {
-  if (isDown('billing')) return
   const existing = db.invoices.find(
     (i) => Number(i.appointmentId) === Number(appointment.id)
   )
@@ -360,23 +332,18 @@ function raiseInvoice(appointment) {
 }
 
 route('PATCH', /^\/appointments\/(\d+)\/confirm$/, ({ id }) => {
-  requireUp('appointments')
   return transition(id, 'CONFIRMED')
 })
 route('PATCH', /^\/appointments\/(\d+)\/complete$/, ({ id }) => {
-  requireUp('appointments')
   return transition(id, 'COMPLETED')
 })
 route('PATCH', /^\/appointments\/(\d+)\/cancel$/, ({ id, params }) => {
-  requireUp('appointments')
   return transition(id, 'CANCELLED', params.reason || 'Cancelled')
 })
 route('PATCH', /^\/appointments\/(\d+)\/no-show$/, ({ id, params }) => {
-  requireUp('appointments')
   return transition(id, 'NO_SHOW', params.reason)
 })
 route('PATCH', /^\/appointments\/(\d+)$/, ({ id, body }) => {
-  requireUp('appointments')
   const appointment = byId(db.appointments, id)
   if (!appointment) throw notFound('Appointment not found.')
   Object.assign(appointment, body)
@@ -385,7 +352,6 @@ route('PATCH', /^\/appointments\/(\d+)$/, ({ id, body }) => {
 
 // ---- billing ---------------------------------------------------
 route('GET', /^\/billing\/summary$/, () => {
-  requireUp('billing')
   const today = now().slice(0, 10)
   const rows = db.invoices
   const total = (status) =>
@@ -410,12 +376,10 @@ route('GET', /^\/billing\/summary$/, () => {
 })
 
 route('GET', /^\/billing\/services$/, () => {
-  requireUp('billing')
   return db.clinicServices
 })
 
 route('GET', /^\/billing\/patient\/(\d+)$/, ({ id, account }) => {
-  requireUp('billing')
   assertOwnPatient(account, id)
   return db.invoices
     .filter((i) => Number(i.patientId) === Number(id))
@@ -423,7 +387,6 @@ route('GET', /^\/billing\/patient\/(\d+)$/, ({ id, account }) => {
 })
 
 route('GET', /^\/billing$/, ({ account }) => {
-  requireUp('billing')
   const rows = scopeToCaller(account, db.invoices)
     .slice()
     // Oldest debt first: the question a billing clerk arrives with.
@@ -432,7 +395,6 @@ route('GET', /^\/billing$/, ({ account }) => {
 })
 
 route('GET', /^\/billing\/(\d+)$/, ({ id, account }) => {
-  requireUp('billing')
   const invoice = byId(db.invoices, id)
   if (!invoice) throw notFound('Invoice not found.')
   assertOwnPatient(account, invoice.patientId)
@@ -440,7 +402,6 @@ route('GET', /^\/billing\/(\d+)$/, ({ id, account }) => {
 })
 
 route('POST', /^\/billing\/create$/, ({ body }) => {
-  requireUp('billing')
   const due = new Date()
   due.setDate(due.getDate() + 30)
   const invoice = {
@@ -476,39 +437,32 @@ function moveInvoice(id, target, reason) {
 }
 
 route('PUT', /^\/billing\/pay\/(\d+)$/, ({ id }) => {
-  requireUp('billing')
   return moveInvoice(id, 'PAID')
 })
 route('PUT', /^\/billing\/void\/(\d+)$/, ({ id, params }) => {
-  requireUp('billing')
   return moveInvoice(id, 'VOID', params.reason)
 })
 route('PUT', /^\/billing\/refund\/(\d+)$/, ({ id, params }) => {
-  requireUp('billing')
   return moveInvoice(id, 'REFUNDED', params.reason)
 })
 
 // ---- prescriptions ---------------------------------------------
 route('GET', /^\/prescriptions\/patient\/(\d+)$/, ({ id, account }) => {
-  requireUp('prescriptions')
   assertOwnPatient(account, id)
   return db.prescriptions.filter((p) => Number(p.patientId) === Number(id))
 })
 
 route('GET', /^\/prescriptions\/doctor\/(\d+)$/, ({ id }) => {
-  requireUp('prescriptions')
   return db.prescriptions.filter((p) => Number(p.doctorId) === Number(id))
 })
 
 route('GET', /^\/prescriptions\/(\d+)\/document$/, ({ id }) => {
-  requireUp('prescriptions')
   const prescription = byId(db.prescriptions, id)
   if (!prescription) throw notFound('Prescription not found.')
   return { __blob: buildPrescriptionText(prescription), __type: 'text/plain' }
 })
 
 route('GET', /^\/prescriptions$/, ({ account }) => {
-  requireUp('prescriptions')
   const rows = scopeToCaller(account, db.prescriptions).sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt)
   )
@@ -516,7 +470,6 @@ route('GET', /^\/prescriptions$/, ({ account }) => {
 })
 
 route('GET', /^\/prescriptions\/(\d+)$/, ({ id, account }) => {
-  requireUp('prescriptions')
   const prescription = byId(db.prescriptions, id)
   if (!prescription) throw notFound('Prescription not found.')
   assertOwnPatient(account, prescription.patientId)
@@ -524,7 +477,6 @@ route('GET', /^\/prescriptions\/(\d+)$/, ({ id, account }) => {
 })
 
 route('POST', /^\/prescriptions$/, ({ body }) => {
-  requireUp('prescriptions')
   const prescription = {
     id: newId('prescriptions'),
     patientId: Number(body.patientId),
@@ -577,20 +529,17 @@ function buildPrescriptionText(prescription) {
 
 // ---- labs ------------------------------------------------------
 route('GET', /^\/labs\/requests$/, ({ account }) => {
-  requireUp('labs')
   return scopeToCaller(account, db.labRequests).sort((a, b) =>
     b.requestedAt.localeCompare(a.requestedAt)
   )
 })
 
 route('GET', /^\/labs\/patient\/(\d+)$/, ({ id, account }) => {
-  requireUp('labs')
   assertOwnPatient(account, id)
   return db.labRequests.filter((r) => Number(r.patientId) === Number(id))
 })
 
 route('GET', /^\/labs\/(\d+)\/results$/, ({ id, account }) => {
-  requireUp('labs')
   const request = byId(db.labRequests, id)
   if (!request) throw notFound('Request not found.')
   assertOwnPatient(account, request.patientId)
@@ -598,7 +547,6 @@ route('GET', /^\/labs\/(\d+)\/results$/, ({ id, account }) => {
 })
 
 route('POST', /^\/labs\/requests$/, ({ body }) => {
-  requireUp('labs')
   const request = {
     id: newId('labRequests'),
     patientId: Number(body.patientId),
@@ -613,7 +561,6 @@ route('POST', /^\/labs\/requests$/, ({ body }) => {
 })
 
 route('POST', /^\/labs\/result$/, ({ body }) => {
-  requireUp('labs')
   const request = byId(db.labRequests, body.labRequestId)
   if (!request) throw notFound('Request not found.')
   const result = {
@@ -634,7 +581,6 @@ route('POST', /^\/labs\/result$/, ({ body }) => {
 })
 
 route('POST', /^\/labs\/results\/(\d+)\/file$/, ({ id, config }) => {
-  requireUp('labs')
   const result = byId(db.labResults, id)
   if (!result) throw notFound('Result not found.')
   const file = config.data instanceof FormData ? config.data.get('file') : null
@@ -652,7 +598,6 @@ route('POST', /^\/labs\/results\/(\d+)\/file$/, ({ id, config }) => {
 const fileStore = new Map()
 
 route('GET', /^\/labs\/results\/(\d+)\/file$/, ({ id }) => {
-  requireUp('labs')
   const file = fileStore.get(String(id))
   if (!file) throw notFound('No report is attached to this result.')
   return { __blob: file, __type: file.type }
@@ -668,18 +613,9 @@ function resolve(config) {
   const method = (config.method ?? 'get').toUpperCase()
 
   // permitAll on the gateway, and polled by the sidebar before anyone has
-  // signed in, so it is answered ahead of the account check. It reports what
-  // the outage switches say: turning a service off makes the sidebar read
-  // "Some services degraded", which is the honest answer and the same one the
-  // real actuator would give.
+  // signed in, so it is answered ahead of the account check.
   if (path === '/actuator/health') {
-    const down = downServices()
-    return {
-      status: down.length === 0 ? 'UP' : 'DOWN',
-      components: Object.fromEntries(
-        SERVICES.map((s) => [s.key, { status: down.includes(s.key) ? 'DOWN' : 'UP' }])
-      ),
-    }
+    return { status: 'UP' }
   }
 
   const account = currentAccount()
