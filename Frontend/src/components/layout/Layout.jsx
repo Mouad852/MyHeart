@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import { IS_DEMO } from '../../demo/config'
+import DemoBar from '../../demo/DemoBar'
 
 export default function Layout() {
   const [navOpen, setNavOpen] = useState(false)
@@ -79,11 +81,16 @@ export default function Layout() {
           not become a scroll container and break the sticky header above it.
         */}
         <main className="relative flex-1 overflow-x-clip px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-          <div className="mx-auto w-full max-w-[76rem]">
+          {/* The demo bar floats over the bottom of the page, so the last row
+              of a long table would otherwise sit underneath it. The clearance
+              is only present in a demo build. */}
+          <div className={`mx-auto w-full max-w-[76rem] ${IS_DEMO ? 'pb-16' : ''}`}>
             <Outlet />
           </div>
         </main>
       </div>
+
+      {IS_DEMO && <DemoBar />}
     </div>
   )
 }

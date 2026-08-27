@@ -22,6 +22,8 @@ import keycloak, {
   storeToken,
 } from './keycloak'
 import { primaryRole } from './roles'
+import { IS_DEMO } from '../demo/config'
+import { useDemoAuth } from '../demo/useDemoAuth'
 
 const AuthContext = createContext(null)
 
@@ -29,6 +31,21 @@ const AuthContext = createContext(null)
 const REFRESH_INTERVAL_MS = 30_000
 
 export function AuthProvider({ children }) {
+  // In demo mode there is no Keycloak to initialise and no token to refresh.
+  // The branch is at the top of the provider rather than threaded through it,
+  // so every screen below keeps the same context shape and never learns which
+  // build it is running in.
+  if (IS_DEMO) return <DemoAuthProvider>{children}</DemoAuthProvider>
+
+  return <KeycloakAuthProvider>{children}</KeycloakAuthProvider>
+}
+
+function DemoAuthProvider({ children }) {
+  const value = useDemoAuth()
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+function KeycloakAuthProvider({ children }) {
   const [status, setStatus] = useState('initialising') // initialising | ready | failed
   const [authenticated, setAuthenticated] = useState(false)
   const [roles, setRoles] = useState([])

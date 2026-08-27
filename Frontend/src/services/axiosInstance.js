@@ -10,6 +10,8 @@
  * ─────────────────────────────────────────────────────────────────
  */
 import axios from 'axios'
+import { IS_DEMO } from '../demo/config'
+import demoAdapter from '../demo/adapter'
 
 export const TOKEN_STORAGE_KEY = 'access_token'
 
@@ -22,6 +24,11 @@ const axiosInstance = axios.create({
     Accept: 'application/json',
   },
   timeout: 15_000, // 15 second timeout
+
+  // In demo mode there is no gateway to reach. The adapter is installed at the
+  // point the network would be, so every service module, query and screen above
+  // it runs unchanged and unaware. See src/demo/adapter.js.
+  ...(IS_DEMO ? { adapter: demoAdapter } : {}),
 })
 
 // ── Request Interceptor (single) ────────────────────────────────

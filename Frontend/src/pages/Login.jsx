@@ -24,7 +24,8 @@
  */
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
-import { Check, Copy, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Check, Copy, ShieldCheck } from 'lucide-react'
+import { DEMO_ACCOUNTS, IS_DEMO } from '../demo/config'
 import { useAuth } from '../auth/AuthProvider'
 import { homeRouteFor } from '../auth/roles'
 import ErrorBanner from '../components/ui/ErrorBanner'
@@ -34,7 +35,7 @@ import { Spinner } from '../components/ui/LoadingSpinner'
  * Shown because this is a portfolio deployment seeded with fictional records.
  * Remove this block before any real clinical use.
  */
-const DEMO_ACCOUNTS = [
+const DEMO_ACCOUNTS_STATIC = [
   { username: 'admin.demo', role: 'Administrator', summary: 'Everything' },
   { username: 'doctor.demo', role: 'Doctor', summary: 'The day, records, prescribing' },
   { username: 'reception.demo', role: 'Receptionist', summary: 'Scheduling and the register' },
@@ -171,8 +172,9 @@ export default function Login() {
 
             <h2 className="mt-8 text-title font-semibold text-ink lg:mt-0">Sign in</h2>
             <p className="mt-2.5 leading-relaxed text-ink-2">
-              You will be taken to the MedCore identity service to type your
-              credentials. They are never entered into this application.
+              {IS_DEMO
+                ? 'Choose a role. This is the interface running against fixture data, so there is nothing to type and no session to expire.'
+                : 'You will be taken to the MedCore identity service to type your credentials. They are never entered into this application.'}
             </p>
 
             {status === 'failed' && (
@@ -183,6 +185,7 @@ export default function Login() {
               />
             )}
 
+            {!IS_DEMO && (
             <button
               type="button"
               onClick={() => login(returnTo)}
@@ -198,10 +201,13 @@ export default function Login() {
                 'Continue to sign in'
               )}
             </button>
+            )}
 
             <p className="mt-3.5 flex items-center justify-center gap-1.5 text-center text-meta text-ink-3">
               <ShieldCheck size={13} strokeWidth={2} aria-hidden="true" className="flex-shrink-0" />
-              OpenID Connect, Authorization Code Flow with PKCE
+              {IS_DEMO
+                ? 'The deployed system signs in with OpenID Connect and PKCE'
+                : 'OpenID Connect, Authorization Code Flow with PKCE'}
             </p>
 
             {/* ── Demo accounts ─────────────────────────────────────── */}
@@ -211,36 +217,77 @@ export default function Login() {
             <div className="mt-12">
               <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-2.5">
                 <h3 className="section-label">Demo accounts</h3>
-                <CopyButton
-                  mono
-                  value={DEMO_PASSWORD}
-                  label={DEMO_PASSWORD}
-                  copied={copied}
-                  onCopy={handleCopy}
-                />
+                {IS_DEMO ? (
+                  <span className="text-meta text-ink-3">No password needed</span>
+                ) : (
+                  <CopyButton
+                    mono
+                    value={DEMO_PASSWORD}
+                    label={DEMO_PASSWORD}
+                    copied={copied}
+                    onCopy={handleCopy}
+                  />
+                )}
               </div>
 
-              <ul className="divide-y divide-rule">
-                {DEMO_ACCOUNTS.map((account) => (
-                  <li
-                    key={account.username}
-                    className="flex items-center justify-between gap-4 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="ident truncate text-sm text-ink">{account.username}</p>
-                      <p className="mt-0.5 truncate text-meta text-ink-3">
-                        {account.role} · {account.summary}
-                      </p>
-                    </div>
-                    <CopyButton
-                      value={account.username}
-                      label="Copy"
-                      copied={copied}
-                      onCopy={handleCopy}
-                    />
-                  </li>
-                ))}
-              </ul>
+              {/* In the demo the row is the control. A copy button beside a
+                  username is right when the username has to be typed into
+                  somebody else's login screen, and pointless when there is no
+                  such screen. */}
+              {IS_DEMO ? (
+                <ul className="divide-y divide-rule">
+                  {DEMO_ACCOUNTS.map((account) => (
+                    <li key={account.username}>
+                      <button
+                        type="button"
+                        onClick={() => login(account.username)}
+                        className="group flex w-full items-center justify-between gap-4
+                                   py-2.5 text-left transition-colors hover:bg-raised
+                                   focus-visible:outline-none focus-visible:ring-2
+                                   focus-visible:ring-primary"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-ink">
+                            {account.label}
+                          </span>
+                          <span className="ident mt-0.5 block truncate text-meta text-ink-3">
+                            {account.username} · {account.summary}
+                          </span>
+                        </span>
+                        <ArrowRight
+                          size={15}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                          className="flex-shrink-0 text-ink-3 transition-transform
+                                     group-hover:translate-x-0.5 group-hover:text-primary"
+                        />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="divide-y divide-rule">
+                  {DEMO_ACCOUNTS_STATIC.map((account) => (
+                    <li
+                      key={account.username}
+                      className="flex items-center justify-between gap-4 py-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="ident truncate text-sm text-ink">{account.username}</p>
+                        <p className="mt-0.5 truncate text-meta text-ink-3">
+                          {account.role} · {account.summary}
+                        </p>
+                      </div>
+                      <CopyButton
+                        value={account.username}
+                        label="Copy"
+                        copied={copied}
+                        onCopy={handleCopy}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               <p className="note mt-4 lg:hidden">
                 Every record in this deployment is fictional. Do not enter real
