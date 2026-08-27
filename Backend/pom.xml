@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Aggregator for the MedCore backend.
+
+  This exists so that `common-lib` can be built alongside the services that
+  depend on it. It is an aggregator only: each service keeps
+  spring-boot-starter-parent as its Maven parent, so nothing about how a service
+  resolves its own dependencies changes.
+
+  Build one service and its shared code with:
+
+      mvn -pl lab-service -am package
+
+  which is what each Dockerfile does.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.medical</groupId>
+    <artifactId>medcore-backend</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>medcore-backend</name>
+    <description>MedCore — aggregator for the shared library and the services</description>
+
+    <modules>
+        <module>common-lib</module>
+        <module>eureka-server</module>
+        <module>api-gateway</module>
+        <module>patient-service</module>
+        <module>doctor-service</module>
+        <module>appointment-service</module>
+        <module>billing-service</module>
+        <module>prescription-service</module>
+        <module>lab-service</module>
+    </modules>
+</project>

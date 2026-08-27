@@ -1,6 +1,11 @@
 package com.medical.prescriptionservice.security;
 
+import com.medical.common.security.CallerIdentity;
+import com.medical.common.security.KeycloakRoleConverter;
+
 import org.springframework.context.annotation.Bean;
+
+import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -50,5 +55,19 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakRoleConverter())))
                 .build();
+    }
+
+    /**
+     * Who counts as staff for prescriptions.
+     *
+     * The same clinical set as appointments. LAB_TECHNICIAN is absent for the
+     * same reason: filing a laboratory report gives nobody a reason to read
+     * what a doctor prescribed.
+     */
+    @Bean
+    public CallerIdentity callerIdentity() {
+        return new CallerIdentity(List.of(
+                "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST",
+                "ROLE_NURSE", "ROLE_BILLING"));
     }
 }

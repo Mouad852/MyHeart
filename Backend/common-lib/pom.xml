@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Security code the servlet services share.
+
+  Deliberately small. This module holds the two classes that had been copied
+  between services and had already drifted; it is not a dumping ground for
+  anything that happens to be used twice. Shared code between services is a
+  coupling, and it is only worth paying for where the alternative is
+  hand-maintaining several copies of a security decision.
+
+  spring-boot-starter-parent is the parent here, exactly as it is for every
+  service, so the Spring dependency versions match without any extra
+  management.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.3</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.medical</groupId>
+    <artifactId>common-lib</artifactId>
+    <version>1.0.0</version>
+    <name>common-lib</name>
+    <description>MedCore — security code shared by the servlet services</description>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+              This is a plain library, not an application. Without this the
+              Spring Boot plugin inherited from the parent would repackage the
+              jar into an executable one, and a service depending on it would
+              not see the classes.
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

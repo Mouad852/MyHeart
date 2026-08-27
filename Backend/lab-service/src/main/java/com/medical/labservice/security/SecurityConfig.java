@@ -1,6 +1,11 @@
 package com.medical.labservice.security;
 
+import com.medical.common.security.CallerIdentity;
+import com.medical.common.security.KeycloakRoleConverter;
+
 import org.springframework.context.annotation.Bean;
+
+import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -53,5 +58,26 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakRoleConverter())))
                 .build();
+    }
+
+    /**
+     * Who counts as staff for laboratory work.
+     *
+     * This is the one set that includes LAB_TECHNICIAN, and it is the whole
+     * reason the shared class takes the roles as an argument rather than
+     * hard-coding them. A technician processes samples for the clinic, so they
+     * must be able to read any request and any result in order to file a report
+     * against it; the gateway already confines them to /labs and to attaching
+     * files, and nothing else.
+     *
+     * When this was a private array in a copied class it omitted the role, and
+     * the omission refused every result to the one person whose job is filing
+     * them.
+     */
+    @Bean
+    public CallerIdentity callerIdentity() {
+        return new CallerIdentity(List.of(
+                "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_NURSE",
+                "ROLE_BILLING", "ROLE_LAB_TECHNICIAN"));
     }
 }

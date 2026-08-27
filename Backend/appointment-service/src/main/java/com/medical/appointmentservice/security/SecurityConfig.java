@@ -1,6 +1,11 @@
 package com.medical.appointmentservice.security;
 
+import com.medical.common.security.CallerIdentity;
+import com.medical.common.security.KeycloakRoleConverter;
+
 import org.springframework.context.annotation.Bean;
+
+import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -49,5 +54,21 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakRoleConverter())))
                 .build();
+    }
+
+    /**
+     * Who counts as staff for appointment data.
+     *
+     * Everyone who works in the clinic, because a receptionist books, a nurse
+     * prepares, a billing clerk reconciles against the day, and all of them
+     * legitimately see who is coming in. LAB_TECHNICIAN is deliberately absent:
+     * they process samples and have no business in the diary, and the gateway
+     * refuses them here in any case.
+     */
+    @Bean
+    public CallerIdentity callerIdentity() {
+        return new CallerIdentity(List.of(
+                "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST",
+                "ROLE_NURSE", "ROLE_BILLING"));
     }
 }

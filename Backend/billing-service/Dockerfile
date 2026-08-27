@@ -1,16 +1,25 @@
 # ---- Build Stage ----
 FROM maven:3.9.6-eclipse-temurin-17 AS build
-WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
-COPY src ./src
-RUN mvn clean package -DskipTests
+WORKDIR /build
 
-# ---- Runtime Stage ----
+# The build context is Backend/, not this folder, because the service needs
+# common-lib beside it. The shared library is installed into the local
+# repository first and then resolved as an ordinary dependency, so the image
+# never needs the aggregator pom or the other services' modules.
+COPY common-lib/pom.xml common-lib/
+COPY common-lib/src common-lib/src
+RUN mvn -B -f common-lib/pom.xml install -DskipTests
+
+# Poms before sources, so a source-only change does not re-resolve everything.
+COPY billing-service/pom.xml billing-service/
+RUN mvn -B -f billing-service/pom.xml dependency:go-offline
+COPY billing-service/src billing-service/src
+RUN mvn -B -f billing-service/pom.xml clean package -DskipTests
+
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 RUN addgroup -S medical && adduser -S medical -G medical
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /build/billing-service/target/*.jar app.jar
 USER medical
 EXPOSE 8002
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

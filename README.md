@@ -537,6 +537,19 @@ somebody else's data. Where a patient asks for a collection, the query is
 narrowed rather than the response filtered, so nothing that is not theirs is
 ever loaded.
 
+The code behind layers 2 and 3 lives in one place. `common-lib` holds
+`KeycloakRoleConverter`, which maps the realm roles onto Spring authorities, and
+`CallerIdentity`, which answers "who is asking, and whose records may they see".
+
+`CallerIdentity` takes the roles a service treats as staff as a constructor
+argument, and every service declares its own set in its `SecurityConfig` where a
+reader will find it. The membership genuinely differs: lab-service counts
+`LAB_TECHNICIAN` as staff, because processing a sample requires reading the
+request and the result; appointment-service and prescription-service deliberately
+do not, because filing a laboratory report is no reason to read a diary or a
+prescription. The difference is now a declaration rather than an accident — which
+is what it was when the class was copied three times and the copies drifted.
+
 ### Roles
 
 `ADMIN`, `DOCTOR`, `RECEPTIONIST`, `BILLING`, `NURSE`, `LAB_TECHNICIAN`,
@@ -693,6 +706,8 @@ Same shape: paged list, `/batch`, `/{id}`, and writes restricted to admin.
 ```text
 My_Heart_Project/
 ├── Backend/
+│   ├── pom.xml                 # Aggregator: builds every module in order
+│   ├── common-lib/             # The token-reading code the services share
 │   ├── api-gateway/            # Routing, JWT validation, path and role rules
 │   ├── eureka-server/          # Service discovery
 │   ├── patient-service/
@@ -720,15 +735,6 @@ Stated plainly, because a README that only lists strengths is not much use.
 
 - **Automated tests are thin.** Behaviour has been verified against a running
   stack rather than by a suite. That is the largest gap.
-- **`KeycloakRoleConverter` is copied into six services** and `CallerIdentity`
-  into three. A shared `common-lib` module is the next piece of work, and until
-  it exists a security fix has to be applied correctly in several places.
-
-  This is no longer hypothetical. The three copies of `CallerIdentity` each hold
-  a `STAFF_ROLES` array, and lab-service's had drifted: it omitted
-  `LAB_TECHNICIAN`, so the one role whose entire job is filing laboratory
-  reports was treated as a member of the public and refused every result. It had
-  never been caught because the role had no account to exercise it.
 - **No OpenAPI documents and no CI pipeline yet.**
 - **No deployment.** The system runs locally under Docker Compose; hosting is
   deliberately deferred to the end of the project.

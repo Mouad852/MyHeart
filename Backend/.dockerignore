@@ -1,0 +1,8 @@
+# The build context is the whole Backend directory now, so keep out of it
+# everything a Maven build has no use for.
+**/target/
+**/.git/
+**/*.md
+keycloak/
+.env
+docker-compose.yml
