@@ -682,10 +682,30 @@ same way:
   local form, so anything typed that way was affected. Fixed, and pinned by a
   test that asserts no digit is ever lost in any accepted format.
 
-The back end is still verified against a running stack rather than by a suite —
-37 authorization checks across every role, including unauthenticated calls
-straight to each service port. That is real evidence and it is not automated,
-which is the next gap.
+### Back end
+
+`mvn test` in `Backend/` runs 57 JUnit 5 tests across three of the eight
+modules, all of them over rules rather than plumbing:
+
+- **`AppointmentStatusTest`** (19) — the lifecycle. Every transition
+  `allowedTransitions` permits, every one it refuses, and the occupancy
+  question of which states hold a slot.
+- **`BookingRulesTest`** (8) — the booking rules: the clinic's hours, the
+  conflict check, and a slot in the past.
+- **`PatientAccessGuardTest`** (11) — ownership decided from the token claim
+  and never from the path.
+- **`PaymentStatusTest`** (13) and **`InvoiceOverdueTest`** (6) — the invoice
+  lifecycle and when an invoice becomes overdue.
+
+`doctor-service`, `prescription-service`, `lab-service`, the gateway and Eureka
+have none. Neither does `CallerIdentity` in `common-lib`, which is now the
+single class deciding record ownership for three services and the most
+valuable untested code in the repository.
+
+Authorization itself is verified against a running stack rather than by a
+suite: 37 checks across every role, including unauthenticated calls straight to
+each service port. That is real evidence, but it is not automated and not
+something a reader of this repository can run.
 
 ---
 
@@ -780,11 +800,12 @@ My_Heart_Project/
 
 Stated plainly, because a README that only lists strengths is not much use.
 
-- **The back end has no test suite.** Its behaviour is verified against a
-  running stack — see [Tests](#tests) — which is real evidence but not
-  automated, and not something a reader of this repository can run. The front
-  end has a suite covering routing, state vocabulary, role permissions and
-  formatting; the pages beyond `/labs` do not have one yet.
+- **Test coverage is uneven.** 92 tests on the front end and 57 on the back —
+  see [Tests](#tests) — but they cover the rules, not the wiring. Five of the
+  eight back-end modules have no tests at all, `CallerIdentity` is untested
+  despite now deciding ownership for three services, no test starts a Spring
+  context or touches a database, and the authorization matrix is checked by
+  hand against a running stack rather than in CI.
 - **No OpenAPI documents and no CI pipeline yet.**
 - **No deployment.** The system runs locally under Docker Compose; hosting is
   deliberately deferred to the end of the project.
