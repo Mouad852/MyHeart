@@ -54,12 +54,16 @@ export function useCancelAppointment(options = {}) {
  * The signed-in doctor's calendar for one day.
  * @param {string} day ISO date, for example 2026-08-27
  */
-export function useMyDay(day) {
+export function useMyDay(day, { enabled = true } = {}) {
   return useQuery({
     queryKey: [...QUERY_KEY, 'my-day', day],
     queryFn: () => appointmentApi.myDay(day),
     // Keep the previous day on screen while the next loads.
     placeholderData: (previous) => previous,
+    // The endpoint scopes itself from the doctorId claim, so a caller without
+    // one is refused. Asking anyway produces a guaranteed 403 rendered as a
+    // failure, which is the opposite of what has happened.
+    enabled,
   })
 }
 

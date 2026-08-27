@@ -36,6 +36,7 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import PageHeader from '../../components/ui/Page'
 import Figures from '../../components/ui/Figures'
 import { Panel } from '../../components/ui/Panel'
+import { useAuth } from '../../auth/AuthProvider'
 
 const ISO_DAY = 'yyyy-MM-dd'
 
@@ -251,7 +252,15 @@ function NowMarker() {
 
 export default function TodayWorkspace() {
   const [day, setDay] = useState(() => format(new Date(), ISO_DAY))
-  const { data, isLoading, isError, error } = useMyDay(day)
+
+  // This screen is one doctor's own list, and the server builds it from the
+  // doctorId claim rather than from anything sent with the request. An
+  // administrator has the route but no claim, so there is no day to fetch:
+  // never offer what the server will refuse.
+  const { doctorId } = useAuth()
+  const hasADay = doctorId !== null && doctorId !== undefined
+
+  const { data, isLoading, isError, error } = useMyDay(day, { enabled: hasADay })
   const transition = useAppointmentTransition()
 
   const viewingToday = isToday(parseISO(day))
@@ -293,6 +302,7 @@ export default function TodayWorkspace() {
 
   const summary = () => {
     if (isLoading) return 'Reading your list…'
+    if (!hasADay) return 'You are signed in as staff rather than as a doctor, so there is no day here to show.'
     if (isError) return 'Your list could not be loaded.'
     if (!rows.length) return viewingToday ? 'Nothing is booked for you today.' : 'Nothing booked.'
     const next = rows.find((row) => row.id === nextId)
@@ -310,6 +320,7 @@ export default function TodayWorkspace() {
         description={summary()}
         actions={<DayNavigator day={day} onChange={setDay} />}
         meta={
+          hasADay ? (
           <Figures
             isLoading={isLoading}
             figures={[
@@ -319,13 +330,34 @@ export default function TodayWorkspace() {
               { label: 'Did not attend', value: counts.missed, tone: 'attention' },
             ]}
           />
+          ) : null
         }
       />
 
       <Panel>
-        {isLoading && <SkeletonRows rows={4} label="Loading your day" />}
+        {/*
+          Not an error, and not "nothing booked" either. An administrator does
+          not have an empty day; they do not have a day at all, and saying
+          "nothing booked for you today" would invite them to wonder where their
+          patients went. Name the reason, and point at the screen that does
+          answer the question they probably came here with.
+        */}
+        {!hasADay && (
+          <EmptyState
+            icon={CalendarDays}
+            title="This screen belongs to a doctor"
+            description="Today is one doctor's own list, built from the doctorId claim in their token. Your account is not a doctor's, so there is nothing to draw here. The calendar shows every doctor's day side by side."
+            action={
+              <Link to="/appointments/calendar" className="btn btn-secondary btn-sm">
+                Open the calendar
+              </Link>
+            }
+          />
+        )}
 
-        {isError && (
+        {hasADay && isLoading && <SkeletonRows rows={4} label="Loading your day" />}
+
+        {hasADay && isError && (
           <div className="p-5">
             <ErrorBanner
               title="Your day could not be loaded"
@@ -334,7 +366,7 @@ export default function TodayWorkspace() {
           </div>
         )}
 
-        {!isLoading && !isError && rows.length === 0 && (
+        {hasADay && !isLoading && !isError && rows.length === 0 && (
           <EmptyState
             icon={CalendarDays}
             title="Nothing booked for this day"
