@@ -19,5 +19,23 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // jsdom tests are transformed by esbuild rather than by the React plugin,
+    // which leaves JSX compiled to the classic runtime and React undefined.
+    esbuild: { jsx: 'automatic' },
+
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: './src/test/setup.js',
+      // Only our own tests. Without this, Vitest walks node_modules.
+      include: ['src/**/*.test.{js,jsx}'],
+      restoreMocks: true,
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'html'],
+        include: ['src/**/*.{js,jsx}'],
+        exclude: ['src/**/*.test.{js,jsx}', 'src/test/**', 'src/main.jsx'],
+      },
+    },
   }
 })
