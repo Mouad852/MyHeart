@@ -13,16 +13,23 @@ from anything the browser sends.
 > Every record in this deployment is fictional. This is a portfolio project and
 > is not certified for real medical data.
 
-![A walkthrough of the screens](docs/walkthrough.gif)
+### [Open the live demo →](https://myheart.mdchaouni.workers.dev)
 
-*Eight screens in order, captured from the running system. The longer version -
-fourteen screens, with the full-page views scrolled - is
-[docs/walkthrough.mp4](docs/walkthrough.mp4).*
+Seven roles, one click each, no password. It is the real interface answering its
+own requests, with the same clinic as the seeded database - see
+[the hosted demo](#the-hosted-demo) for what that means and what it does not.
+
+![A walkthrough of MedCore](docs/walkthrough.gif)
+
+*Thirteen seconds of the full walkthrough. The whole thing, two and a half
+minutes across every screen and three accounts, is
+[docs/medcore-walkthrough.mp4](docs/medcore-walkthrough.mp4).*
 
 ---
 
 ## Contents
 
+- [Live demo](https://myheart.mdchaouni.workers.dev)
 - [What it does](#what-it-does)
 - [The screens](#the-screens)
 - [Running it](#running-it)
@@ -465,6 +472,8 @@ demo of a different product:
 
 What it does not do is stated plainly in [`Frontend/src/demo/README.md`](Frontend/src/demo/README.md),
 including that it is a fidelity exercise and not a security boundary.
+
+It is deployed at **<https://myheart.mdchaouni.workers.dev>**.
 
 Deploying it is free. On Cloudflare the settings are root directory
 `Frontend`, build `npm run build`, output `dist`, and the environment variable
